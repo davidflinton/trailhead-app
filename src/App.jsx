@@ -100,6 +100,14 @@ export default function App() {
 
   const [formData, setFormData] = useState(defaultForm)
 
+  useEffect(() => {
+    const savedSession = localStorage.getItem('trailhead_session')
+    const savedCamp = localStorage.getItem('trailhead_active_camp')
+    
+    if (savedSession) setSession(JSON.parse(savedSession))
+    if (savedCamp) loadCampData(JSON.parse(savedCamp))
+  }, [])
+
   function generateCamperId() {
     const chars = 'BCDFGHJKMOPQRTVWXY2346789'
     let id = ''
@@ -210,6 +218,7 @@ export default function App() {
   }
 
   async function loadCampData(camp) {
+    localStorage.setItem('trailhead_active_camp', JSON.stringify(camp))
     setActiveCamp(camp)
     setCampBranding({
       name: camp.name || 'Trailhead',
@@ -284,7 +293,9 @@ export default function App() {
     const pass = passwordInput
 
     if (input === 'MASTER' && pass === 'rooster') {
-      setSession({ userType: 'creator', role: 'Creator', name: 'Rooster', team: 'Global', trailheadId: 'BACKDOOR', campId: null, profileId: null })
+      const masterSession = { userType: 'creator', role: 'Creator', name: 'Rooster', team: 'Global', trailheadId: 'BACKDOOR', campId: null, profileId: null }
+      setSession(masterSession)
+      localStorage.setItem('trailhead_session', JSON.stringify(masterSession))
       setLoginInput('')
       setPasswordInput('')
       return
@@ -307,7 +318,10 @@ export default function App() {
     else if (data.is_camp_admin) uType = 'camp_admin'
     else if (data.camp_role === 'Youth Camper') uType = 'camper'
 
-    setSession({ userType: uType, role: data.camp_role, team: data.team, name: data.preferred_name || data.first_name, profileId: data.id, trailheadId: data.trailhead_id, campId: data.camp_id })
+    const sessionData = { userType: uType, role: data.camp_role, team: data.team, name: data.preferred_name || data.first_name, profileId: data.id, trailheadId: data.trailhead_id, campId: data.camp_id }
+    
+    setSession(sessionData)
+    localStorage.setItem('trailhead_session', JSON.stringify(sessionData))
 
     if (uType === 'creator' && !data.camp_id) {
       setLoginInput('')
@@ -331,6 +345,8 @@ export default function App() {
     setActiveCamp(null)
     setActiveTab('home')
     setSelectedLobbyCamp('')
+    localStorage.removeItem('trailhead_session')
+    localStorage.removeItem('trailhead_active_camp')
   }
 
   async function logAction(actionType, targetProfile, detailsStr) {
@@ -985,7 +1001,7 @@ export default function App() {
           
           {/* Return to Lobby Button for Global Creators */}
           {isCreatorLogin && !session.campId && (
-            <button onClick={() => { setActiveCamp(null); setActiveTab('home'); }} style={{ background: 'none', border: 'none', color: '#a3b3a9', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold', fontSize: '14px' }}>
+            <button onClick={() => { setActiveCamp(null); setActiveTab('home'); localStorage.removeItem('trailhead_active_camp'); }} style={{ background: 'none', border: 'none', color: '#a3b3a9', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold', fontSize: '14px' }}>
               <Tent size={16} /> Lobby
             </button>
           )}
@@ -1016,8 +1032,7 @@ export default function App() {
         )}
         
         {activeTab === 'social' && (
-          <SocialTab campBranding={campBranding} inputStyle={inputStyle} />
-        )}
+        <SocialTab campBranding={campBranding} inputStyle={inputStyle} session={session} activeCamp={activeCamp} />        )}
         
         {activeTab === 'challenges' && (
           <ChallengesTab isCampAdminLogin={isCampAdminLogin} campBranding={campBranding} />
