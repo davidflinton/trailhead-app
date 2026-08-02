@@ -30,7 +30,11 @@ const ROLES = [
 export default function App() {
   const [session, setSession] = useState(null)
   const [activeCamp, setActiveCamp] = useState(null)
-  const [activeTab, setActiveTab] = useState('home')
+  const [activeTab, setActiveTab] = useState(localStorage.getItem('trailhead_active_tab') || 'home')
+
+useEffect(() => {
+  localStorage.setItem('trailhead_active_tab', activeTab)
+}, [activeTab])
   const [camps, setCamps] = useState([])
   
   // Lobby State 
@@ -318,7 +322,7 @@ export default function App() {
     else if (data.is_camp_admin) uType = 'camp_admin'
     else if (data.camp_role === 'Youth Camper') uType = 'camper'
 
-    const sessionData = { userType: uType, role: data.camp_role, team: data.team, name: data.preferred_name || data.first_name, profileId: data.id, trailheadId: data.trailhead_id, campId: data.camp_id }
+    const sessionData = { userType: uType, role: data.camp_role, team: data.team, name: data.preferred_name || data.first_name, profileId: data.id, trailheadId: data.trailhead_id, campId: data.camp_id, photoUrl: data.photo_url }
     
     setSession(sessionData)
     localStorage.setItem('trailhead_session', JSON.stringify(sessionData))
@@ -347,6 +351,7 @@ export default function App() {
     setSelectedLobbyCamp('')
     localStorage.removeItem('trailhead_session')
     localStorage.removeItem('trailhead_active_camp')
+    localStorage.removeItem('trailhead_active_tab')
   }
 
   async function logAction(actionType, targetProfile, detailsStr) {
@@ -1047,7 +1052,7 @@ export default function App() {
         )}
         
         {activeTab === 'profile' && (
-          <ProfileTab session={session} campBranding={campBranding} />
+          <<ProfileTab session={session} setSession={setSession} campBranding={campBranding} /
         )}
         
         {activeTab === 'admin' && (

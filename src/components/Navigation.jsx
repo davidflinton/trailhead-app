@@ -1,7 +1,18 @@
-import { Home, Camera, Trophy, Users, Wrench, User, Settings } from 'lucide-react'
+import { Home, Camera, Trophy, Users, Wrench, Settings, Tent } from 'lucide-react'
 
 export default function Navigation({ activeTab, setActiveTab, campBranding, session }) {
   
+  // Custom Profile Icon Component that checks for a user photo
+  const ProfileIcon = () => (
+    <div style={{ width: '24px', height: '24px', borderRadius: '50%', backgroundColor: campBranding.primaryColor, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+      {session?.photoUrl ? (
+        <img src={session.photoUrl} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      ) : (
+        <Tent size={14} color={campBranding.secondaryColor} />
+      )}
+    </div>
+  )
+
   const NavButton = ({ tab, icon: Icon, label }) => {
     const isActive = activeTab === tab
     return (
@@ -22,7 +33,7 @@ export default function Navigation({ activeTab, setActiveTab, campBranding, sess
       <NavButton tab="challenges" icon={Trophy} label="Challenges" />
       <NavButton tab="team" icon={Users} label="Team" />
       <NavButton tab="requests" icon={Wrench} label="Requests" />
-      <NavButton tab="profile" icon={User} label="Profile" />
+      <NavButton tab="profile" icon={ProfileIcon} label="Profile" />
       {session.userType !== 'camper' && <NavButton tab="admin" icon={Settings} label="Admin" />}
     </div>
   )
