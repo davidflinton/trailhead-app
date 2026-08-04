@@ -1,4 +1,4 @@
-import { Calendar as CalendarIcon, Edit3, Save, Pin, Trash2, Plus } from 'lucide-react'
+import { Calendar as CalendarIcon, Edit3, Save, Pin, Trash2, Plus, Megaphone, Tent } from 'lucide-react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
 
@@ -18,8 +18,75 @@ export default function HomeTab({
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      <h1 style={{ margin: 0, color: '#182821', fontFamily: "'Oswald', sans-serif", textTransform: 'uppercase' }}>Camp Feed</h1>
       
+      {/* Announcements Section */}
+      <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', border: '1px solid #d1ccc0' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #efebe0', paddingBottom: '10px', marginBottom: '15px' }}>
+          <h3 style={{ margin: 0, color: '#182821', fontFamily: "'Oswald', sans-serif", textTransform: 'uppercase' }}>Announcements</h3>
+          {isCampAdminLogin && (
+            <button onClick={openNewAnnouncementModal} style={{ padding: '6px 12px', backgroundColor: campBranding.secondaryColor, color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <Plus size={14} /> New Post
+            </button>
+          )}
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          {announcements.length === 0 ? (
+            <div style={{ padding: '20px', textAlign: 'center', color: '#a3b3a9', fontStyle: 'italic' }}>No announcements right now.</div>
+          ) : (
+            announcements.map((ann, index) => (
+              <div key={ann.id} style={{ display: 'flex', gap: '15px', padding: '15px 0', borderBottom: index === announcements.length - 1 ? 'none' : '1px solid #efebe0', textAlign: 'left' }}>
+                
+                {/* Left Column: Unread Dot & Avatar */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginTop: '5px' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: ann.is_pinned ? campBranding.secondaryColor : '#dc2626', marginTop: '16px', flexShrink: 0 }}></div>
+                  <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: campBranding.primaryColor, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+                    {ann.author_photo ? (
+                      <img src={ann.author_photo} alt="Author" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <Tent size={20} color={campBranding.secondaryColor} />
+                    )}
+                  </div>
+                </div>
+                
+                {/* Right Column: Message Content */}
+                <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  
+                  {/* Context Label & Admin Controls */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#a3b3a9', fontSize: '12px', fontWeight: 'bold' }}>
+                      {ann.is_pinned ? <Pin size={14} color={campBranding.secondaryColor} /> : <Megaphone size={14} color="#dc2626" />}
+                      <span>{ann.is_pinned ? "PINNED ANNOUNCEMENT" : "Announcement"}</span>
+                    </div>
+                    {isCampAdminLogin && (
+                      <div style={{ display: 'flex', gap: '10px' }}>
+                        <button onClick={() => openEditAnnouncementModal(ann)} style={{ background: 'none', border: 'none', color: '#14532d', cursor: 'pointer', padding: 0 }}><Edit3 size={14} /></button>
+                        <button onClick={() => handleDeleteAnnouncement(ann.id, 'this announcement')} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', padding: 0 }}><Trash2 size={14} /></button>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Inline Name and Content with Quill Alignment Fixes */}
+                  <div style={{ color: '#182821', fontSize: '15px', lineHeight: '1.5' }}>
+                    <strong style={{ marginRight: '8px' }}>{ann.author_name}:</strong>
+                    <span className="ql-snow" style={{ display: 'inline-block', verticalAlign: 'top', width: '100%' }}>
+                      <span className="ql-editor" style={{ padding: 0 }} dangerouslySetInnerHTML={{ __html: ann.content }} />
+                    </span>
+                  </div>
+                  
+                  {/* Footer Row */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#a3b3a9', fontSize: '12px', marginTop: '4px' }}>
+                    <span>{campBranding.name}</span>
+                    <span>{new Date(ann.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                  </div>
+                  
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
       {/* About Section */}
       <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', border: '1px solid #d1ccc0' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #efebe0', paddingBottom: '10px', marginBottom: '15px' }}>
@@ -42,10 +109,9 @@ export default function HomeTab({
             </div>
           </div>
         ) : (
-          <div 
-            style={{ margin: 0, color: '#182821', lineHeight: '1.6' }} 
-            dangerouslySetInnerHTML={{ __html: campBranding.aboutText || "<p>Welcome to camp! Add a description here.</p>" }} 
-          />
+          <div className="ql-snow" style={{ textAlign: 'left' }}>
+            <div className="ql-editor" style={{ padding: 0, color: '#182821', lineHeight: '1.6' }} dangerouslySetInnerHTML={{ __html: campBranding.aboutText || "<p>Welcome to camp! Add a description here.</p>" }} />
+          </div>
         )}
       </div>
 
@@ -77,44 +143,6 @@ export default function HomeTab({
         )}
       </div>
 
-      {/* Announcements Section */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
-        <h2 style={{ margin: 0, color: '#182821', fontFamily: "'Oswald', sans-serif", textTransform: 'uppercase' }}>Announcements</h2>
-        {isCampAdminLogin && (
-          <button onClick={openNewAnnouncementModal} style={{ padding: '8px 12px', backgroundColor: campBranding.secondaryColor, color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <Plus size={14} /> New Post
-          </button>
-        )}
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-        {announcements.length === 0 ? (
-          <div style={{ padding: '20px', textAlign: 'center', color: '#a3b3a9', backgroundColor: 'white', borderRadius: '8px', border: '1px dashed #d1ccc0' }}>No announcements yet.</div>
-        ) : (
-          announcements.map(ann => (
-            <div key={ann.id} style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', border: ann.is_pinned ? `2px solid ${campBranding.secondaryColor}` : '1px solid #d1ccc0', position: 'relative' }}>
-              {ann.is_pinned && (
-                <div style={{ position: 'absolute', top: '-10px', left: '20px', backgroundColor: campBranding.secondaryColor, color: 'white', padding: '2px 8px', borderRadius: '10px', fontSize: '10px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Pin size={10} /> PINNED
-                </div>
-              )}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px', marginTop: ann.is_pinned ? '5px' : '0' }}>
-                <div>
-                  <h3 style={{ margin: '0 0 5px 0', color: ann.is_pinned ? campBranding.secondaryColor : '#182821' }}>{ann.title}</h3>
-                  <span style={{ fontSize: '12px', color: '#a3b3a9' }}>Posted by {ann.author_name} • {new Date(ann.created_at).toLocaleDateString()}</span>
-                </div>
-                {isCampAdminLogin && (
-                  <div style={{ display: 'flex', gap: '10px' }}>
-                    <button onClick={() => openEditAnnouncementModal(ann)} style={{ background: 'none', border: 'none', color: '#14532d', cursor: 'pointer' }}><Edit3 size={16} /></button>
-                    <button onClick={() => handleDeleteAnnouncement(ann.id, ann.title)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer' }}><Trash2 size={16} /></button>
-                  </div>
-                )}
-              </div>
-              <div style={{ margin: 0, color: '#182821', lineHeight: '1.5' }} dangerouslySetInnerHTML={{ __html: ann.content }} />
-            </div>
-          ))
-        )}
-      </div>
     </div>
   )
 }
