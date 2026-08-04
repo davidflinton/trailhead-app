@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { supabase } from '../supabaseClient'
 import { Tent, Users, CheckSquare, MessageSquare, LogOut, ChevronDown, MessageCircle, AlertCircle, Activity } from 'lucide-react'
 import StaffManager from './StaffManager'
 import DiscussionBoard from './DiscussionBoard'
@@ -10,11 +11,17 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
 
   // Placeholder data for the dropdown. 
   // Normally you would fetch this on mount using supabase.from('camps').select('*')
-  const mockedCamps = [
-    { id: 'camp_1', name: 'Pine Valley Retreat' },
-    { id: 'camp_2', name: 'Lakeview Youth Camp' },
-    { id: 'camp_3', name: 'Mountain Ridge RV Park' }
-  ]
+  const [activeCamps, setActiveCamps] = useState([])
+
+  useEffect(() => {
+    const fetchCamps = async () => {
+      // Note: If your column is named something other than 'name' (like 'camp_name'), you will need to adjust the mapping below.
+      const { data, error } = await supabase.from('camps').select('*')
+      if (data) setActiveCamps(data)
+      if (error) console.error("Error fetching camps:", error.message)
+    }
+    fetchCamps()
+  }, [])
 
   // Official Brand Palette
   const colors = {
@@ -47,7 +54,7 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
     const campId = e.target.value
     setSelectedCampId(campId)
     if (campId) {
-      const camp = mockedCamps.find(c => c.id === campId)
+      const camp = activeCamps.find(c => c.id === campId) // Now searching activeCamps
       setCampData(camp)
       setActiveTab('news')
     }
@@ -115,7 +122,7 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
                   style={{ width: '100%', padding: '12px 16px', borderRadius: '4px', backgroundColor: '#fff', color: colors.textDark, border: `1px solid ${colors.muted}`, appearance: 'none', outline: 'none', fontFamily: fonts.header, fontSize: '20px', letterSpacing: '1px', cursor: 'pointer' }}
                 >
                   <option value="">-- Choose a Camp --</option>
-                  {mockedCamps.map(camp => (
+                  {activeCamps.map(camp => (
                     <option key={camp.id} value={camp.id}>{camp.name}</option>
                   ))}
                 </select>
