@@ -24,6 +24,26 @@ export default function App() {
   const [isMoreOpen, setIsMoreOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 
+  // Official Brand Palette
+  const colors = {
+    background: '#16281D',
+    sidebar: '#0F1D14',
+    panel: '#F1E8D0',
+    textDark: '#24201A',
+    textLight: '#F1E8D0',
+    primary: '#C1531B',
+    muted: '#6B6250',
+    error: '#E8896B',
+    highlight: '#1E3524'
+  }
+
+  // Official Fonts
+  const fonts = {
+    header: "'Staatliches', sans-serif",
+    body: "'Karla', sans-serif",
+    utility: "'JetBrains Mono', monospace"
+  }
+
   // 1. Check Authentication State
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -48,7 +68,6 @@ export default function App() {
 
   async function fetchUserData() {
     try {
-      // Get the user's profile
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -58,7 +77,6 @@ export default function App() {
       if (profileError) throw profileError
       setProfile(profileData)
 
-      // Get their specific camp data to determine the face of the app
       if (profileData?.camp_id) {
         const { data: campResult, error: campError } = await supabase
           .from('camps')
@@ -78,7 +96,7 @@ export default function App() {
 
   // 3. Render Loading State
   if (isLoading) {
-    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#f9f8f6' }}>Loading Trailhead...</div>
+    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: colors.background, color: colors.primary, fontFamily: fonts.header, fontSize: '24px', letterSpacing: '2px' }}>LOADING TRAILHEAD...</div>
   }
 
   // 4. Render Login Screen if no session exists
@@ -96,28 +114,28 @@ export default function App() {
   const DrawerLink = ({ label, targetTab }) => (
     <button 
       onClick={() => { setActiveTab(targetTab); setIsMoreOpen(false); }} 
-      style={{ textAlign: 'left', background: 'none', border: 'none', fontSize: '16px', color: '#182821', cursor: 'pointer', fontWeight: 'bold', padding: '10px 0' }}
+      style={{ textAlign: 'left', background: 'none', border: 'none', fontSize: '16px', color: colors.textLight, cursor: 'pointer', fontFamily: fonts.body, fontWeight: 'bold', padding: '12px 0', borderBottom: `1px solid ${colors.highlight}` }}
     >
       {label}
     </button>
   )
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: '#f9f8f6', fontFamily: 'sans-serif' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: colors.background, color: colors.textLight, fontFamily: fonts.body }}>
       
       {/* GLOBAL TOP HEADER */}
-      <div style={{ backgroundColor: '#14532d', color: 'white', padding: '15px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', zIndex: 10 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }} onClick={() => setActiveTab('news')}>
-          <Tent size={24} />
-          <h1 style={{ margin: 0, fontSize: '20px', fontFamily: "'Oswald', sans-serif", textTransform: 'uppercase', letterSpacing: '1px' }}>
+      <div style={{ backgroundColor: colors.sidebar, padding: '15px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `2px solid ${colors.highlight}`, zIndex: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }} onClick={() => setActiveTab('news')}>
+          <Tent size={28} color={colors.primary} />
+          <h1 style={{ margin: 0, fontSize: '24px', fontFamily: fonts.header, color: colors.textLight, textTransform: 'uppercase', letterSpacing: '2px' }}>
             {campData?.name || 'Trailhead'}
           </h1>
         </div>
         
-        {/* Notification Bell with Badge */}
-        <button style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', position: 'relative' }}>
+        {/* Notification Bell */}
+        <button style={{ background: 'none', border: 'none', color: colors.textLight, cursor: 'pointer', position: 'relative' }}>
           <Bell size={24} />
-          <span style={{ position: 'absolute', top: '-2px', right: '-2px', width: '10px', height: '10px', backgroundColor: '#dc2626', borderRadius: '50%', border: '2px solid #14532d' }}></span>
+          <span style={{ position: 'absolute', top: '0', right: '0', width: '10px', height: '10px', backgroundColor: colors.error, borderRadius: '50%', border: `2px solid ${colors.sidebar}` }}></span>
         </button>
       </div>
 
@@ -125,40 +143,40 @@ export default function App() {
       <div style={{ flexGrow: 1, overflowY: 'auto', padding: '20px', position: 'relative' }}>
         
         {/* Core Tabs */}
-        {activeTab === 'news' && <NewsTab activeCamp={campData} />}
-        {activeTab === 'events' && <EventsTab activeCamp={campData} />}
-        {activeTab === 'social' && <SocialTab session={session} activeCamp={campData} />}
-        {activeTab === 'profile' && <ProfileTab session={session} profile={profile} />}
+        {activeTab === 'news' && <NewsTab activeCamp={campData} colors={colors} fonts={fonts} />}
+        {activeTab === 'events' && <EventsTab activeCamp={campData} colors={colors} fonts={fonts} />}
+        {activeTab === 'social' && <SocialTab session={session} activeCamp={campData} colors={colors} fonts={fonts} />}
+        {activeTab === 'profile' && <ProfileTab session={session} profile={profile} colors={colors} fonts={fonts} />}
         
         {/* Admin & Utility Tabs */}
-        {activeTab === 'admin' && <AdminTab profile={profile} campData={campData} />}
-        {activeTab === 'challenges' && <ChallengesTab activeCamp={campData} />}
-        {activeTab === 'requests' && <RequestsTab activeCamp={campData} />}
+        {activeTab === 'admin' && <AdminTab profile={profile} campData={campData} colors={colors} fonts={fonts} />}
+        {activeTab === 'challenges' && <ChallengesTab activeCamp={campData} colors={colors} fonts={fonts} />}
+        {activeTab === 'requests' && <RequestsTab activeCamp={campData} colors={colors} fonts={fonts} />}
         
         {/* Conditional Tabs based on Camp Type */}
-        {activeTab === 'teams' && campData?.type === 'youth_camp' && <TeamTab activeCamp={campData} />}
-        {activeTab === 'comms' && campData?.type === 'standard_rv' && <div>Comms Component Here</div>}
+        {activeTab === 'teams' && campData?.type === 'youth_camp' && <TeamTab activeCamp={campData} colors={colors} fonts={fonts} />}
+        {activeTab === 'comms' && campData?.type === 'standard_rv' && <div style={{ color: colors.textLight, fontFamily: fonts.body }}>Comms Component Here</div>}
         
-        {/* Basic Placeholders for Drawer Items */}
-        {activeTab === 'store' && <div>Camp Store Here</div>}
-        {activeTab === 'forms' && <div>Online Forms Here</div>}
+        {/* Placeholders */}
+        {activeTab === 'store' && <div style={{ color: colors.textLight, fontFamily: fonts.body }}>Camp Store Here</div>}
+        {activeTab === 'forms' && <div style={{ color: colors.textLight, fontFamily: fonts.body }}>Online Forms Here</div>}
       </div>
 
       {/* GLOBAL SLIDE-OUT MENU DRAWER */}
       <div 
         onClick={() => setIsMoreOpen(false)} 
-        style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 999, opacity: isMoreOpen ? 1 : 0, pointerEvents: isMoreOpen ? 'auto' : 'none', transition: 'opacity 0.3s' }}
+        style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 999, opacity: isMoreOpen ? 1 : 0, pointerEvents: isMoreOpen ? 'auto' : 'none', transition: 'opacity 0.3s' }}
       >
         <div 
           onClick={(e) => e.stopPropagation()} 
-          style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: '280px', backgroundColor: 'white', boxShadow: '-2px 0 10px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column', transform: isMoreOpen ? 'translateX(0)' : 'translateX(100%)', transition: 'transform 0.3s ease-in-out' }}
+          style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: '280px', backgroundColor: colors.sidebar, borderLeft: `2px solid ${colors.highlight}`, display: 'flex', flexDirection: 'column', transform: isMoreOpen ? 'translateX(0)' : 'translateX(100%)', transition: 'transform 0.3s ease-in-out' }}
         >
-          <div style={{ padding: '20px', backgroundColor: '#14532d', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2 style={{ margin: 0, fontSize: '18px', fontFamily: "'Oswald', sans-serif", textTransform: 'uppercase' }}>Menu</h2>
-            <button onClick={() => setIsMoreOpen(false)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}><X size={24} /></button>
+          <div style={{ padding: '20px', backgroundColor: colors.highlight, color: colors.textLight, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2 style={{ margin: 0, fontSize: '22px', fontFamily: fonts.header, letterSpacing: '1px' }}>MENU</h2>
+            <button onClick={() => setIsMoreOpen(false)} style={{ background: 'none', border: 'none', color: colors.textLight, cursor: 'pointer' }}><X size={24} /></button>
           </div>
           
-          <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto' }}>
+          <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
             
             {/* Admin Links */}
             {(profile?.access_tier === 'global_superadmin' || profile?.access_tier === 'global_admin' || profile?.access_tier === 'camp_superadmin' || profile?.access_tier === 'camp_admin') && (
@@ -198,12 +216,12 @@ export default function App() {
               </>
             )}
             
-            {/* Leave Camp Button for Global Admins to return to Lobby */}
+            {/* Leave Camp Button */}
             {isGlobalAdmin && (
-              <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px solid #e5e7eb' }}>
+              <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: `2px solid ${colors.highlight}` }}>
                 <button 
                   onClick={() => { setCampData(null); setIsMoreOpen(false); }} 
-                  style={{ textAlign: 'left', background: 'none', border: 'none', fontSize: '16px', color: '#c05b26', cursor: 'pointer', fontWeight: 'bold' }}
+                  style={{ textAlign: 'left', background: 'none', border: 'none', fontSize: '16px', color: colors.primary, cursor: 'pointer', fontFamily: fonts.body, fontWeight: 'bold' }}
                 >
                   Return to Global Lobby
                 </button>
@@ -217,7 +235,7 @@ export default function App() {
       <Navigation 
         activeTab={activeTab} 
         setActiveTab={setActiveTab} 
-        campBranding={{ primaryColor: '#14532d', secondaryColor: '#d97706' }} 
+        campBranding={{ primaryColor: colors.sidebar, secondaryColor: colors.primary }} 
         session={profile} 
         campType={campData?.type}
         setIsMoreOpen={setIsMoreOpen} 
