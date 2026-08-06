@@ -398,7 +398,7 @@ export default function StaffManager({ colors, fonts, isDarkMode }) {
                 </button>
                 <button 
                   onClick={() => {
-                    const encodedUrl = encodeURIComponent(`https://trailhead.local/login?id=${selected.trailhead_id}&reset=true`)
+                    const encodedUrl = encodeURIComponent(`https://trailhead.local/reset-password?id=${selected.trailhead_id}`)
                     setShowQrCode(`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodedUrl}`)
                   }} 
                   style={{ backgroundColor: colors.highlight, color: '#FFF', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.utility, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
