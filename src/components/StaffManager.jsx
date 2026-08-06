@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
-import { Mail, Smartphone, Dices, RefreshCw, LayoutDashboard, List, UserPlus, Edit2, Check, X } from 'lucide-react'
+import { Mail, Smartphone, Dices, RefreshCw, LayoutDashboard, List, UserPlus, Edit2, Check, X, ShieldAlert, Trash2, Key, ToggleLeft, ToggleRight } from 'lucide-react'
 
-// Word dictionary for passphrase generation
 const words = ['cow', 'truck', 'sing', 'water', 'diner', 'wolf', 'bear', 'tent', 'pine', 'camp', 'fire', 'wood', 'lake', 'moon', 'star', 'leaf', 'rock', 'path', 'trail', 'fish', 'bird', 'hawk', 'deer', 'frog', 'toad', 'moss', 'fern', 'dirt', 'mud', 'sand', 'sun', 'sky', 'cloud', 'rain', 'snow', 'wind', 'storm', 'cold', 'warm', 'hot', 'cool', 'base', 'peak', 'hill', 'ridge', 'creek', 'river', 'pond', 'bog']
 
 const generatePassphrase = () => {
@@ -38,17 +37,16 @@ export default function StaffManager({ colors, fonts }) {
   const [isLoading, setIsLoading] = useState(false)
   const [feedbackMsg, setFeedbackMsg] = useState(null)
   
-  // Directory Action State
   const [selectedStaffId, setSelectedStaffId] = useState(null)
   const [isCreatingStaff, setIsCreatingStaff] = useState(false)
   const [isEditingStaff, setIsEditingStaff] = useState(false)
 
   const defaultStaffForm = {
     prefix: '', firstName: '', middleName: '', lastName: '', suffix: '', 
-    displayName: '', preferredGender: '', spokenLanguages: '', 
+    displayName: '', preferredPronouns: '', spokenLanguages: '', 
     idSuffix: generateRandomIdSuffix(), email: '', phone: '', 
     role: 'QA Tester', passphrase: generatePassphrase(),
-    position: '', startDate: '', assignedCamps: []
+    position: '', startDate: '', endDate: '', assignedCamps: []
   }
   
   const [staffForm, setStaffForm] = useState(defaultStaffForm)
@@ -124,10 +122,12 @@ export default function StaffManager({ colors, fonts }) {
           last_name: staffForm.lastName,
           suffix: staffForm.suffix || null,
           display_name: staffForm.displayName || null,
-          preferred_gender: staffForm.preferredGender || null,
+          preferred_pronouns: staffForm.preferredPronouns || null,
           spoken_languages: staffForm.spokenLanguages || null,
           position: staffForm.position || null,
           start_date: staffForm.startDate || null,
+          end_date: staffForm.endDate || null,
+          is_active: true,
           assigned_camps: staffForm.assignedCamps,
           trailhead_id: fullTrailheadId,
           access_tier: staffForm.role === 'Global Superadmin' ? 'global_superadmin' : 
@@ -135,17 +135,6 @@ export default function StaffManager({ colors, fonts }) {
         }])
 
       if (profileError) throw profileError
-
-      const { error: employeeError } = await supabase
-        .from('employees')
-        .insert([{
-          profile_id: newUserId,
-          email: staffForm.email,
-          phone: staffForm.phone,
-          role: staffForm.role
-        }])
-
-      if (employeeError) throw employeeError
 
       setFeedbackMsg(`Success. Account ${fullTrailheadId} created. Setup link sent via ${method.toUpperCase()}.`)
       resetStaffForm()
@@ -173,10 +162,11 @@ export default function StaffManager({ colors, fonts }) {
           last_name: staffForm.lastName,
           suffix: staffForm.suffix || null,
           display_name: staffForm.displayName || null,
-          preferred_gender: staffForm.preferredGender || null,
+          preferred_pronouns: staffForm.preferredPronouns || null,
           spoken_languages: staffForm.spokenLanguages || null,
           position: staffForm.position || null,
           start_date: staffForm.startDate || null,
+          end_date: staffForm.endDate || null,
           assigned_camps: staffForm.assignedCamps,
           trailhead_id: fullTrailheadId,
           access_tier: staffForm.role === 'Global Superadmin' ? 'global_superadmin' : 
@@ -192,6 +182,54 @@ export default function StaffManager({ colors, fonts }) {
       setFeedbackMsg(`Error: ${error.message}`)
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handleToggleAccess = async () => {
+    const selected = activeStaff.find(s => s.id === selectedStaffId)
+    if (!selected) return
+
+    try {
+      const { error } = await supabase
+        .from('trailhead_personnel')
+        .update({ is_active: !selected.is_active })
+        .eq('id', selectedStaffId)
+
+      if (error) throw error
+      setFeedbackMsg(`Success. Account access has been ${!selected.is_active ? 'enabled' : 'disabled'}.`)
+      fetchStaffDirectory()
+    } catch (error) {
+      setFeedbackMsg(`Error updating access: ${error.message}`)
+    }
+  }
+
+  const handlePasswordReset = async () => {
+    const selected = activeStaff.find(s => s.id === selectedStaffId)
+    if (!selected) return
+    
+    const authEmail = `${selected.trailhead_id.toLowerCase()}@trailhead.local`
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(authEmail)
+      if (error) throw error
+      setFeedbackMsg(`Password reset link has been dispatched to the user's registered email.`)
+    } catch (error) {
+      setFeedbackMsg(`Error initiating password reset: ${error.message}`)
+    }
+  }
+
+  const handleDeleteAccount = async () => {
+    const confirmDelete = window.confirm("Are you entirely sure you want to delete this staff record? This action cannot be reversed.")
+    if (!confirmDelete) return
+
+    try {
+      const { error } = await supabase.from('trailhead_personnel').delete().eq('id', selectedStaffId)
+      if (error) throw error
+      setFeedbackMsg("Staff record deleted successfully.")
+      setSelectedStaffId(null)
+      fetchStaffDirectory()
+    } catch (error) {
+      setFeedbackMsg(`Error deleting account: ${error.message}`)
     }
   }
 
@@ -219,10 +257,11 @@ export default function StaffManager({ colors, fonts }) {
       lastName: selected.last_name || '',
       suffix: selected.suffix || '',
       displayName: selected.display_name || '',
-      preferredGender: selected.preferred_gender || '',
+      preferredPronouns: selected.preferred_pronouns || '',
       spokenLanguages: selected.spoken_languages || '',
       position: selected.position || '',
       startDate: selected.start_date || '',
+      endDate: selected.end_date || '',
       assignedCamps: selected.assigned_camps || [],
       idSuffix: currentSuffix,
       email: '', 
@@ -254,10 +293,6 @@ export default function StaffManager({ colors, fonts }) {
               <h3 style={{ margin: '0 0 10px 0', color: colors.textDark, fontFamily: fonts.header, fontSize: '24px' }}>NOTIFICATIONS</h3>
               <p style={{ color: colors.muted, fontSize: '14px', margin: 0 }}>No new system alerts at this time.</p>
             </div>
-            <div style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '4px', border: `2px solid #0B140E`, boxShadow: '4px 4px 0px #0B140E' }}>
-              <h3 style={{ margin: '0 0 10px 0', color: colors.textDark, fontFamily: fonts.header, fontSize: '24px' }}>REPORTS</h3>
-              <p style={{ color: colors.muted, fontSize: '14px', margin: 0 }}>Staff performance and activity summaries will generate here.</p>
-            </div>
           </div>
         </div>
       )}
@@ -284,22 +319,41 @@ export default function StaffManager({ colors, fonts }) {
           )}
 
           {/* ACTION BAR WHEN ROW IS SELECTED */}
-          {selectedStaffId && !isCreatingStaff && !isEditingStaff && (
-            <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', padding: '15px', backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: '4px', border: `1px solid ${colors.muted}` }}>
-              <button 
-                onClick={openEditForm} 
-                style={{ backgroundColor: colors.primary, color: colors.textLight, border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.utility, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
-              >
-                <Edit2 size={16} /> EDIT ACCOUNT
-              </button>
-              <button 
-                onClick={() => setSelectedStaffId(null)} 
-                style={{ backgroundColor: 'transparent', color: colors.textLight, border: `1px solid ${colors.muted}`, padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.utility, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
-              >
-                <X size={16} /> DESELECT
-              </button>
-            </div>
-          )}
+          {selectedStaffId && !isCreatingStaff && !isEditingStaff && (() => {
+            const selected = activeStaff.find(s => s.id === selectedStaffId)
+            const isActive = selected?.is_active
+            
+            return (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '20px', padding: '15px', backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: '4px', border: `1px solid ${colors.muted}` }}>
+                <button 
+                  onClick={openEditForm} 
+                  style={{ backgroundColor: colors.primary, color: colors.textLight, border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.utility, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Edit2 size={16} /> EDIT
+                </button>
+                <div style={{ width: '1px', backgroundColor: colors.muted, margin: '0 5px' }}></div>
+                <button 
+                  onClick={handlePasswordReset} 
+                  style={{ backgroundColor: 'transparent', color: colors.textLight, border: `1px solid ${colors.muted}`, padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.utility, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Key size={16} /> RESET PW
+                </button>
+                <button 
+                  onClick={handleToggleAccess} 
+                  style={{ backgroundColor: isActive ? 'transparent' : colors.primary, color: isActive ? colors.textLight : colors.textLight, border: `1px solid ${colors.muted}`, padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.utility, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  {isActive ? <ToggleRight size={16} color={colors.primary} /> : <ToggleLeft size={16} />} 
+                  {isActive ? 'DISABLE' : 'ENABLE'}
+                </button>
+                <button 
+                  onClick={handleDeleteAccount} 
+                  style={{ backgroundColor: colors.error, color: 'white', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.utility, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px', marginLeft: 'auto' }}
+                >
+                  <Trash2 size={16} /> DELETE
+                </button>
+              </div>
+            )
+          })()}
 
           {/* ADD / EDIT FORM */}
           {(isCreatingStaff || isEditingStaff) && (
@@ -312,46 +366,56 @@ export default function StaffManager({ colors, fonts }) {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '15px' }}>
+                
+                {/* NEW COMPACT NAME GRID */}
                 <div style={{ padding: '15px', border: `1px solid ${colors.muted}`, borderRadius: '4px', backgroundColor: 'rgba(255,255,255,0.4)' }}>
                   <label style={{ ...labelStyle, fontSize: '11px', textTransform: 'uppercase', marginBottom: '10px' }}>Identity Information</label>
                   
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '10px', marginBottom: '10px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'minmax(80px, 1fr) 2fr 2fr 2fr minmax(80px, 1fr)', gap: '10px', marginBottom: '15px', alignItems: 'end' }}>
                     <div>
                       <label style={labelStyle}>Prefix</label>
-                      <input type="text" placeholder="Mr, Dr, etc." value={staffForm.prefix} onChange={(e) => setStaffForm({...staffForm, prefix: e.target.value})} style={inputStyle} />
+                      <select value={staffForm.prefix} onChange={(e) => setStaffForm({...staffForm, prefix: e.target.value})} style={inputStyle}>
+                        <option value=""></option>
+                        <option value="Mr.">Mr.</option>
+                        <option value="Ms.">Ms.</option>
+                        <option value="Mrs.">Mrs.</option>
+                        <option value="Dr.">Dr.</option>
+                        <option value="Mx.">Mx.</option>
+                      </select>
                     </div>
                     <div>
                       <label style={labelStyle}>First Name</label>
                       <input type="text" value={staffForm.firstName} onChange={(e) => setStaffForm({...staffForm, firstName: e.target.value})} style={inputStyle} />
                     </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
                     <div>
-                      <label style={labelStyle}>Middle Name</label>
+                      <label style={labelStyle}>Middle</label>
                       <input type="text" value={staffForm.middleName} onChange={(e) => setStaffForm({...staffForm, middleName: e.target.value})} style={inputStyle} />
                     </div>
                     <div>
                       <label style={labelStyle}>Last Name</label>
                       <input type="text" value={staffForm.lastName} onChange={(e) => setStaffForm({...staffForm, lastName: e.target.value})} style={inputStyle} />
                     </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '10px', marginBottom: '10px' }}>
                     <div>
                       <label style={labelStyle}>Suffix</label>
-                      <input type="text" placeholder="Jr, III, etc." value={staffForm.suffix} onChange={(e) => setStaffForm({...staffForm, suffix: e.target.value})} style={inputStyle} />
+                      <select value={staffForm.suffix} onChange={(e) => setStaffForm({...staffForm, suffix: e.target.value})} style={inputStyle}>
+                        <option value=""></option>
+                        <option value="Jr.">Jr.</option>
+                        <option value="Sr.">Sr.</option>
+                        <option value="II">II</option>
+                        <option value="III">III</option>
+                        <option value="IV">IV</option>
+                      </select>
                     </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
                     <div>
                       <label style={labelStyle}>Display Name</label>
                       <input type="text" placeholder="Optional" value={staffForm.displayName} onChange={(e) => setStaffForm({...staffForm, displayName: e.target.value})} style={inputStyle} />
                     </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                     <div>
-                      <label style={labelStyle}>Preferred Gender</label>
-                      <input type="text" placeholder="Open entry" value={staffForm.preferredGender} onChange={(e) => setStaffForm({...staffForm, preferredGender: e.target.value})} style={inputStyle} />
+                      <label style={labelStyle}>Preferred Pronouns</label>
+                      <input type="text" placeholder="They/Them, She/Her, etc." value={staffForm.preferredPronouns} onChange={(e) => setStaffForm({...staffForm, preferredPronouns: e.target.value})} style={inputStyle} />
                     </div>
                     <div>
                       <label style={labelStyle}>Spoken Languages</label>
@@ -375,14 +439,18 @@ export default function StaffManager({ colors, fonts }) {
                   </div>
                 </div>
 
+                {/* COMPACT DATES GRID */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <div>
                     <label style={labelStyle}>Start Date</label>
                     <input type="date" value={staffForm.startDate} onChange={(e) => setStaffForm({...staffForm, startDate: e.target.value})} style={inputStyle} />
                   </div>
+                  <div>
+                    <label style={labelStyle}>End Date (Auto-Disable at 5PM CST)</label>
+                    <input type="date" value={staffForm.endDate} onChange={(e) => setStaffForm({...staffForm, endDate: e.target.value})} style={inputStyle} />
+                  </div>
                 </div>
 
-                {/* DUAL LIST SELECTOR FOR CAMPS */}
                 <div style={{ padding: '15px', border: `1px solid ${colors.muted}`, borderRadius: '4px', backgroundColor: 'rgba(255,255,255,0.4)' }}>
                   <label style={{ ...labelStyle, fontSize: '11px', textTransform: 'uppercase', marginBottom: '10px' }}>Assigned Properties (Click to Move)</label>
                   <div style={{ display: 'flex', gap: '10px', height: '180px' }}>
@@ -508,12 +576,12 @@ export default function StaffManager({ colors, fonts }) {
             </div>
           )}
 
-          {/* DIRECTORY TABLE / LIST */}
           <div style={{ backgroundColor: 'white', borderRadius: '4px', border: `1px solid ${colors.muted}`, overflow: 'hidden' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', padding: '15px 20px', borderBottom: `2px solid ${colors.muted}`, backgroundColor: 'rgba(0,0,0,0.02)', fontFamily: fonts.utility, fontSize: '11px', fontWeight: 'bold', color: colors.muted, textTransform: 'uppercase', letterSpacing: '1px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', padding: '15px 20px', borderBottom: `2px solid ${colors.muted}`, backgroundColor: 'rgba(0,0,0,0.02)', fontFamily: fonts.utility, fontSize: '11px', fontWeight: 'bold', color: colors.muted, textTransform: 'uppercase', letterSpacing: '1px' }}>
               <div>Employee Name</div>
               <div>Trailhead ID</div>
               <div>Access Tier</div>
+              <div>Status</div>
             </div>
             
             {activeStaff.length === 0 ? (
@@ -530,10 +598,10 @@ export default function StaffManager({ colors, fonts }) {
                     key={staff.id}
                     onClick={() => { setSelectedStaffId(staff.id); setIsCreatingStaff(false); setIsEditingStaff(false); }}
                     style={{ 
-                      display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', alignItems: 'center', 
+                      display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', alignItems: 'center', 
                       padding: '15px 20px', borderBottom: `1px solid #eee`, cursor: 'pointer',
                       backgroundColor: isSelected ? 'rgba(193, 83, 27, 0.1)' : 'white',
-                      transition: 'background-color 0.1s'
+                      transition: 'background-color 0.1s', opacity: staff.is_active ? 1 : 0.6
                     }}
                   >
                     <div style={{ color: colors.textDark, fontWeight: 'bold', fontFamily: fonts.body, fontSize: '15px' }}>
@@ -545,6 +613,11 @@ export default function StaffManager({ colors, fonts }) {
                     <div>
                       <span style={{ backgroundColor: colors.highlight, color: colors.textLight, padding: '4px 8px', borderRadius: '2px', fontFamily: fonts.utility, fontSize: '10px', textTransform: 'uppercase' }}>
                         {staff.access_tier ? staff.access_tier.replace('_', ' ') : 'USER'}
+                      </span>
+                    </div>
+                    <div>
+                      <span style={{ color: staff.is_active ? colors.primary : colors.error, fontFamily: fonts.utility, fontSize: '11px', fontWeight: 'bold' }}>
+                        {staff.is_active ? 'ACTIVE' : 'DISABLED'}
                       </span>
                     </div>
                   </div>
