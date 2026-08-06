@@ -11,6 +11,11 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
   const [camps, setCamps] = useState([])
   const [search, setSearch] = useState('')
   const [isLoading, setIsLoading] = useState(true)
+  
+  // New Property State
+  const [isAddingCamp, setIsAddingCamp] = useState(false)
+  const [newCampName, setNewCampName] = useState('')
+  const [newCampType, setNewCampType] = useState('Campground')
 
   // Discussion Board State
   const [selectedProject, setSelectedProject] = useState('Squirrel Hill Campground')
@@ -38,6 +43,19 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
     if (data) setCamps(data)
     if (error) console.error("Error fetching properties:", error.message)
     setIsLoading(false)
+  }
+
+  const handleAddCamp = async () => {
+    if (!newCampName.trim()) return
+    const { error } = await supabase.from('camps').insert([{ name: newCampName.trim(), type: newCampType }])
+    if (error) {
+      console.error("Error adding camp:", error.message)
+    } else {
+      setNewCampName('')
+      setNewCampType('Campground')
+      setIsAddingCamp(false)
+      fetchProperties()
+    }
   }
 
   const handleProjectTextChange = (e) => {
@@ -177,10 +195,50 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
           {/* 1. CAMP MANAGEMENT */}
           {lobbyTab === 'camps' && (
             <div style={{ backgroundColor: colors.panel, padding: '30px', borderRadius: '8px', border: `2px solid ${colors.highlight}` }}>
-              <div style={{ marginBottom: '20px' }}>
-                <h2 style={{ fontFamily: fonts.header, fontSize: '28px', color: colors.textDark, margin: '0 0 5px 0', letterSpacing: '1px' }}>PROPERTY DIRECTORY</h2>
-                <p style={{ color: colors.muted, margin: 0, fontSize: '14px' }}>Search and select a property to view and manage its local console.</p>
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
+                <div>
+                  <h2 style={{ fontFamily: fonts.header, fontSize: '28px', color: colors.textDark, margin: '0 0 5px 0', letterSpacing: '1px' }}>PROPERTY DIRECTORY</h2>
+                  <p style={{ color: colors.muted, margin: 0, fontSize: '14px' }}>Search and select a property to view and manage its local console.</p>
+                </div>
+                <button 
+                  onClick={() => setIsAddingCamp(!isAddingCamp)} 
+                  style={{ backgroundColor: colors.highlight, color: colors.textLight, border: 'none', padding: '10px 15px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.header, fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  {isAddingCamp ? 'CANCEL' : <><Plus size={16} /> ADD PROPERTY</>}
+                </button>
               </div>
+
+              {isAddingCamp && (
+                <div style={{ backgroundColor: 'rgba(193, 83, 27, 0.1)', padding: '20px', borderRadius: '4px', borderLeft: `4px solid ${colors.primary}`, marginBottom: '20px' }}>
+                  <h3 style={{ fontFamily: fonts.header, fontSize: '20px', color: colors.textDark, margin: '0 0 15px 0' }}>CREATE NEW PROPERTY</h3>
+                  <div style={{ display: 'flex', gap: '15px', marginBottom: '15px', flexWrap: 'wrap' }}>
+                    <input 
+                      type="text" 
+                      placeholder="Property Name" 
+                      value={newCampName}
+                      onChange={(e) => setNewCampName(e.target.value)}
+                      style={{ flex: 1, minWidth: '200px', boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, fontFamily: fonts.body }}
+                    />
+                    <select 
+                      value={newCampType}
+                      onChange={(e) => setNewCampType(e.target.value)}
+                      style={{ padding: '10px', boxSizing: 'border-box', borderRadius: '4px', border: `1px solid ${colors.muted}`, fontFamily: fonts.body, backgroundColor: 'white' }}
+                    >
+                      <option value="Campground">Campground</option>
+                      <option value="Youth Camp">Youth Camp</option>
+                      <option value="Standard Property">Standard Property</option>
+                    </select>
+                  </div>
+                  <button 
+                    onClick={handleAddCamp}
+                    style={{ backgroundColor: colors.primary, color: colors.textLight, border: 'none', padding: '10px 20px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.header, fontSize: '14px' }}
+                  >
+                    SAVE PROPERTY
+                  </button>
+                </div>
+              )}
+
               <div style={{ position: 'relative', marginBottom: '20px' }}>
                 <Search size={18} color={colors.muted} style={{ position: 'absolute', left: '12px', top: '12px' }} />
                 <input 
@@ -191,6 +249,7 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
                   style={{ width: '100%', boxSizing: 'border-box', padding: '10px 10px 10px 40px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: 'white', color: colors.textDark, fontSize: '15px', outline: 'none', fontFamily: fonts.body }}
                 />
               </div>
+              
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '500px', overflowY: 'auto' }}>
                 {isLoading ? <div style={{ textAlign: 'center', padding: '20px', color: colors.primary, fontFamily: fonts.utility }}>Loading...</div> : 
                  filteredCamps.length === 0 ? <div style={{ textAlign: 'center', padding: '20px', color: colors.muted }}>No properties found.</div> : 
