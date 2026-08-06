@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
-import { Tent, Users, CheckSquare, MessageSquare, LogOut, Search, MapPin, ArrowRight, ClipboardList, ThumbsUp, MessageCircle, BarChart2, Edit2, Plus, LayoutDashboard, Menu, X } from 'lucide-react'
+import { Tent, Users, CheckSquare, MessageSquare, LogOut, Search, MapPin, ClipboardList, ThumbsUp, MessageCircle, BarChart2, Edit2, Plus, LayoutDashboard, Menu, X, Settings, Trash2, AlertTriangle } from 'lucide-react'
 import StaffManager from './StaffManager'
 
 export default function Lobby({ profile, setCampData, setActiveTab }) {
@@ -12,10 +12,18 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
   const [search, setSearch] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   
-  // New Property State
+  // Property Action State
+  const [selectedCampId, setSelectedCampId] = useState(null)
   const [isAddingCamp, setIsAddingCamp] = useState(false)
-  const [newCampName, setNewCampName] = useState('')
-  const [newCampType, setNewCampType] = useState('Campground')
+  const [isEditingCamp, setIsEditingCamp] = useState(false)
+  const [isDeletingCamp, setIsDeletingCamp] = useState(false)
+  const [deletePassword, setDeletePassword] = useState('')
+
+  const defaultCampForm = {
+    name: '', type: 'Campground', contact_name: '', contact_number: '', 
+    contact_email: '', mailing_address: '', property_address: '', website_url: ''
+  }
+  const [campForm, setCampForm] = useState(defaultCampForm)
 
   // Discussion Board State
   const [selectedProject, setSelectedProject] = useState('Squirrel Hill Campground')
@@ -45,17 +53,69 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
     setIsLoading(false)
   }
 
+  const selectedCamp = camps.find(c => c.id === selectedCampId)
+
+  // Auth Handlers
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    window.location.reload()
+  }
+
+  // Handlers for Add/Edit/Delete Property
   const handleAddCamp = async () => {
-    if (!newCampName.trim()) return
-    const { error } = await supabase.from('camps').insert([{ name: newCampName.trim(), type: newCampType }])
+    if (!campForm.name.trim()) return
+    const { error } = await supabase.from('camps').insert([campForm])
     if (error) {
       console.error("Error adding camp:", error.message)
     } else {
-      setNewCampName('')
-      setNewCampType('Campground')
-      setIsAddingCamp(false)
+      resetPropertyForms()
       fetchProperties()
     }
+  }
+
+  const handleUpdateCamp = async () => {
+    if (!campForm.name.trim() || !selectedCampId) return
+    const { error } = await supabase.from('camps').update(campForm).eq('id', selectedCampId)
+    if (error) {
+      console.error("Error updating camp:", error.message)
+    } else {
+      resetPropertyForms()
+      fetchProperties()
+    }
+  }
+
+  const handleDeleteCamp = async () => {
+    if (!deletePassword) return
+    const { error } = await supabase.from('camps').delete().eq('id', selectedCampId)
+    if (error) {
+      console.error("Error deleting camp:", error.message)
+    } else {
+      setIsDeletingCamp(false)
+      setDeletePassword('')
+      setSelectedCampId(null)
+      fetchProperties()
+    }
+  }
+
+  const resetPropertyForms = () => {
+    setIsAddingCamp(false)
+    setIsEditingCamp(false)
+    setCampForm(defaultCampForm)
+  }
+
+  const openEditForm = () => {
+    setIsAddingCamp(false)
+    setIsEditingCamp(true)
+    setCampForm({
+      name: selectedCamp?.name || '',
+      type: selectedCamp?.type || 'Standard Property',
+      contact_name: selectedCamp?.contact_name || '',
+      contact_number: selectedCamp?.contact_number || '',
+      contact_email: selectedCamp?.contact_email || '',
+      mailing_address: selectedCamp?.mailing_address || '',
+      property_address: selectedCamp?.property_address || '',
+      website_url: selectedCamp?.website_url || ''
+    })
   }
 
   const handleProjectTextChange = (e) => {
@@ -89,7 +149,7 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <button onClick={() => window.location.reload()} style={{ background: 'none', border: 'none', color: colors.error, cursor: 'pointer', padding: '8px', display: 'flex', alignItems: 'center' }} title="Sign Out">
+          <button onClick={handleLogout} style={{ background: 'none', border: 'none', color: colors.error, cursor: 'pointer', padding: '8px', display: 'flex', alignItems: 'center' }} title="Sign Out">
             <LogOut size={24} />
           </button>
           <button onClick={() => setIsMenuOpen(true)} style={{ background: 'none', border: 'none', color: colors.textLight, cursor: 'pointer', padding: '8px', display: 'flex', alignItems: 'center' }} title="Menu">
@@ -125,6 +185,43 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
         </div>
       </div>
 
+      {/* DELETE CONFIRMATION MODAL */}
+      {isDeletingCamp && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div style={{ backgroundColor: colors.panel, padding: '30px', borderRadius: '8px', maxWidth: '400px', width: '100%', border: `2px solid ${colors.error}` }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: colors.error, marginBottom: '15px' }}>
+              <AlertTriangle size={28} />
+              <h3 style={{ margin: 0, fontFamily: fonts.header, fontSize: '24px' }}>CONFIRM DELETION</h3>
+            </div>
+            <p style={{ color: colors.textDark, fontSize: '15px', marginBottom: '20px', lineHeight: 1.5 }}>
+              Are you absolutely sure you want to delete <strong>{selectedCamp?.name}</strong>? This action cannot be undone and will erase all associated data.
+            </p>
+            <label style={{ display: 'block', color: colors.textDark, fontWeight: 'bold', marginBottom: '8px', fontSize: '13px' }}>ENTER PASSWORD TO CONFIRM:</label>
+            <input 
+              type="password" 
+              value={deletePassword}
+              onChange={(e) => setDeletePassword(e.target.value)}
+              style={{ width: '100%', boxSizing: 'border-box', padding: '12px', borderRadius: '4px', border: `1px solid ${colors.error}`, fontFamily: fonts.body, marginBottom: '25px' }}
+            />
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button 
+                onClick={() => { setIsDeletingCamp(false); setDeletePassword(''); }}
+                style={{ flex: 1, backgroundColor: 'transparent', color: colors.textDark, border: `1px solid ${colors.muted}`, padding: '12px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.header, fontSize: '16px' }}
+              >
+                CANCEL
+              </button>
+              <button 
+                onClick={handleDeleteCamp}
+                disabled={!deletePassword}
+                style={{ flex: 1, backgroundColor: colors.error, color: 'white', border: 'none', padding: '12px', borderRadius: '4px', cursor: deletePassword ? 'pointer' : 'not-allowed', opacity: deletePassword ? 1 : 0.5, fontFamily: fonts.header, fontSize: '16px' }}
+              >
+                DELETE PROPERTY
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* MAIN CONTENT AREA */}
       <div style={{ flexGrow: 1, padding: '30px 20px', overflowY: 'auto', boxSizing: 'border-box' }}>
         <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
@@ -135,8 +232,6 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
               <h2 style={{ fontFamily: fonts.header, fontSize: '32px', color: colors.textLight, margin: '0 0 20px 0', letterSpacing: '1px' }}>SYSTEM DASHBOARD</h2>
               
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
-                
-                {/* Properties Widget */}
                 <div onClick={() => setLobbyTab('camps')} style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '8px', border: `2px solid ${colors.highlight}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <h3 style={{ margin: 0, fontFamily: fonts.header, fontSize: '24px', color: colors.textDark }}>Properties</h3>
@@ -146,17 +241,15 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
                   <div style={{ marginTop: '10px', fontSize: '12px', fontFamily: fonts.utility, color: colors.primary, fontWeight: 'bold' }}>MANAGE DIRECTORY &rarr;</div>
                 </div>
 
-                {/* Staff Widget */}
                 <div onClick={() => setLobbyTab('staff')} style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '8px', border: `2px solid ${colors.highlight}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <h3 style={{ margin: 0, fontFamily: fonts.header, fontSize: '24px', color: colors.textDark }}>Staff Accounts</h3>
                     <Users color={colors.primary} size={24} />
                   </div>
-                  <div style={{ fontSize: '14px', color: colors.muted }}>Provision Admins and QA Testers</div>
+                  <div style={{ fontSize: '14px', color: colors.muted }}>Manage Team Roster</div>
                   <div style={{ marginTop: '10px', fontSize: '12px', fontFamily: fonts.utility, color: colors.primary, fontWeight: 'bold' }}>MANAGE STAFF &rarr;</div>
                 </div>
 
-                {/* Approvals Widget */}
                 <div onClick={() => setLobbyTab('approvals')} style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '8px', border: `2px solid ${colors.highlight}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <h3 style={{ margin: 0, fontFamily: fonts.header, fontSize: '24px', color: colors.textDark }}>Approvals</h3>
@@ -166,7 +259,6 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
                   <div style={{ marginTop: '10px', fontSize: '12px', fontFamily: fonts.utility, color: colors.primary, fontWeight: 'bold' }}>REVIEW QUEUE &rarr;</div>
                 </div>
 
-                {/* Discussions Widget */}
                 <div onClick={() => setLobbyTab('discussions')} style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '8px', border: `2px solid ${colors.highlight}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <h3 style={{ margin: 0, fontFamily: fonts.header, fontSize: '24px', color: colors.textDark }}>Discussions</h3>
@@ -176,7 +268,6 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
                   <div style={{ marginTop: '10px', fontSize: '12px', fontFamily: fonts.utility, color: colors.primary, fontWeight: 'bold' }}>JOIN CONVERSATION &rarr;</div>
                 </div>
 
-                {/* Feedback Widget */}
                 <div onClick={() => setLobbyTab('feedback')} style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '8px', border: `2px solid ${colors.highlight}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <h3 style={{ margin: 0, fontFamily: fonts.header, fontSize: '24px', color: colors.textDark }}>Tester Notes</h3>
@@ -185,7 +276,6 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
                   <div style={{ fontSize: '14px', color: colors.muted }}>Log bugs and system feedback</div>
                   <div style={{ marginTop: '10px', fontSize: '12px', fontFamily: fonts.utility, color: colors.primary, fontWeight: 'bold' }}>SUBMIT NOTES &rarr;</div>
                 </div>
-
               </div>
             </div>
           )}
@@ -196,45 +286,104 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
           {lobbyTab === 'camps' && (
             <div style={{ backgroundColor: colors.panel, padding: '30px', borderRadius: '8px', border: `2px solid ${colors.highlight}` }}>
               
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
-                <div>
-                  <h2 style={{ fontFamily: fonts.header, fontSize: '28px', color: colors.textDark, margin: '0 0 5px 0', letterSpacing: '1px' }}>PROPERTY DIRECTORY</h2>
-                  <p style={{ color: colors.muted, margin: 0, fontSize: '14px' }}>Search and select a property to view and manage its local console.</p>
-                </div>
+              <div style={{ marginBottom: '20px' }}>
+                <h2 style={{ fontFamily: fonts.header, fontSize: '28px', color: colors.textDark, margin: '0 0 5px 0', letterSpacing: '1px' }}>PROPERTY DIRECTORY</h2>
+                <p style={{ color: colors.muted, margin: 0, fontSize: '14px' }}>Select a property below to access management tools.</p>
+              </div>
+
+              {/* ACTION BAR */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '20px', padding: '15px', backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: '4px', border: `1px solid ${colors.muted}` }}>
                 <button 
-                  onClick={() => setIsAddingCamp(!isAddingCamp)} 
-                  style={{ backgroundColor: colors.highlight, color: colors.textLight, border: 'none', padding: '10px 15px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.header, fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                  onClick={() => { resetPropertyForms(); setIsAddingCamp(true); setSelectedCampId(null); }} 
+                  style={{ backgroundColor: colors.highlight, color: colors.textLight, border: 'none', padding: '10px 15px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.utility, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
-                  {isAddingCamp ? 'CANCEL' : <><Plus size={16} /> ADD PROPERTY</>}
+                  <Plus size={16} /> ADD NEW
+                </button>
+                <div style={{ width: '1px', backgroundColor: colors.muted, margin: '0 5px' }}></div>
+                <button 
+                  disabled={!selectedCampId}
+                  onClick={openEditForm} 
+                  style={{ backgroundColor: selectedCampId ? colors.primary : 'transparent', color: selectedCampId ? colors.textLight : colors.muted, border: selectedCampId ? 'none' : `1px solid ${colors.muted}`, padding: '10px 15px', borderRadius: '4px', cursor: selectedCampId ? 'pointer' : 'not-allowed', fontFamily: fonts.utility, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Edit2 size={16} /> EDIT
+                </button>
+                <button 
+                  disabled={!selectedCampId}
+                  onClick={() => { setCampData(selectedCamp); setActiveTab('news'); }} 
+                  style={{ backgroundColor: selectedCampId ? colors.primary : 'transparent', color: selectedCampId ? colors.textLight : colors.muted, border: selectedCampId ? 'none' : `1px solid ${colors.muted}`, padding: '10px 15px', borderRadius: '4px', cursor: selectedCampId ? 'pointer' : 'not-allowed', fontFamily: fonts.utility, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Settings size={16} /> MANAGE
+                </button>
+                <button 
+                  disabled={!selectedCampId}
+                  onClick={() => setIsDeletingCamp(true)} 
+                  style={{ backgroundColor: selectedCampId ? colors.error : 'transparent', color: selectedCampId ? 'white' : colors.muted, border: selectedCampId ? 'none' : `1px solid ${colors.muted}`, padding: '10px 15px', borderRadius: '4px', cursor: selectedCampId ? 'pointer' : 'not-allowed', fontFamily: fonts.utility, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px', marginLeft: 'auto' }}
+                >
+                  <Trash2 size={16} /> DELETE
                 </button>
               </div>
 
-              {isAddingCamp && (
-                <div style={{ backgroundColor: 'rgba(193, 83, 27, 0.1)', padding: '20px', borderRadius: '4px', borderLeft: `4px solid ${colors.primary}`, marginBottom: '20px' }}>
-                  <h3 style={{ fontFamily: fonts.header, fontSize: '20px', color: colors.textDark, margin: '0 0 15px 0' }}>CREATE NEW PROPERTY</h3>
-                  <div style={{ display: 'flex', gap: '15px', marginBottom: '15px', flexWrap: 'wrap' }}>
+              {/* ADD / EDIT FORM */}
+              {(isAddingCamp || isEditingCamp) && (
+                <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '4px', border: `2px solid ${colors.primary}`, marginBottom: '20px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                    <h3 style={{ fontFamily: fonts.header, fontSize: '20px', color: colors.textDark, margin: 0 }}>
+                      {isEditingCamp ? 'EDIT PROPERTY DETAILS' : 'CREATE NEW PROPERTY'}
+                    </h3>
+                    <button onClick={resetPropertyForms} style={{ background: 'none', border: 'none', color: colors.muted, cursor: 'pointer' }}><X size={20}/></button>
+                  </div>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginBottom: '20px' }}>
                     <input 
-                      type="text" 
-                      placeholder="Property Name" 
-                      value={newCampName}
-                      onChange={(e) => setNewCampName(e.target.value)}
-                      style={{ flex: 1, minWidth: '200px', boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, fontFamily: fonts.body }}
+                      type="text" placeholder="Property Name *" 
+                      value={campForm.name} onChange={(e) => setCampForm({...campForm, name: e.target.value})}
+                      style={{ boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, fontFamily: fonts.body }}
                     />
                     <select 
-                      value={newCampType}
-                      onChange={(e) => setNewCampType(e.target.value)}
+                      value={campForm.type} onChange={(e) => setCampForm({...campForm, type: e.target.value})}
                       style={{ padding: '10px', boxSizing: 'border-box', borderRadius: '4px', border: `1px solid ${colors.muted}`, fontFamily: fonts.body, backgroundColor: 'white' }}
                     >
                       <option value="Campground">Campground</option>
                       <option value="Youth Camp">Youth Camp</option>
                       <option value="Standard Property">Standard Property</option>
                     </select>
+                    <input 
+                      type="text" placeholder="Contact Name" 
+                      value={campForm.contact_name} onChange={(e) => setCampForm({...campForm, contact_name: e.target.value})}
+                      style={{ boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, fontFamily: fonts.body }}
+                    />
+                    <input 
+                      type="text" placeholder="Contact Number" 
+                      value={campForm.contact_number} onChange={(e) => setCampForm({...campForm, contact_number: e.target.value})}
+                      style={{ boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, fontFamily: fonts.body }}
+                    />
+                    <input 
+                      type="email" placeholder="Contact Email" 
+                      value={campForm.contact_email} onChange={(e) => setCampForm({...campForm, contact_email: e.target.value})}
+                      style={{ boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, fontFamily: fonts.body }}
+                    />
+                    <input 
+                      type="url" placeholder="Existing Website URL" 
+                      value={campForm.website_url} onChange={(e) => setCampForm({...campForm, website_url: e.target.value})}
+                      style={{ boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, fontFamily: fonts.body }}
+                    />
+                    <input 
+                      type="text" placeholder="Property Address" 
+                      value={campForm.property_address} onChange={(e) => setCampForm({...campForm, property_address: e.target.value})}
+                      style={{ gridColumn: '1 / -1', boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, fontFamily: fonts.body }}
+                    />
+                    <input 
+                      type="text" placeholder="Mailing Address" 
+                      value={campForm.mailing_address} onChange={(e) => setCampForm({...campForm, mailing_address: e.target.value})}
+                      style={{ gridColumn: '1 / -1', boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, fontFamily: fonts.body }}
+                    />
                   </div>
+                  
                   <button 
-                    onClick={handleAddCamp}
-                    style={{ backgroundColor: colors.primary, color: colors.textLight, border: 'none', padding: '10px 20px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.header, fontSize: '14px' }}
+                    onClick={isEditingCamp ? handleUpdateCamp : handleAddCamp}
+                    style={{ backgroundColor: colors.primary, color: colors.textLight, border: 'none', padding: '12px 24px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.header, fontSize: '14px' }}
                   >
-                    SAVE PROPERTY
+                    {isEditingCamp ? 'SAVE CHANGES' : 'SAVE PROPERTY'}
                   </button>
                 </div>
               )}
@@ -254,12 +403,24 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
                 {isLoading ? <div style={{ textAlign: 'center', padding: '20px', color: colors.primary, fontFamily: fonts.utility }}>Loading...</div> : 
                  filteredCamps.length === 0 ? <div style={{ textAlign: 'center', padding: '20px', color: colors.muted }}>No properties found.</div> : 
                  filteredCamps.map(camp => (
-                  <div key={camp.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px', backgroundColor: 'white', border: `1px solid #ccc`, borderRadius: '4px' }}>
+                  <div 
+                    key={camp.id} 
+                    onClick={() => { setSelectedCampId(camp.id); setIsAddingCamp(false); setIsEditingCamp(false); }}
+                    style={{ 
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px', 
+                      backgroundColor: selectedCampId === camp.id ? '#E5DCC0' : 'white', 
+                      border: selectedCampId === camp.id ? `2px solid ${colors.primary}` : `1px solid #ccc`, 
+                      borderRadius: '4px', cursor: 'pointer', transition: 'all 0.1s' 
+                    }}
+                  >
                     <div>
                       <div style={{ fontFamily: fonts.header, fontSize: '20px', color: colors.textDark, letterSpacing: '1px' }}>{camp.name}</div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px', color: colors.muted, fontSize: '12px', fontFamily: fonts.utility, textTransform: 'uppercase' }}><MapPin size={12} /> {camp.type ? camp.type.replace('_', ' ') : 'Standard Property'}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px', color: colors.muted, fontSize: '12px', fontFamily: fonts.utility, textTransform: 'uppercase' }}>
+                        <MapPin size={12} /> {camp.type ? camp.type.replace('_', ' ') : 'Standard Property'}
+                        {camp.contact_name && <span style={{ marginLeft: '10px' }}>| Contact: {camp.contact_name}</span>}
+                      </div>
                     </div>
-                    <button onClick={() => { setCampData(camp); setActiveTab('news'); }} style={{ backgroundColor: colors.highlight, color: colors.textLight, border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.utility, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>SELECT <ArrowRight size={14} /></button>
+                    {selectedCampId === camp.id && <div style={{ color: colors.primary, fontFamily: fonts.utility, fontSize: '12px', fontWeight: 'bold' }}>SELECTED</div>}
                   </div>
                 ))}
               </div>
@@ -268,24 +429,8 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
 
           {/* 2. STAFF ACCOUNTS */}
           {lobbyTab === 'staff' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <div style={{ backgroundColor: colors.panel, padding: '30px', borderRadius: '8px', border: `2px solid ${colors.highlight}` }}>
-                <h2 style={{ fontFamily: fonts.header, fontSize: '28px', color: colors.textDark, margin: '0 0 15px 0' }}>CREATE STAFF ACCOUNT</h2>
-                <p style={{ color: colors.muted, margin: '0 0 20px 0', fontSize: '14px' }}>Manually provision accounts for Global Admins and QA Testers.</p>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
-                  <input type="text" placeholder="First Name" style={{ padding: '12px', borderRadius: '4px', border: `1px solid ${colors.muted}`, fontFamily: fonts.body, boxSizing: 'border-box' }} />
-                  <input type="text" placeholder="Last Name" style={{ padding: '12px', borderRadius: '4px', border: `1px solid ${colors.muted}`, fontFamily: fonts.body, boxSizing: 'border-box' }} />
-                  <input type="email" placeholder="Email Address" style={{ padding: '12px', borderRadius: '4px', border: `1px solid ${colors.muted}`, fontFamily: fonts.body, boxSizing: 'border-box' }} />
-                  <select style={{ padding: '12px', borderRadius: '4px', border: `1px solid ${colors.muted}`, fontFamily: fonts.body, backgroundColor: 'white', boxSizing: 'border-box' }}>
-                    <option value="global_admin">Global Admin</option>
-                    <option value="qa_tester">QA Tester</option>
-                  </select>
-                </div>
-                <button style={{ backgroundColor: colors.primary, color: colors.textLight, border: 'none', padding: '12px 24px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.header, fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}><Plus size={18} /> CREATE ACCOUNT</button>
-              </div>
-              <div style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '8px', border: `2px solid ${colors.highlight}` }}>
-                <StaffManager colors={colors} fonts={fonts} />
-              </div>
+            <div style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '8px', border: `2px solid ${colors.highlight}` }}>
+              <StaffManager colors={colors} fonts={fonts} />
             </div>
           )}
 
