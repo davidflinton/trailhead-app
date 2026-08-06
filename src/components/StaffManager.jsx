@@ -375,9 +375,11 @@ export default function StaffManager({ colors, fonts }) {
                   </div>
                 </div>
 
-                <div>
-                  <label style={labelStyle}>Start Date</label>
-                  <input type="date" value={staffForm.startDate} onChange={(e) => setStaffForm({...staffForm, startDate: e.target.value})} style={inputStyle} />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={labelStyle}>Start Date</label>
+                    <input type="date" value={staffForm.startDate} onChange={(e) => setStaffForm({...staffForm, startDate: e.target.value})} style={inputStyle} />
+                  </div>
                 </div>
 
                 {/* DUAL LIST SELECTOR FOR CAMPS */}
