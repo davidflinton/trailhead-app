@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
-import { Tent, Users, CheckSquare, MessageSquare, LogOut, Search, MapPin, ArrowRight, ClipboardList, ThumbsUp, MessageCircle, BarChart2, Edit2, Plus, LayoutDashboard } from 'lucide-react'
+import { Tent, Users, CheckSquare, MessageSquare, LogOut, Search, MapPin, ArrowRight, ClipboardList, ThumbsUp, MessageCircle, BarChart2, Edit2, Plus, LayoutDashboard, Menu, X } from 'lucide-react'
 import StaffManager from './StaffManager'
 
 export default function Lobby({ profile, setCampData, setActiveTab }) {
   const [lobbyTab, setLobbyTab] = useState('dashboard')
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
   
   // Camp Management State
   const [camps, setCamps] = useState([])
@@ -46,13 +47,14 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
 
   const filteredCamps = camps.filter(c => c.name?.toLowerCase().includes(search.toLowerCase()))
 
+  const handleNavClick = (tab) => {
+    setLobbyTab(tab)
+    setIsMenuOpen(false)
+  }
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: colors.background, color: colors.textLight, fontFamily: fonts.body }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: colors.background, color: colors.textLight, fontFamily: fonts.body, overflow: 'hidden' }}>
       <style>{`
-        .bottom-nav-label { display: none; }
-        @media (min-width: 480px) {
-          .bottom-nav-label { display: block; margin-top: 4px; font-size: 11px; font-weight: bold; }
-        }
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #16281D; }
         ::-webkit-scrollbar-thumb { background: #0F1D14; border-radius: 4px; }
@@ -68,9 +70,41 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
             {headerDisplayName}
           </p>
         </div>
-        <button onClick={() => window.location.reload()} style={{ background: 'none', border: 'none', color: colors.error, cursor: 'pointer', padding: '8px' }} title="Sign Out">
-          <LogOut size={24} />
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <button onClick={() => window.location.reload()} style={{ background: 'none', border: 'none', color: colors.error, cursor: 'pointer', padding: '8px', display: 'flex', alignItems: 'center' }} title="Sign Out">
+            <LogOut size={24} />
+          </button>
+          <button onClick={() => setIsMenuOpen(true)} style={{ background: 'none', border: 'none', color: colors.textLight, cursor: 'pointer', padding: '8px', display: 'flex', alignItems: 'center' }} title="Menu">
+            <Menu size={28} />
+          </button>
+        </div>
+      </div>
+
+      {/* SLIDE OUT MENU & OVERLAY */}
+      {isMenuOpen && (
+        <div 
+          onClick={() => setIsMenuOpen(false)} 
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 40 }} 
+        />
+      )}
+      <div style={{ 
+        position: 'fixed', top: 0, right: 0, bottom: 0, width: '280px', backgroundColor: colors.sidebar, zIndex: 50, 
+        transform: isMenuOpen ? 'translateX(0)' : 'translateX(100%)', transition: 'transform 0.3s ease-in-out', 
+        borderLeft: `2px solid ${colors.highlight}`, display: 'flex', flexDirection: 'column' 
+      }}>
+        <div style={{ padding: '20px', display: 'flex', justifyContent: 'flex-end', borderBottom: `1px solid ${colors.highlight}` }}>
+          <button onClick={() => setIsMenuOpen(false)} style={{ background: 'none', border: 'none', color: colors.muted, cursor: 'pointer' }}>
+            <X size={28} />
+          </button>
+        </div>
+        <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <SideNavButton icon={<LayoutDashboard size={20} />} label="Dashboard" active={lobbyTab === 'dashboard'} onClick={() => handleNavClick('dashboard')} colors={colors} fonts={fonts} />
+          <SideNavButton icon={<Tent size={20} />} label="Properties" active={lobbyTab === 'camps'} onClick={() => handleNavClick('camps')} colors={colors} fonts={fonts} />
+          <SideNavButton icon={<Users size={20} />} label="Staff" active={lobbyTab === 'staff'} onClick={() => handleNavClick('staff')} colors={colors} fonts={fonts} />
+          <SideNavButton icon={<CheckSquare size={20} />} label="Approvals" active={lobbyTab === 'approvals'} onClick={() => handleNavClick('approvals')} colors={colors} fonts={fonts} />
+          <SideNavButton icon={<MessageSquare size={20} />} label="Discuss" active={lobbyTab === 'discussions'} onClick={() => handleNavClick('discussions')} colors={colors} fonts={fonts} />
+          <SideNavButton icon={<ClipboardList size={20} />} label="Notes" active={lobbyTab === 'feedback'} onClick={() => handleNavClick('feedback')} colors={colors} fonts={fonts} />
+        </div>
       </div>
 
       {/* MAIN CONTENT AREA */}
@@ -282,29 +316,24 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
 
         </div>
       </div>
-
-      {/* BOTTOM NAVIGATION BAR */}
-      <div style={{ backgroundColor: colors.sidebar, display: 'flex', justifyContent: 'space-around', borderTop: `2px solid ${colors.highlight}`, padding: '10px 0', paddingBottom: 'env(safe-area-inset-bottom, 10px)', overflowX: 'auto', flexWrap: 'nowrap' }}>
-        <BottomNavButton icon={<LayoutDashboard size={22} />} label="Dashboard" active={lobbyTab === 'dashboard'} onClick={() => setLobbyTab('dashboard')} colors={colors} fonts={fonts} />
-        <BottomNavButton icon={<Tent size={22} />} label="Properties" active={lobbyTab === 'camps'} onClick={() => setLobbyTab('camps')} colors={colors} fonts={fonts} />
-        <BottomNavButton icon={<Users size={22} />} label="Staff" active={lobbyTab === 'staff'} onClick={() => setLobbyTab('staff')} colors={colors} fonts={fonts} />
-        <BottomNavButton icon={<CheckSquare size={22} />} label="Approvals" active={lobbyTab === 'approvals'} onClick={() => setLobbyTab('approvals')} colors={colors} fonts={fonts} />
-        <BottomNavButton icon={<MessageSquare size={22} />} label="Discuss" active={lobbyTab === 'discussions'} onClick={() => setLobbyTab('discussions')} colors={colors} fonts={fonts} />
-        <BottomNavButton icon={<ClipboardList size={22} />} label="Notes" active={lobbyTab === 'feedback'} onClick={() => setLobbyTab('feedback')} colors={colors} fonts={fonts} />
-      </div>
-
     </div>
   )
 }
 
-function BottomNavButton({ icon, label, active, onClick, colors, fonts }) {
+function SideNavButton({ icon, label, active, onClick, colors, fonts }) {
   return (
     <button 
       onClick={onClick}
-      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: '1 0 auto', minWidth: '60px', background: 'none', border: 'none', color: active ? colors.primary : colors.muted, cursor: 'pointer', padding: '5px', transition: 'color 0.2s', fontFamily: fonts.body }}
+      style={{ 
+        display: 'flex', alignItems: 'center', gap: '15px', width: '100%', 
+        background: active ? colors.highlight : 'none', border: 'none', 
+        color: active ? colors.primary : colors.textLight, 
+        cursor: 'pointer', padding: '15px 20px', borderRadius: '4px', 
+        transition: 'background 0.2s', fontFamily: fonts.header, fontSize: '18px', letterSpacing: '1px' 
+      }}
     >
       {icon}
-      <span className="bottom-nav-label">{label}</span>
+      <span>{label}</span>
     </button>
   )
 }
