@@ -1,14 +1,31 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
-import { Search, Filter, Calendar, Users, MessageSquare, ArrowRight, Activity, MapPin } from 'lucide-react'
+import { Tent, Users, CheckSquare, MessageSquare, LogOut, Search, MapPin, ArrowRight, ClipboardList, ThumbsUp, MessageCircle, BarChart2, Edit2, Plus, LayoutDashboard } from 'lucide-react'
+import StaffManager from './StaffManager'
 
 export default function Lobby({ profile, setCampData, setActiveTab }) {
+  const [lobbyTab, setLobbyTab] = useState('dashboard')
+  
+  // Camp Management State
   const [camps, setCamps] = useState([])
   const [search, setSearch] = useState('')
   const [isLoading, setIsLoading] = useState(true)
 
-  const colors = { background: '#16281D', sidebar: '#0F1D14', panel: '#F1E8D0', textDark: '#24201A', textLight: '#F1E8D0', primary: '#C1531B', muted: '#6B6250', highlight: '#1E3524', border: '#0B140E' }
-  const fonts = { header: "'Staatliches', sans-serif", body: "'Karla', sans-serif", utility: "'JetBrains Mono', monospace" }
+  // Discussion Board State
+  const [selectedProject, setSelectedProject] = useState('Squirrel Hill Campground')
+  const [newProjectName, setNewProjectName] = useState('')
+  
+  // Brand Palette
+  const colors = {
+    background: '#16281D', sidebar: '#0F1D14', panel: '#F1E8D0', 
+    textDark: '#24201A', textLight: '#F1E8D0', primary: '#C1531B', 
+    muted: '#6B6250', error: '#E8896B', highlight: '#1E3524', border: '#0B140E'
+  }
+  const fonts = {
+    header: "'Staatliches', sans-serif", body: "'Karla', sans-serif", utility: "'JetBrains Mono', monospace"
+  }
+
+  const headerDisplayName = profile?.display_name || `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() || profile?.access_tier
 
   useEffect(() => {
     fetchProperties()
@@ -22,131 +39,272 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
     setIsLoading(false)
   }
 
-  const filteredCamps = camps.filter(c => c.name?.toLowerCase().includes(search.toLowerCase()))
-
-  const handleSelect = (camp) => {
-    setCampData(camp)
-    setActiveTab('news')
+  const handleProjectTextChange = (e) => {
+    const text = e.target.value.replace(/\b\w/g, char => char.toUpperCase())
+    setNewProjectName(text)
   }
 
+  const filteredCamps = camps.filter(c => c.name?.toLowerCase().includes(search.toLowerCase()))
+
   return (
-    <div style={{ backgroundColor: colors.background, minHeight: '100vh', padding: '30px 40px', fontFamily: fonts.body }}>
-      <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-        
-        {/* PMS Header Section */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '30px' }}>
-          <div>
-            <h1 style={{ fontFamily: fonts.header, fontSize: '36px', color: colors.textLight, margin: '0 0 5px 0', letterSpacing: '2px' }}>
-              GLOBAL OPERATIONS DASHBOARD
-            </h1>
-            <p style={{ color: colors.primary, margin: 0, fontSize: '16px', fontFamily: fonts.utility, textTransform: 'uppercase' }}>
-              Multi-Property Overview & CRM
-            </p>
-          </div>
-          <div style={{ display: 'flex', gap: '15px' }}>
-            <div style={{ backgroundColor: colors.sidebar, padding: '15px 20px', borderRadius: '4px', border: `1px solid ${colors.highlight}`, minWidth: '150px' }}>
-              <div style={{ color: colors.muted, fontSize: '12px', fontFamily: fonts.utility, marginBottom: '5px' }}>TOTAL PROPERTIES</div>
-              <div style={{ color: colors.textLight, fontSize: '28px', fontFamily: fonts.header }}>{camps.length}</div>
-            </div>
-            <div style={{ backgroundColor: colors.sidebar, padding: '15px 20px', borderRadius: '4px', border: `1px solid ${colors.highlight}`, minWidth: '150px' }}>
-              <div style={{ color: colors.muted, fontSize: '12px', fontFamily: fonts.utility, marginBottom: '5px' }}>NETWORK ALERTS</div>
-              <div style={{ color: colors.primary, fontSize: '28px', fontFamily: fonts.header }}>0</div>
-            </div>
-          </div>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: colors.background, color: colors.textLight, fontFamily: fonts.body }}>
+      <style>{`
+        .bottom-nav-label { display: none; }
+        @media (min-width: 480px) {
+          .bottom-nav-label { display: block; margin-top: 4px; font-size: 11px; font-weight: bold; }
+        }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #16281D; }
+        ::-webkit-scrollbar-thumb { background: #0F1D14; border-radius: 4px; }
+      `}</style>
+
+      {/* TOP HEADER */}
+      <div style={{ backgroundColor: colors.sidebar, padding: '15px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `2px solid ${colors.highlight}`, zIndex: 10 }}>
+        <div>
+          <h1 style={{ margin: 0, fontSize: '28px', fontFamily: fonts.header, color: colors.primary, letterSpacing: '2px', lineHeight: 1 }}>
+            TRAILHEAD ADMIN CONSOLE
+          </h1>
+          <p style={{ margin: '2px 0 0 0', opacity: 0.7, fontFamily: fonts.utility, fontSize: '10px', textTransform: 'uppercase' }}>
+            {headerDisplayName}
+          </p>
         </div>
-
-        {/* Toolbar */}
-        <div style={{ display: 'flex', gap: '15px', marginBottom: '20px', backgroundColor: colors.sidebar, padding: '15px', borderRadius: '4px', border: `1px solid ${colors.highlight}` }}>
-          <div style={{ position: 'relative', flex: 1 }}>
-            <Search size={18} color={colors.muted} style={{ position: 'absolute', left: '15px', top: '12px' }} />
-            <input 
-              type="text" 
-              placeholder="Search properties by name or ID..." 
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={{ width: '100%', padding: '10px 10px 10px 45px', borderRadius: '4px', border: `1px solid ${colors.border}`, backgroundColor: '#0A120D', color: colors.textLight, fontSize: '14px', outline: 'none', fontFamily: fonts.body }}
-            />
-          </div>
-          <button style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0 20px', backgroundColor: colors.highlight, color: colors.textLight, border: 'none', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.utility, fontSize: '13px' }}>
-            <Filter size={16} /> FILTER
-          </button>
-        </div>
-
-        {/* Data Table */}
-        <div style={{ backgroundColor: colors.panel, borderRadius: '4px', border: `2px solid ${colors.border}`, overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-            <thead>
-              <tr style={{ backgroundColor: colors.sidebar, borderBottom: `2px solid ${colors.highlight}` }}>
-                <th style={{ padding: '15px 20px', color: colors.muted, fontFamily: fonts.utility, fontSize: '12px', fontWeight: 'normal' }}>PROPERTY NAME</th>
-                <th style={{ padding: '15px 20px', color: colors.muted, fontFamily: fonts.utility, fontSize: '12px', fontWeight: 'normal' }}>TYPE</th>
-                <th style={{ padding: '15px 20px', color: colors.muted, fontFamily: fonts.utility, fontSize: '12px', fontWeight: 'normal' }}>OCCUPANCY</th>
-                <th style={{ padding: '15px 20px', color: colors.muted, fontFamily: fonts.utility, fontSize: '12px', fontWeight: 'normal' }}>ARRIVALS (TODAY)</th>
-                <th style={{ padding: '15px 20px', color: colors.muted, fontFamily: fonts.utility, fontSize: '12px', fontWeight: 'normal' }}>UNREAD MSGS</th>
-                <th style={{ padding: '15px 20px', color: colors.muted, fontFamily: fonts.utility, fontSize: '12px', fontWeight: 'normal', textAlign: 'right' }}>ACTION</th>
-              </tr>
-            </thead>
-            <tbody>
-              {isLoading ? (
-                <tr>
-                  <td colSpan="6" style={{ padding: '40px', textAlign: 'center', color: colors.primary, fontFamily: fonts.utility }}>Loading database records...</td>
-                </tr>
-              ) : filteredCamps.length === 0 ? (
-                <tr>
-                  <td colSpan="6" style={{ padding: '40px', textAlign: 'center', color: colors.muted, fontFamily: fonts.utility }}>No properties match your search.</td>
-                </tr>
-              ) : (
-                filteredCamps.map((camp, idx) => (
-                  <tr key={camp.id} style={{ borderBottom: idx === filteredCamps.length - 1 ? 'none' : `1px solid #D6CEBA`, transition: 'background-color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#E5DCC0'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-                    
-                    <td style={{ padding: '15px 20px' }}>
-                      <div style={{ color: colors.textDark, fontFamily: fonts.header, fontSize: '20px', letterSpacing: '1px' }}>{camp.name}</div>
-                      <div style={{ color: colors.muted, fontFamily: fonts.utility, fontSize: '11px', marginTop: '2px' }}>ID: {camp.id.split('-')[0].toUpperCase()}</div>
-                    </td>
-                    
-                    <td style={{ padding: '15px 20px' }}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', backgroundColor: '#D6CEBA', padding: '4px 8px', borderRadius: '2px', fontSize: '11px', fontFamily: fonts.utility, textTransform: 'uppercase', color: colors.textDark }}>
-                        <MapPin size={12} /> {camp.type ? camp.type.replace('_', ' ') : 'Standard'}
-                      </span>
-                    </td>
-                    
-                    <td style={{ padding: '15px 20px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: colors.textDark }}>
-                        <Activity size={16} color={colors.primary} />
-                        <span style={{ fontFamily: fonts.utility, fontSize: '14px' }}>--- %</span>
-                      </div>
-                    </td>
-                    
-                    <td style={{ padding: '15px 20px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: colors.textDark }}>
-                        <Calendar size={16} color={colors.muted} />
-                        <span style={{ fontFamily: fonts.utility, fontSize: '14px' }}>0</span>
-                      </div>
-                    </td>
-                    
-                    <td style={{ padding: '15px 20px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: colors.textDark }}>
-                        <MessageSquare size={16} color={colors.muted} />
-                        <span style={{ fontFamily: fonts.utility, fontSize: '14px' }}>0</span>
-                      </div>
-                    </td>
-                    
-                    <td style={{ padding: '15px 20px', textAlign: 'right' }}>
-                      <button 
-                        onClick={() => handleSelect(camp)}
-                        style={{ backgroundColor: colors.primary, color: colors.textLight, border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.utility, fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                      >
-                        MANAGE <ArrowRight size={14} />
-                      </button>
-                    </td>
-
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
+        <button onClick={() => window.location.reload()} style={{ background: 'none', border: 'none', color: colors.error, cursor: 'pointer', padding: '8px' }} title="Sign Out">
+          <LogOut size={24} />
+        </button>
       </div>
+
+      {/* MAIN CONTENT AREA */}
+      <div style={{ flexGrow: 1, padding: '30px 20px', overflowY: 'auto', boxSizing: 'border-box' }}>
+        <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+
+          {/* DASHBOARD TAB - THE CENTRAL HUB */}
+          {lobbyTab === 'dashboard' && (
+            <div>
+              <h2 style={{ fontFamily: fonts.header, fontSize: '32px', color: colors.textLight, margin: '0 0 20px 0', letterSpacing: '1px' }}>SYSTEM DASHBOARD</h2>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+                
+                {/* Properties Widget */}
+                <div onClick={() => setLobbyTab('camps')} style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '8px', border: `2px solid ${colors.highlight}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h3 style={{ margin: 0, fontFamily: fonts.header, fontSize: '24px', color: colors.textDark }}>Properties</h3>
+                    <Tent color={colors.primary} size={24} />
+                  </div>
+                  <div style={{ fontSize: '14px', color: colors.muted }}>{isLoading ? 'Loading...' : `${camps.length} Active Campsites`}</div>
+                  <div style={{ marginTop: '10px', fontSize: '12px', fontFamily: fonts.utility, color: colors.primary, fontWeight: 'bold' }}>MANAGE DIRECTORY &rarr;</div>
+                </div>
+
+                {/* Staff Widget */}
+                <div onClick={() => setLobbyTab('staff')} style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '8px', border: `2px solid ${colors.highlight}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h3 style={{ margin: 0, fontFamily: fonts.header, fontSize: '24px', color: colors.textDark }}>Staff Accounts</h3>
+                    <Users color={colors.primary} size={24} />
+                  </div>
+                  <div style={{ fontSize: '14px', color: colors.muted }}>Provision Admins and QA Testers</div>
+                  <div style={{ marginTop: '10px', fontSize: '12px', fontFamily: fonts.utility, color: colors.primary, fontWeight: 'bold' }}>MANAGE STAFF &rarr;</div>
+                </div>
+
+                {/* Approvals Widget */}
+                <div onClick={() => setLobbyTab('approvals')} style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '8px', border: `2px solid ${colors.highlight}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h3 style={{ margin: 0, fontFamily: fonts.header, fontSize: '24px', color: colors.textDark }}>Approvals</h3>
+                    <CheckSquare color={colors.primary} size={24} />
+                  </div>
+                  <div style={{ fontSize: '14px', color: colors.muted }}>0 Pending Registrations</div>
+                  <div style={{ marginTop: '10px', fontSize: '12px', fontFamily: fonts.utility, color: colors.primary, fontWeight: 'bold' }}>REVIEW QUEUE &rarr;</div>
+                </div>
+
+                {/* Discussions Widget */}
+                <div onClick={() => setLobbyTab('discussions')} style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '8px', border: `2px solid ${colors.highlight}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h3 style={{ margin: 0, fontFamily: fonts.header, fontSize: '24px', color: colors.textDark }}>Discussions</h3>
+                    <MessageSquare color={colors.primary} size={24} />
+                  </div>
+                  <div style={{ fontSize: '14px', color: colors.muted }}>Latest: System Update Phase 2</div>
+                  <div style={{ marginTop: '10px', fontSize: '12px', fontFamily: fonts.utility, color: colors.primary, fontWeight: 'bold' }}>JOIN CONVERSATION &rarr;</div>
+                </div>
+
+                {/* Feedback Widget */}
+                <div onClick={() => setLobbyTab('feedback')} style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '8px', border: `2px solid ${colors.highlight}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h3 style={{ margin: 0, fontFamily: fonts.header, fontSize: '24px', color: colors.textDark }}>Tester Notes</h3>
+                    <ClipboardList color={colors.primary} size={24} />
+                  </div>
+                  <div style={{ fontSize: '14px', color: colors.muted }}>Log bugs and system feedback</div>
+                  <div style={{ marginTop: '10px', fontSize: '12px', fontFamily: fonts.utility, color: colors.primary, fontWeight: 'bold' }}>SUBMIT NOTES &rarr;</div>
+                </div>
+
+              </div>
+            </div>
+          )}
+
+          {/* FULL SECTIONS */}
+
+          {/* 1. CAMP MANAGEMENT */}
+          {lobbyTab === 'camps' && (
+            <div style={{ backgroundColor: colors.panel, padding: '30px', borderRadius: '8px', border: `2px solid ${colors.highlight}` }}>
+              <div style={{ marginBottom: '20px' }}>
+                <h2 style={{ fontFamily: fonts.header, fontSize: '28px', color: colors.textDark, margin: '0 0 5px 0', letterSpacing: '1px' }}>PROPERTY DIRECTORY</h2>
+                <p style={{ color: colors.muted, margin: 0, fontSize: '14px' }}>Search and select a property to view and manage its local console.</p>
+              </div>
+              <div style={{ position: 'relative', marginBottom: '20px' }}>
+                <Search size={18} color={colors.muted} style={{ position: 'absolute', left: '12px', top: '12px' }} />
+                <input 
+                  type="text" 
+                  placeholder="Search properties..." 
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '10px 10px 10px 40px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: 'white', color: colors.textDark, fontSize: '15px', outline: 'none', fontFamily: fonts.body }}
+                />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '500px', overflowY: 'auto' }}>
+                {isLoading ? <div style={{ textAlign: 'center', padding: '20px', color: colors.primary, fontFamily: fonts.utility }}>Loading...</div> : 
+                 filteredCamps.length === 0 ? <div style={{ textAlign: 'center', padding: '20px', color: colors.muted }}>No properties found.</div> : 
+                 filteredCamps.map(camp => (
+                  <div key={camp.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px', backgroundColor: 'white', border: `1px solid #ccc`, borderRadius: '4px' }}>
+                    <div>
+                      <div style={{ fontFamily: fonts.header, fontSize: '20px', color: colors.textDark, letterSpacing: '1px' }}>{camp.name}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px', color: colors.muted, fontSize: '12px', fontFamily: fonts.utility, textTransform: 'uppercase' }}><MapPin size={12} /> {camp.type ? camp.type.replace('_', ' ') : 'Standard Property'}</div>
+                    </div>
+                    <button onClick={() => { setCampData(camp); setActiveTab('news'); }} style={{ backgroundColor: colors.highlight, color: colors.textLight, border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.utility, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>SELECT <ArrowRight size={14} /></button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 2. STAFF ACCOUNTS */}
+          {lobbyTab === 'staff' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div style={{ backgroundColor: colors.panel, padding: '30px', borderRadius: '8px', border: `2px solid ${colors.highlight}` }}>
+                <h2 style={{ fontFamily: fonts.header, fontSize: '28px', color: colors.textDark, margin: '0 0 15px 0' }}>CREATE STAFF ACCOUNT</h2>
+                <p style={{ color: colors.muted, margin: '0 0 20px 0', fontSize: '14px' }}>Manually provision accounts for Global Admins and QA Testers.</p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
+                  <input type="text" placeholder="First Name" style={{ padding: '12px', borderRadius: '4px', border: `1px solid ${colors.muted}`, fontFamily: fonts.body, boxSizing: 'border-box' }} />
+                  <input type="text" placeholder="Last Name" style={{ padding: '12px', borderRadius: '4px', border: `1px solid ${colors.muted}`, fontFamily: fonts.body, boxSizing: 'border-box' }} />
+                  <input type="email" placeholder="Email Address" style={{ padding: '12px', borderRadius: '4px', border: `1px solid ${colors.muted}`, fontFamily: fonts.body, boxSizing: 'border-box' }} />
+                  <select style={{ padding: '12px', borderRadius: '4px', border: `1px solid ${colors.muted}`, fontFamily: fonts.body, backgroundColor: 'white', boxSizing: 'border-box' }}>
+                    <option value="global_admin">Global Admin</option>
+                    <option value="qa_tester">QA Tester</option>
+                  </select>
+                </div>
+                <button style={{ backgroundColor: colors.primary, color: colors.textLight, border: 'none', padding: '12px 24px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.header, fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}><Plus size={18} /> CREATE ACCOUNT</button>
+              </div>
+              <div style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '8px', border: `2px solid ${colors.highlight}` }}>
+                <StaffManager colors={colors} fonts={fonts} />
+              </div>
+            </div>
+          )}
+
+          {/* 3. PENDING APPROVALS */}
+          {lobbyTab === 'approvals' && (
+            <div style={{ backgroundColor: colors.panel, padding: '30px', borderRadius: '8px', border: `2px solid ${colors.highlight}` }}>
+              <h2 style={{ fontFamily: fonts.header, fontSize: '28px', color: colors.textDark, margin: '0 0 5px 0' }}>PENDING APPROVALS</h2>
+              <p style={{ color: colors.muted, margin: '0 0 20px 0', fontSize: '14px' }}>Review and approve recently registered camps.</p>
+              <div style={{ padding: '30px', backgroundColor: 'white', border: `1px solid ${colors.muted}`, borderRadius: '4px', textAlign: 'center', color: colors.muted, fontFamily: fonts.utility }}>
+                No pending camp registrations at this time.
+              </div>
+            </div>
+          )}
+
+          {/* 4. TEAM COMMUNICATIONS & DISCUSSIONS */}
+          {lobbyTab === 'discussions' && (
+            <div style={{ backgroundColor: colors.panel, padding: '30px', borderRadius: '8px', border: `2px solid ${colors.highlight}` }}>
+              <h2 style={{ fontFamily: fonts.header, fontSize: '28px', color: colors.textDark, margin: '0 0 5px 0' }}>TEAM DISCUSSIONS</h2>
+              <p style={{ color: colors.muted, margin: '0 0 20px 0', fontSize: '14px' }}>Communicate with your team and track project updates.</p>
+              
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', color: colors.textDark, fontWeight: 'bold', marginBottom: '8px', fontSize: '14px' }}>Select Project or Campground:</label>
+                <select 
+                  value={selectedProject} 
+                  onChange={(e) => setSelectedProject(e.target.value)}
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '12px', borderRadius: '4px', border: `1px solid ${colors.muted}`, fontFamily: fonts.body, backgroundColor: 'white' }}
+                >
+                  <option value="Camp Whispering Pines">Camp Whispering Pines</option>
+                  <option value="Squirrel Hill Campground">Squirrel Hill Campground</option>
+                  <option value="new_project">+ New Project</option>
+                </select>
+              </div>
+
+              {selectedProject === 'new_project' && (
+                <div style={{ marginBottom: '20px', padding: '20px', backgroundColor: 'rgba(193, 83, 27, 0.1)', borderLeft: `4px solid ${colors.primary}`, borderRadius: '0 4px 4px 0' }}>
+                  <label style={{ display: 'block', color: colors.textDark, fontWeight: 'bold', marginBottom: '8px', fontSize: '14px' }}>Enter New Project Name:</label>
+                  <input 
+                    type="text" 
+                    value={newProjectName}
+                    onChange={handleProjectTextChange}
+                    placeholder="Project Name..."
+                    style={{ width: '100%', boxSizing: 'border-box', padding: '12px', borderRadius: '4px', border: `1px solid ${colors.muted}`, fontFamily: fonts.body }}
+                  />
+                </div>
+              )}
+
+              <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '4px', border: `1px solid ${colors.muted}`, marginBottom: '15px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                  <span style={{ fontWeight: 'bold', color: colors.textDark }}>System Update: App Testing Phase 2</span>
+                  <span style={{ fontSize: '12px', color: colors.muted }}>10:42 AM</span>
+                </div>
+                <p style={{ color: colors.textDark, fontSize: '15px', margin: '0 0 20px 0', lineHeight: 1.5 }}>Please make sure all QA Testers have logged their initial findings in the feedback tab before the end of the day.</p>
+                
+                {/* MS Teams-Style Interaction Bar */}
+                <div style={{ display: 'flex', gap: '20px', borderTop: `1px solid #eee`, paddingTop: '15px' }}>
+                  <button style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', color: colors.muted, cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}><ThumbsUp size={18} /> Like</button>
+                  <button style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', color: colors.muted, cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}><MessageCircle size={18} /> Reply</button>
+                  <button style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', color: colors.muted, cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}><BarChart2 size={18} /> Create Poll</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 5. TESTER NOTES / FEEDBACK */}
+          {lobbyTab === 'feedback' && (
+            <div style={{ backgroundColor: colors.panel, padding: '30px', borderRadius: '8px', border: `2px solid ${colors.highlight}` }}>
+              <h2 style={{ fontFamily: fonts.header, fontSize: '28px', color: colors.textDark, margin: '0 0 5px 0' }}>TESTER NOTES & FEEDBACK</h2>
+              <p style={{ color: colors.muted, margin: '0 0 20px 0', fontSize: '14px' }}>Log system bugs, drop testing notes, and edit your previous feedback.</p>
+              
+              <textarea 
+                placeholder="Enter your QA notes or system feedback here..." 
+                style={{ width: '100%', boxSizing: 'border-box', height: '120px', padding: '15px', borderRadius: '4px', border: `1px solid ${colors.muted}`, fontFamily: fonts.body, resize: 'vertical', marginBottom: '15px' }}
+              />
+              <button style={{ backgroundColor: colors.primary, color: colors.textLight, border: 'none', padding: '12px 24px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.header, fontSize: '16px', marginBottom: '30px' }}>SUBMIT NOTE</button>
+
+              <h3 style={{ fontFamily: fonts.header, fontSize: '20px', color: colors.textDark, margin: '0 0 15px 0', borderBottom: `2px solid ${colors.muted}`, paddingBottom: '8px' }}>YOUR PREVIOUS NOTES</h3>
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '20px', backgroundColor: 'white', border: `1px solid ${colors.muted}`, borderRadius: '4px' }}>
+                <div>
+                  <div style={{ fontSize: '12px', color: colors.muted, marginBottom: '8px', fontFamily: fonts.utility }}>Logged: Aug 5, 2026</div>
+                  <div style={{ color: colors.textDark, fontSize: '15px', lineHeight: 1.5 }}>The camp selection dropdown on mobile devices occasionally overlaps with the navigation bar.</div>
+                </div>
+                <button style={{ background: 'none', border: 'none', color: colors.primary, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontFamily: fonts.utility, fontWeight: 'bold' }}><Edit2 size={16} /> EDIT</button>
+              </div>
+            </div>
+          )}
+
+        </div>
+      </div>
+
+      {/* BOTTOM NAVIGATION BAR */}
+      <div style={{ backgroundColor: colors.sidebar, display: 'flex', justifyContent: 'space-around', borderTop: `2px solid ${colors.highlight}`, padding: '10px 0', paddingBottom: 'env(safe-area-inset-bottom, 10px)', overflowX: 'auto', flexWrap: 'nowrap' }}>
+        <BottomNavButton icon={<LayoutDashboard size={22} />} label="Dashboard" active={lobbyTab === 'dashboard'} onClick={() => setLobbyTab('dashboard')} colors={colors} fonts={fonts} />
+        <BottomNavButton icon={<Tent size={22} />} label="Properties" active={lobbyTab === 'camps'} onClick={() => setLobbyTab('camps')} colors={colors} fonts={fonts} />
+        <BottomNavButton icon={<Users size={22} />} label="Staff" active={lobbyTab === 'staff'} onClick={() => setLobbyTab('staff')} colors={colors} fonts={fonts} />
+        <BottomNavButton icon={<CheckSquare size={22} />} label="Approvals" active={lobbyTab === 'approvals'} onClick={() => setLobbyTab('approvals')} colors={colors} fonts={fonts} />
+        <BottomNavButton icon={<MessageSquare size={22} />} label="Discuss" active={lobbyTab === 'discussions'} onClick={() => setLobbyTab('discussions')} colors={colors} fonts={fonts} />
+        <BottomNavButton icon={<ClipboardList size={22} />} label="Notes" active={lobbyTab === 'feedback'} onClick={() => setLobbyTab('feedback')} colors={colors} fonts={fonts} />
+      </div>
+
     </div>
+  )
+}
+
+function BottomNavButton({ icon, label, active, onClick, colors, fonts }) {
+  return (
+    <button 
+      onClick={onClick}
+      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: '1 0 auto', minWidth: '60px', background: 'none', border: 'none', color: active ? colors.primary : colors.muted, cursor: 'pointer', padding: '5px', transition: 'color 0.2s', fontFamily: fonts.body }}
+    >
+      {icon}
+      <span className="bottom-nav-label">{label}</span>
+    </button>
   )
 }
