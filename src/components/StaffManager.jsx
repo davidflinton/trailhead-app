@@ -34,6 +34,7 @@ const getRolePrefix = (role) => {
 export default function StaffManager({ colors, fonts }) {
   const [staffSubTab, setStaffSubTab] = useState('directory')
   const [activeStaff, setActiveStaff] = useState([])
+  const [camps, setCamps] = useState([])
   const [isLoading, setIsLoading] = useState(false)
   const [feedbackMsg, setFeedbackMsg] = useState(null)
   
@@ -46,13 +47,15 @@ export default function StaffManager({ colors, fonts }) {
     prefix: '', firstName: '', middleName: '', lastName: '', suffix: '', 
     displayName: '', preferredGender: '', spokenLanguages: '', 
     idSuffix: generateRandomIdSuffix(), email: '', phone: '', 
-    role: 'QA Tester', passphrase: generatePassphrase()
+    role: 'QA Tester', passphrase: generatePassphrase(),
+    position: '', startDate: '', assignedCamps: []
   }
   
   const [staffForm, setStaffForm] = useState(defaultStaffForm)
 
   useEffect(() => {
     fetchStaffDirectory()
+    fetchCamps()
   }, [])
 
   const fetchStaffDirectory = async () => {
@@ -70,12 +73,30 @@ export default function StaffManager({ colors, fonts }) {
     }
   }
 
+  const fetchCamps = async () => {
+    try {
+      const { data, error } = await supabase.from('camps').select('id, name').order('name')
+      if (error) throw error
+      setCamps(data || [])
+    } catch (error) {
+      console.error("Failed to load camps:", error.message)
+    }
+  }
+
   const handleIdSuffixChange = (e) => {
     const charMap = { 'B': '8', 'G': '6', 'I': '1', 'O': '0', 'S': '5', 'Z': '2' }
     let raw = e.target.value.toUpperCase()
     let corrected = raw.replace(/[BGIOSZ]/g, match => charMap[match])
     corrected = corrected.replace(/[^0-9ACDEFHJKLMNPQRTUVWXY]/g, '')
     setStaffForm({ ...staffForm, idSuffix: corrected.substring(0, 8) })
+  }
+
+  const handleAssignCamp = (campId) => {
+    setStaffForm(prev => ({ ...prev, assignedCamps: [...prev.assignedCamps, campId] }))
+  }
+
+  const handleUnassignCamp = (campId) => {
+    setStaffForm(prev => ({ ...prev, assignedCamps: prev.assignedCamps.filter(id => id !== campId) }))
   }
 
   const handleStaffCreate = async (method) => {
@@ -105,6 +126,9 @@ export default function StaffManager({ colors, fonts }) {
           display_name: staffForm.displayName || null,
           preferred_gender: staffForm.preferredGender || null,
           spoken_languages: staffForm.spokenLanguages || null,
+          position: staffForm.position || null,
+          start_date: staffForm.startDate || null,
+          assigned_camps: staffForm.assignedCamps,
           trailhead_id: fullTrailheadId,
           access_tier: staffForm.role === 'Global Superadmin' ? 'global_superadmin' : 
                        staffForm.role === 'Global Admin' ? 'global_admin' : 'QA Tester'
@@ -151,6 +175,9 @@ export default function StaffManager({ colors, fonts }) {
           display_name: staffForm.displayName || null,
           preferred_gender: staffForm.preferredGender || null,
           spoken_languages: staffForm.spokenLanguages || null,
+          position: staffForm.position || null,
+          start_date: staffForm.startDate || null,
+          assigned_camps: staffForm.assignedCamps,
           trailhead_id: fullTrailheadId,
           access_tier: staffForm.role === 'Global Superadmin' ? 'global_superadmin' : 
                        staffForm.role === 'Global Admin' ? 'global_admin' : 'QA Tester'
@@ -194,6 +221,9 @@ export default function StaffManager({ colors, fonts }) {
       displayName: selected.display_name || '',
       preferredGender: selected.preferred_gender || '',
       spokenLanguages: selected.spoken_languages || '',
+      position: selected.position || '',
+      startDate: selected.start_date || '',
+      assignedCamps: selected.assigned_camps || [],
       idSuffix: currentSuffix,
       email: '', 
       phone: '', 
@@ -330,13 +360,70 @@ export default function StaffManager({ colors, fonts }) {
                   </div>
                 </div>
 
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={labelStyle}>System Role</label>
+                    <select value={staffForm.role} onChange={(e) => setStaffForm({...staffForm, role: e.target.value})} style={inputStyle}>
+                      <option value="QA Tester">QA Tester</option>
+                      <option value="Global Admin">Global Admin</option>
+                      <option value="Global Superadmin">Global Superadmin</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Position / Job Title</label>
+                    <input type="text" placeholder="Manager, Developer, etc." value={staffForm.position} onChange={(e) => setStaffForm({...staffForm, position: e.target.value})} style={inputStyle} />
+                  </div>
+                </div>
+
                 <div>
-                  <label style={labelStyle}>System Role</label>
-                  <select value={staffForm.role} onChange={(e) => setStaffForm({...staffForm, role: e.target.value})} style={inputStyle}>
-                    <option value="QA Tester">QA Tester</option>
-                    <option value="Global Admin">Global Admin</option>
-                    <option value="Global Superadmin">Global Superadmin</option>
-                  </select>
+                  <label style={labelStyle}>Start Date</label>
+                  <input type="date" value={staffForm.startDate} onChange={(e) => setStaffForm({...staffForm, startDate: e.target.value})} style={inputStyle} />
+                </div>
+
+                {/* DUAL LIST SELECTOR FOR CAMPS */}
+                <div style={{ padding: '15px', border: `1px solid ${colors.muted}`, borderRadius: '4px', backgroundColor: 'rgba(255,255,255,0.4)' }}>
+                  <label style={{ ...labelStyle, fontSize: '11px', textTransform: 'uppercase', marginBottom: '10px' }}>Assigned Properties (Click to Move)</label>
+                  <div style={{ display: 'flex', gap: '10px', height: '180px' }}>
+                    
+                    <div style={{ flex: 1, border: `1px solid ${colors.muted}`, borderRadius: '4px', overflowY: 'auto', backgroundColor: '#fff', display: 'flex', flexDirection: 'column' }}>
+                      <div style={{ padding: '8px', backgroundColor: 'rgba(0,0,0,0.05)', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', textAlign: 'center', borderBottom: `1px solid ${colors.muted}` }}>
+                        Available
+                      </div>
+                      <div style={{ flex: 1, padding: '5px' }}>
+                        {camps.filter(c => !staffForm.assignedCamps.includes(c.id)).map(camp => (
+                          <div 
+                            key={camp.id} 
+                            onClick={() => handleAssignCamp(camp.id)} 
+                            style={{ padding: '8px 10px', fontSize: '13px', cursor: 'pointer', borderBottom: '1px solid #eee', color: colors.textDark, display: 'flex', justifyContent: 'space-between', transition: 'background 0.1s' }}
+                            onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.02)'}
+                            onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                          >
+                            {camp.name} <span>&rarr;</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div style={{ flex: 1, border: `2px solid ${colors.primary}`, borderRadius: '4px', overflowY: 'auto', backgroundColor: '#fff', display: 'flex', flexDirection: 'column' }}>
+                      <div style={{ padding: '8px', backgroundColor: colors.primary, color: 'white', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', textAlign: 'center' }}>
+                        Assigned
+                      </div>
+                      <div style={{ flex: 1, padding: '5px' }}>
+                        {camps.filter(c => staffForm.assignedCamps.includes(c.id)).map(camp => (
+                          <div 
+                            key={camp.id} 
+                            onClick={() => handleUnassignCamp(camp.id)} 
+                            style={{ padding: '8px 10px', fontSize: '13px', cursor: 'pointer', borderBottom: '1px solid #eee', color: colors.textDark, display: 'flex', justifyContent: 'space-between', transition: 'background 0.1s' }}
+                            onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(193,83,27,0.1)'}
+                            onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                          >
+                            <span>&larr;</span> {camp.name}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                  </div>
                 </div>
 
                 <div>
@@ -358,7 +445,6 @@ export default function StaffManager({ colors, fonts }) {
                   </div>
                 </div>
 
-                {/* Only show passphrase, email, and phone during creation right now */}
                 {isCreatingStaff && (
                   <>
                     <div>
