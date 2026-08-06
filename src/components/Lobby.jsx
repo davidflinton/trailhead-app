@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
-import { Tent, Users, CheckSquare, MessageSquare, LogOut, Search, MapPin, ClipboardList, ThumbsUp, MessageCircle, BarChart2, Edit2, Plus, LayoutDashboard, Menu, X, Settings, Trash2, AlertTriangle } from 'lucide-react'
+import { Tent, Users, CheckSquare, MessageSquare, LogOut, Search, MapPin, ClipboardList, ThumbsUp, MessageCircle, BarChart2, Edit2, Plus, LayoutDashboard, Menu, X, Settings, Trash2, AlertTriangle, Moon, Sun } from 'lucide-react'
 import StaffManager from './StaffManager'
 
 export default function Lobby({ profile, setCampData, setActiveTab }) {
   const [lobbyTab, setLobbyTab] = useState('dashboard')
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isDarkMode, setIsDarkMode] = useState(false)
   
   // Camp Management State
   const [camps, setCamps] = useState([])
@@ -29,12 +30,36 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
   const [selectedProject, setSelectedProject] = useState('Squirrel Hill Campground')
   const [newProjectName, setNewProjectName] = useState('')
   
-  // Brand Palette
-  const colors = {
-    background: '#16281D', sidebar: '#0F1D14', panel: '#F1E8D0', 
-    textDark: '#24201A', textLight: '#F1E8D0', primary: '#C1531B', 
-    muted: '#6B6250', error: '#E8896B', highlight: '#1E3524', border: '#0B140E'
+  // Dynamic Brand Palette
+  const themes = {
+    light: {
+      background: '#E4DFD0',
+      sidebar: '#0F1D14',
+      panel: '#F1E8D0',
+      textDark: '#24201A',
+      textLight: '#F1E8D0',
+      primary: '#C1531B',
+      muted: '#6B6250',
+      error: '#E8896B',
+      highlight: '#1E3524',
+      border: '#CCC'
+    },
+    dark: {
+      background: '#0B140E',
+      sidebar: '#070C08',
+      panel: '#16281D',
+      textDark: '#F1E8D0',
+      textLight: '#0F1D14',
+      primary: '#C1531B',
+      muted: '#8A9A8F',
+      error: '#D9534F',
+      highlight: '#2A4731',
+      border: '#1E3524'
+    }
   }
+  
+  const colors = isDarkMode ? themes.dark : themes.light
+
   const fonts = {
     header: "'Staatliches', sans-serif", body: "'Karla', sans-serif", utility: "'JetBrains Mono', monospace"
   }
@@ -131,11 +156,11 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: colors.background, color: colors.textLight, fontFamily: fonts.body, overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: colors.background, color: colors.textDark, fontFamily: fonts.body, overflow: 'hidden' }}>
       <style>{`
         ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #16281D; }
-        ::-webkit-scrollbar-thumb { background: #0F1D14; border-radius: 4px; }
+        ::-webkit-scrollbar-track { background: ${colors.background}; }
+        ::-webkit-scrollbar-thumb { background: ${colors.highlight}; border-radius: 4px; }
       `}</style>
 
       {/* TOP HEADER */}
@@ -144,15 +169,18 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
           <h1 style={{ margin: 0, fontSize: '28px', fontFamily: fonts.header, color: colors.primary, letterSpacing: '2px', lineHeight: 1 }}>
             TRAILHEAD ADMIN CONSOLE
           </h1>
-          <p style={{ margin: '2px 0 0 0', opacity: 0.7, fontFamily: fonts.utility, fontSize: '10px', textTransform: 'uppercase' }}>
+          <p style={{ margin: '2px 0 0 0', opacity: 0.7, color: '#F1E8D0', fontFamily: fonts.utility, fontSize: '10px', textTransform: 'uppercase' }}>
             {headerDisplayName}
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <button onClick={() => setIsDarkMode(!isDarkMode)} style={{ background: 'none', border: 'none', color: '#F1E8D0', cursor: 'pointer', padding: '8px', display: 'flex', alignItems: 'center' }} title="Toggle Theme">
+            {isDarkMode ? <Sun size={24} /> : <Moon size={24} />}
+          </button>
           <button onClick={handleLogout} style={{ background: 'none', border: 'none', color: colors.error, cursor: 'pointer', padding: '8px', display: 'flex', alignItems: 'center' }} title="Sign Out">
             <LogOut size={24} />
           </button>
-          <button onClick={() => setIsMenuOpen(true)} style={{ background: 'none', border: 'none', color: colors.textLight, cursor: 'pointer', padding: '8px', display: 'flex', alignItems: 'center' }} title="Menu">
+          <button onClick={() => setIsMenuOpen(true)} style={{ background: 'none', border: 'none', color: '#F1E8D0', cursor: 'pointer', padding: '8px', display: 'flex', alignItems: 'center' }} title="Menu">
             <Menu size={28} />
           </button>
         </div>
@@ -171,7 +199,7 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
         borderLeft: `2px solid ${colors.highlight}`, display: 'flex', flexDirection: 'column' 
       }}>
         <div style={{ padding: '20px', display: 'flex', justifyContent: 'flex-end', borderBottom: `1px solid ${colors.highlight}` }}>
-          <button onClick={() => setIsMenuOpen(false)} style={{ background: 'none', border: 'none', color: colors.muted, cursor: 'pointer' }}>
+          <button onClick={() => setIsMenuOpen(false)} style={{ background: 'none', border: 'none', color: '#F1E8D0', cursor: 'pointer' }}>
             <X size={28} />
           </button>
         </div>
@@ -201,7 +229,7 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
               type="password" 
               value={deletePassword}
               onChange={(e) => setDeletePassword(e.target.value)}
-              style={{ width: '100%', boxSizing: 'border-box', padding: '12px', borderRadius: '4px', border: `1px solid ${colors.error}`, fontFamily: fonts.body, marginBottom: '25px' }}
+              style={{ width: '100%', boxSizing: 'border-box', padding: '12px', borderRadius: '4px', border: `1px solid ${colors.error}`, backgroundColor: isDarkMode ? '#111' : '#fff', color: colors.textDark, fontFamily: fonts.body, marginBottom: '25px' }}
             />
             <div style={{ display: 'flex', gap: '10px' }}>
               <button 
@@ -229,7 +257,7 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
           {/* DASHBOARD TAB - THE CENTRAL HUB */}
           {lobbyTab === 'dashboard' && (
             <div>
-              <h2 style={{ fontFamily: fonts.header, fontSize: '32px', color: colors.textLight, margin: '0 0 20px 0', letterSpacing: '1px' }}>SYSTEM DASHBOARD</h2>
+              <h2 style={{ fontFamily: fonts.header, fontSize: '32px', color: colors.textDark, margin: '0 0 20px 0', letterSpacing: '1px' }}>SYSTEM DASHBOARD</h2>
               
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
                 <div onClick={() => setLobbyTab('camps')} style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '8px', border: `2px solid ${colors.highlight}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -295,7 +323,7 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '20px', padding: '15px', backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: '4px', border: `1px solid ${colors.muted}` }}>
                 <button 
                   onClick={() => { resetPropertyForms(); setIsAddingCamp(true); setSelectedCampId(null); }} 
-                  style={{ backgroundColor: colors.highlight, color: colors.textLight, border: 'none', padding: '10px 15px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.utility, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                  style={{ backgroundColor: colors.highlight, color: '#FFF', border: 'none', padding: '10px 15px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.utility, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
                   <Plus size={16} /> ADD NEW
                 </button>
@@ -303,14 +331,14 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
                 <button 
                   disabled={!selectedCampId}
                   onClick={openEditForm} 
-                  style={{ backgroundColor: selectedCampId ? colors.primary : 'transparent', color: selectedCampId ? colors.textLight : colors.muted, border: selectedCampId ? 'none' : `1px solid ${colors.muted}`, padding: '10px 15px', borderRadius: '4px', cursor: selectedCampId ? 'pointer' : 'not-allowed', fontFamily: fonts.utility, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                  style={{ backgroundColor: selectedCampId ? colors.primary : 'transparent', color: selectedCampId ? '#FFF' : colors.muted, border: selectedCampId ? 'none' : `1px solid ${colors.muted}`, padding: '10px 15px', borderRadius: '4px', cursor: selectedCampId ? 'pointer' : 'not-allowed', fontFamily: fonts.utility, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
                   <Edit2 size={16} /> EDIT
                 </button>
                 <button 
                   disabled={!selectedCampId}
                   onClick={() => { setCampData(selectedCamp); setActiveTab('news'); }} 
-                  style={{ backgroundColor: selectedCampId ? colors.primary : 'transparent', color: selectedCampId ? colors.textLight : colors.muted, border: selectedCampId ? 'none' : `1px solid ${colors.muted}`, padding: '10px 15px', borderRadius: '4px', cursor: selectedCampId ? 'pointer' : 'not-allowed', fontFamily: fonts.utility, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                  style={{ backgroundColor: selectedCampId ? colors.primary : 'transparent', color: selectedCampId ? '#FFF' : colors.muted, border: selectedCampId ? 'none' : `1px solid ${colors.muted}`, padding: '10px 15px', borderRadius: '4px', cursor: selectedCampId ? 'pointer' : 'not-allowed', fontFamily: fonts.utility, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
                   <Settings size={16} /> MANAGE
                 </button>
@@ -325,7 +353,7 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
 
               {/* ADD / EDIT FORM */}
               {(isAddingCamp || isEditingCamp) && (
-                <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '4px', border: `2px solid ${colors.primary}`, marginBottom: '20px' }}>
+                <div style={{ backgroundColor: isDarkMode ? '#111' : 'white', padding: '25px', borderRadius: '4px', border: `2px solid ${colors.primary}`, marginBottom: '20px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                     <h3 style={{ fontFamily: fonts.header, fontSize: '20px', color: colors.textDark, margin: 0 }}>
                       {isEditingCamp ? 'EDIT PROPERTY DETAILS' : 'CREATE NEW PROPERTY'}
@@ -337,11 +365,11 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
                     <input 
                       type="text" placeholder="Property Name *" 
                       value={campForm.name} onChange={(e) => setCampForm({...campForm, name: e.target.value})}
-                      style={{ boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, fontFamily: fonts.body }}
+                      style={{ boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: 'transparent', color: colors.textDark, fontFamily: fonts.body }}
                     />
                     <select 
                       value={campForm.type} onChange={(e) => setCampForm({...campForm, type: e.target.value})}
-                      style={{ padding: '10px', boxSizing: 'border-box', borderRadius: '4px', border: `1px solid ${colors.muted}`, fontFamily: fonts.body, backgroundColor: 'white' }}
+                      style={{ padding: '10px', boxSizing: 'border-box', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: 'transparent', color: colors.textDark, fontFamily: fonts.body }}
                     >
                       <option value="Campground">Campground</option>
                       <option value="Youth Camp">Youth Camp</option>
@@ -350,38 +378,38 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
                     <input 
                       type="text" placeholder="Contact Name" 
                       value={campForm.contact_name} onChange={(e) => setCampForm({...campForm, contact_name: e.target.value})}
-                      style={{ boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, fontFamily: fonts.body }}
+                      style={{ boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: 'transparent', color: colors.textDark, fontFamily: fonts.body }}
                     />
                     <input 
                       type="text" placeholder="Contact Number" 
                       value={campForm.contact_number} onChange={(e) => setCampForm({...campForm, contact_number: e.target.value})}
-                      style={{ boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, fontFamily: fonts.body }}
+                      style={{ boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: 'transparent', color: colors.textDark, fontFamily: fonts.body }}
                     />
                     <input 
                       type="email" placeholder="Contact Email" 
                       value={campForm.contact_email} onChange={(e) => setCampForm({...campForm, contact_email: e.target.value})}
-                      style={{ boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, fontFamily: fonts.body }}
+                      style={{ boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: 'transparent', color: colors.textDark, fontFamily: fonts.body }}
                     />
                     <input 
                       type="url" placeholder="Existing Website URL" 
                       value={campForm.website_url} onChange={(e) => setCampForm({...campForm, website_url: e.target.value})}
-                      style={{ boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, fontFamily: fonts.body }}
+                      style={{ boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: 'transparent', color: colors.textDark, fontFamily: fonts.body }}
                     />
                     <input 
                       type="text" placeholder="Property Address" 
                       value={campForm.property_address} onChange={(e) => setCampForm({...campForm, property_address: e.target.value})}
-                      style={{ gridColumn: '1 / -1', boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, fontFamily: fonts.body }}
+                      style={{ gridColumn: '1 / -1', boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: 'transparent', color: colors.textDark, fontFamily: fonts.body }}
                     />
                     <input 
                       type="text" placeholder="Mailing Address" 
                       value={campForm.mailing_address} onChange={(e) => setCampForm({...campForm, mailing_address: e.target.value})}
-                      style={{ gridColumn: '1 / -1', boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, fontFamily: fonts.body }}
+                      style={{ gridColumn: '1 / -1', boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: 'transparent', color: colors.textDark, fontFamily: fonts.body }}
                     />
                   </div>
                   
                   <button 
                     onClick={isEditingCamp ? handleUpdateCamp : handleAddCamp}
-                    style={{ backgroundColor: colors.primary, color: colors.textLight, border: 'none', padding: '12px 24px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.header, fontSize: '14px' }}
+                    style={{ backgroundColor: colors.primary, color: '#FFF', border: 'none', padding: '12px 24px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.header, fontSize: '14px' }}
                   >
                     {isEditingCamp ? 'SAVE CHANGES' : 'SAVE PROPERTY'}
                   </button>
@@ -395,7 +423,7 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
                   placeholder="Search properties..." 
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  style={{ width: '100%', boxSizing: 'border-box', padding: '10px 10px 10px 40px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: 'white', color: colors.textDark, fontSize: '15px', outline: 'none', fontFamily: fonts.body }}
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '10px 10px 10px 40px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: isDarkMode ? '#111' : 'white', color: colors.textDark, fontSize: '15px', outline: 'none', fontFamily: fonts.body }}
                 />
               </div>
               
@@ -408,8 +436,8 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
                     onClick={() => { setSelectedCampId(camp.id); setIsAddingCamp(false); setIsEditingCamp(false); }}
                     style={{ 
                       display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px', 
-                      backgroundColor: selectedCampId === camp.id ? '#E5DCC0' : 'white', 
-                      border: selectedCampId === camp.id ? `2px solid ${colors.primary}` : `1px solid #ccc`, 
+                      backgroundColor: selectedCampId === camp.id ? (isDarkMode ? '#2A4731' : '#E5DCC0') : (isDarkMode ? '#16281D' : 'white'), 
+                      border: selectedCampId === camp.id ? `2px solid ${colors.primary}` : `1px solid ${colors.border}`, 
                       borderRadius: '4px', cursor: 'pointer', transition: 'all 0.1s' 
                     }}
                   >
@@ -430,7 +458,7 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
           {/* 2. STAFF ACCOUNTS */}
           {lobbyTab === 'staff' && (
             <div style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '8px', border: `2px solid ${colors.highlight}` }}>
-              <StaffManager colors={colors} fonts={fonts} />
+              <StaffManager colors={colors} fonts={fonts} isDarkMode={isDarkMode} />
             </div>
           )}
 
@@ -439,7 +467,7 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
             <div style={{ backgroundColor: colors.panel, padding: '30px', borderRadius: '8px', border: `2px solid ${colors.highlight}` }}>
               <h2 style={{ fontFamily: fonts.header, fontSize: '28px', color: colors.textDark, margin: '0 0 5px 0' }}>PENDING APPROVALS</h2>
               <p style={{ color: colors.muted, margin: '0 0 20px 0', fontSize: '14px' }}>Review and approve recently registered camps.</p>
-              <div style={{ padding: '30px', backgroundColor: 'white', border: `1px solid ${colors.muted}`, borderRadius: '4px', textAlign: 'center', color: colors.muted, fontFamily: fonts.utility }}>
+              <div style={{ padding: '30px', backgroundColor: isDarkMode ? '#111' : 'white', border: `1px solid ${colors.muted}`, borderRadius: '4px', textAlign: 'center', color: colors.muted, fontFamily: fonts.utility }}>
                 No pending camp registrations at this time.
               </div>
             </div>
@@ -456,7 +484,7 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
                 <select 
                   value={selectedProject} 
                   onChange={(e) => setSelectedProject(e.target.value)}
-                  style={{ width: '100%', boxSizing: 'border-box', padding: '12px', borderRadius: '4px', border: `1px solid ${colors.muted}`, fontFamily: fonts.body, backgroundColor: 'white' }}
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '12px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: isDarkMode ? '#111' : 'white', color: colors.textDark, fontFamily: fonts.body }}
                 >
                   <option value="Camp Whispering Pines">Camp Whispering Pines</option>
                   <option value="Squirrel Hill Campground">Squirrel Hill Campground</option>
@@ -472,20 +500,19 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
                     value={newProjectName}
                     onChange={handleProjectTextChange}
                     placeholder="Project Name..."
-                    style={{ width: '100%', boxSizing: 'border-box', padding: '12px', borderRadius: '4px', border: `1px solid ${colors.muted}`, fontFamily: fonts.body }}
+                    style={{ width: '100%', boxSizing: 'border-box', padding: '12px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: 'transparent', color: colors.textDark, fontFamily: fonts.body }}
                   />
                 </div>
               )}
 
-              <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '4px', border: `1px solid ${colors.muted}`, marginBottom: '15px' }}>
+              <div style={{ backgroundColor: isDarkMode ? '#111' : 'white', padding: '20px', borderRadius: '4px', border: `1px solid ${colors.muted}`, marginBottom: '15px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
                   <span style={{ fontWeight: 'bold', color: colors.textDark }}>System Update: App Testing Phase 2</span>
                   <span style={{ fontSize: '12px', color: colors.muted }}>10:42 AM</span>
                 </div>
                 <p style={{ color: colors.textDark, fontSize: '15px', margin: '0 0 20px 0', lineHeight: 1.5 }}>Please make sure all QA Testers have logged their initial findings in the feedback tab before the end of the day.</p>
                 
-                {/* MS Teams-Style Interaction Bar */}
-                <div style={{ display: 'flex', gap: '20px', borderTop: `1px solid #eee`, paddingTop: '15px' }}>
+                <div style={{ display: 'flex', gap: '20px', borderTop: `1px solid ${colors.border}`, paddingTop: '15px' }}>
                   <button style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', color: colors.muted, cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}><ThumbsUp size={18} /> Like</button>
                   <button style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', color: colors.muted, cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}><MessageCircle size={18} /> Reply</button>
                   <button style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', color: colors.muted, cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}><BarChart2 size={18} /> Create Poll</button>
@@ -502,13 +529,13 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
               
               <textarea 
                 placeholder="Enter your QA notes or system feedback here..." 
-                style={{ width: '100%', boxSizing: 'border-box', height: '120px', padding: '15px', borderRadius: '4px', border: `1px solid ${colors.muted}`, fontFamily: fonts.body, resize: 'vertical', marginBottom: '15px' }}
+                style={{ width: '100%', boxSizing: 'border-box', height: '120px', padding: '15px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: isDarkMode ? '#111' : 'white', color: colors.textDark, fontFamily: fonts.body, resize: 'vertical', marginBottom: '15px' }}
               />
-              <button style={{ backgroundColor: colors.primary, color: colors.textLight, border: 'none', padding: '12px 24px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.header, fontSize: '16px', marginBottom: '30px' }}>SUBMIT NOTE</button>
+              <button style={{ backgroundColor: colors.primary, color: '#FFF', border: 'none', padding: '12px 24px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.header, fontSize: '16px', marginBottom: '30px' }}>SUBMIT NOTE</button>
 
-              <h3 style={{ fontFamily: fonts.header, fontSize: '20px', color: colors.textDark, margin: '0 0 15px 0', borderBottom: `2px solid ${colors.muted}`, paddingBottom: '8px' }}>YOUR PREVIOUS NOTES</h3>
+              <h3 style={{ fontFamily: fonts.header, fontSize: '20px', color: colors.textDark, margin: '0 0 15px 0', borderBottom: `2px solid ${colors.border}`, paddingBottom: '8px' }}>YOUR PREVIOUS NOTES</h3>
               
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '20px', backgroundColor: 'white', border: `1px solid ${colors.muted}`, borderRadius: '4px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '20px', backgroundColor: isDarkMode ? '#111' : 'white', border: `1px solid ${colors.muted}`, borderRadius: '4px' }}>
                 <div>
                   <div style={{ fontSize: '12px', color: colors.muted, marginBottom: '8px', fontFamily: fonts.utility }}>Logged: Aug 5, 2026</div>
                   <div style={{ color: colors.textDark, fontSize: '15px', lineHeight: 1.5 }}>The camp selection dropdown on mobile devices occasionally overlaps with the navigation bar.</div>
@@ -531,7 +558,7 @@ function SideNavButton({ icon, label, active, onClick, colors, fonts }) {
       style={{ 
         display: 'flex', alignItems: 'center', gap: '15px', width: '100%', 
         background: active ? colors.highlight : 'none', border: 'none', 
-        color: active ? colors.primary : colors.textLight, 
+        color: active ? '#FFF' : '#F1E8D0', 
         cursor: 'pointer', padding: '15px 20px', borderRadius: '4px', 
         transition: 'background 0.2s', fontFamily: fonts.header, fontSize: '18px', letterSpacing: '1px' 
       }}
