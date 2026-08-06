@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 import { Mail, Smartphone, Dices, RefreshCw, LayoutDashboard, List, UserPlus, Edit2, Check, X, ShieldAlert, Trash2, Key, ToggleLeft, ToggleRight, QrCode } from 'lucide-react'
 
-// Expanded 250+ word dictionary (3-5 letters) for passphrase generation
 const words = [
   'cow', 'truck', 'sing', 'water', 'diner', 'wolf', 'bear', 'tent', 'pine', 'camp',
   'fire', 'wood', 'lake', 'moon', 'star', 'leaf', 'rock', 'path', 'trail', 'fish',
@@ -157,6 +156,8 @@ export default function StaffManager({ colors, fonts, isDarkMode }) {
           position: staffForm.position || null,
           start_date: staffForm.startDate || null,
           end_date: staffForm.endDate || null,
+          email: staffForm.email || null,
+          phone: staffForm.phone || null,
           is_active: true,
           assigned_camps: staffForm.assignedCamps,
           trailhead_id: fullTrailheadId,
@@ -203,6 +204,8 @@ export default function StaffManager({ colors, fonts, isDarkMode }) {
           position: staffForm.position || null,
           start_date: staffForm.startDate || null,
           end_date: staffForm.endDate || null,
+          email: staffForm.email || null,
+          phone: staffForm.phone || null,
           assigned_camps: staffForm.assignedCamps,
           trailhead_id: fullTrailheadId,
           access_tier: staffForm.role === 'Global Superadmin' ? 'global_superadmin' : 
@@ -298,10 +301,10 @@ export default function StaffManager({ colors, fonts, isDarkMode }) {
       position: selected.position || '',
       startDate: selected.start_date || '',
       endDate: selected.end_date || '',
+      email: selected.email || '',
+      phone: selected.phone || '',
       assignedCamps: selected.assigned_camps || [],
       idSuffix: currentSuffix,
-      email: '', 
-      phone: '', 
       role: parsedRole,
       passphrase: generatePassphrase()
     })
@@ -320,10 +323,10 @@ export default function StaffManager({ colors, fonts, isDarkMode }) {
       {showQrCode && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
           <div style={{ backgroundColor: isDarkMode ? '#111' : '#fff', padding: '30px', borderRadius: '8px', maxWidth: '400px', width: '100%', border: `2px solid ${colors.primary}`, textAlign: 'center' }}>
-            <h3 style={{ margin: '0 0 15px 0', fontFamily: fonts.header, fontSize: '24px', color: colors.textDark }}>SCAN TO REGISTER</h3>
-            <p style={{ color: colors.muted, fontSize: '14px', marginBottom: '20px' }}>Have the staff member scan this code to complete their account setup and authenticate.</p>
+            <h3 style={{ margin: '0 0 15px 0', fontFamily: fonts.header, fontSize: '24px', color: colors.textDark }}>SCAN TO AUTHENTICATE</h3>
+            <p style={{ color: colors.muted, fontSize: '14px', marginBottom: '20px' }}>Have the staff member scan this code to complete their account setup or login process.</p>
             <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', display: 'inline-block', marginBottom: '20px' }}>
-              <img src={showQrCode} alt="Registration QR Code" style={{ width: '200px', height: '200px' }} />
+              <img src={showQrCode} alt="Authentication QR Code" style={{ width: '200px', height: '200px' }} />
             </div>
             <button 
               onClick={() => setShowQrCode(null)}
@@ -392,6 +395,15 @@ export default function StaffManager({ colors, fonts, isDarkMode }) {
                   style={{ backgroundColor: 'transparent', color: colors.textDark, border: `1px solid ${colors.muted}`, padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.utility, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
                   <Key size={16} /> RESET PW
+                </button>
+                <button 
+                  onClick={() => {
+                    const encodedUrl = encodeURIComponent(`https://trailhead.local/login?id=${selected.trailhead_id}&reset=true`)
+                    setShowQrCode(`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodedUrl}`)
+                  }} 
+                  style={{ backgroundColor: colors.highlight, color: '#FFF', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.utility, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <QrCode size={16} /> SHOW QR
                 </button>
                 <button 
                   onClick={handleToggleAccess} 
@@ -570,33 +582,31 @@ export default function StaffManager({ colors, fonts, isDarkMode }) {
                 </div>
 
                 {isCreatingStaff && (
-                  <>
-                    <div>
-                      <label style={labelStyle}>Generated Passphrase</label>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <input 
-                          type="text" 
-                          readOnly 
-                          value={staffForm.passphrase} 
-                          style={{ ...inputStyle, fontFamily: fonts.utility, flexGrow: 1, backgroundColor: 'rgba(0,0,0,0.02)', color: colors.primary, fontWeight: 'bold', fontSize: '14px' }} 
-                        />
-                        <button onClick={() => setStaffForm({ ...staffForm, passphrase: generatePassphrase() })} style={{ padding: '0 12px', backgroundColor: 'transparent', color: colors.textDark, border: `1px solid ${colors.muted}`, borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center' }} title="Regenerate Passphrase">
-                          <RefreshCw size={18} />
-                        </button>
-                      </div>
+                  <div>
+                    <label style={labelStyle}>Generated Passphrase</label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input 
+                        type="text" 
+                        readOnly 
+                        value={staffForm.passphrase} 
+                        style={{ ...inputStyle, fontFamily: fonts.utility, flexGrow: 1, backgroundColor: 'rgba(0,0,0,0.02)', color: colors.primary, fontWeight: 'bold', fontSize: '14px' }} 
+                      />
+                      <button onClick={() => setStaffForm({ ...staffForm, passphrase: generatePassphrase() })} style={{ padding: '0 12px', backgroundColor: 'transparent', color: colors.textDark, border: `1px solid ${colors.muted}`, borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center' }} title="Regenerate Passphrase">
+                        <RefreshCw size={18} />
+                      </button>
                     </div>
-
-                    <div>
-                      <label style={labelStyle}>Email Address</label>
-                      <input type="email" value={staffForm.email} onChange={(e) => setStaffForm({...staffForm, email: e.target.value})} style={inputStyle} />
-                    </div>
-
-                    <div style={{ marginBottom: '10px' }}>
-                      <label style={labelStyle}>Phone Number</label>
-                      <input type="tel" value={staffForm.phone} onChange={(e) => setStaffForm({...staffForm, phone: e.target.value})} style={inputStyle} />
-                    </div>
-                  </>
+                  </div>
                 )}
+                
+                <div>
+                  <label style={labelStyle}>Email Address</label>
+                  <input type="email" value={staffForm.email} onChange={(e) => setStaffForm({...staffForm, email: e.target.value})} style={inputStyle} />
+                </div>
+
+                <div style={{ marginBottom: '10px' }}>
+                  <label style={labelStyle}>Phone Number</label>
+                  <input type="tel" value={staffForm.phone} onChange={(e) => setStaffForm({...staffForm, phone: e.target.value})} style={inputStyle} />
+                </div>
 
                 {isEditingStaff ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>

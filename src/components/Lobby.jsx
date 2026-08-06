@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
-import { Tent, Users, CheckSquare, MessageSquare, LogOut, Search, MapPin, ClipboardList, ThumbsUp, MessageCircle, BarChart2, Edit2, Plus, LayoutDashboard, Menu, X, Settings, Trash2, AlertTriangle, Moon, Sun } from 'lucide-react'
+import { Tent, Users, CheckSquare, MessageSquare, LogOut, Search, MapPin, ClipboardList, ThumbsUp, MessageCircle, BarChart2, Edit2, Plus, LayoutDashboard, Menu, X, Settings, Trash2, AlertTriangle, Moon, Sun, Lock } from 'lucide-react'
 import StaffManager from './StaffManager'
 
 export default function Lobby({ profile, setCampData, setActiveTab }) {
@@ -10,6 +10,7 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
   
   // Camp Management State
   const [camps, setCamps] = useState([])
+  const [myAssignedCamps, setMyAssignedCamps] = useState([])
   const [search, setSearch] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   
@@ -22,7 +23,8 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
 
   const defaultCampForm = {
     name: '', type: 'Campground', contact_name: '', contact_number: '', 
-    contact_email: '', mailing_address: '', property_address: '', website_url: ''
+    contact_email: '', mailing_address: '', property_address: '', website_url: '',
+    gs_restricted: false
   }
   const [campForm, setCampForm] = useState(defaultCampForm)
 
@@ -72,6 +74,14 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
 
   const fetchProperties = async () => {
     setIsLoading(true)
+    
+    if (profile?.id && profile?.access_tier !== 'global_superadmin') {
+       const { data: personnelData } = await supabase.from('trailhead_personnel').select('assigned_camps').eq('id', profile.id).single()
+       if (personnelData && personnelData.assigned_camps) {
+         setMyAssignedCamps(personnelData.assigned_camps)
+       }
+    }
+
     const { data, error } = await supabase.from('camps').select('*').order('name')
     if (data) setCamps(data)
     if (error) console.error("Error fetching properties:", error.message)
@@ -80,13 +90,11 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
 
   const selectedCamp = camps.find(c => c.id === selectedCampId)
 
-  // Auth Handlers
   const handleLogout = async () => {
     await supabase.auth.signOut()
     window.location.reload()
   }
 
-  // Handlers for Add/Edit/Delete Property
   const handleAddCamp = async () => {
     if (!campForm.name.trim()) return
     const { error } = await supabase.from('camps').insert([campForm])
@@ -139,7 +147,8 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
       contact_email: selectedCamp?.contact_email || '',
       mailing_address: selectedCamp?.mailing_address || '',
       property_address: selectedCamp?.property_address || '',
-      website_url: selectedCamp?.website_url || ''
+      website_url: selectedCamp?.website_url || '',
+      gs_restricted: selectedCamp?.gs_restricted || false
     })
   }
 
@@ -148,12 +157,18 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
     setNewProjectName(text)
   }
 
-  const filteredCamps = camps.filter(c => c.name?.toLowerCase().includes(search.toLowerCase()))
-
   const handleNavClick = (tab) => {
     setLobbyTab(tab)
     setIsMenuOpen(false)
   }
+
+  const filteredCamps = camps.filter(c => c.name?.toLowerCase().includes(search.toLowerCase()))
+  
+  const visibleCamps = filteredCamps.filter(camp => {
+    if (profile?.access_tier === 'global_superadmin') return true;
+    if (profile?.access_tier === 'global_admin') return !camp.gs_restricted;
+    return myAssignedCamps.includes(camp.id);
+  })
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: colors.background, color: colors.textDark, fontFamily: fonts.body, overflow: 'hidden' }}>
@@ -280,7 +295,7 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
 
                 <div onClick={() => setLobbyTab('approvals')} style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '8px', border: `2px solid ${colors.highlight}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h3 style={{ margin: 0, fontFamily: fonts.header, fontSize: '24px', color: colors.textDark }}>Approvals</h3>
+                    <h3 style={{ margin: '0', fontFamily: fonts.header, fontSize: '24px', color: colors.textDark }}>Approvals</h3>
                     <CheckSquare color={colors.primary} size={24} />
                   </div>
                   <div style={{ fontSize: '14px', color: colors.muted }}>0 Pending Registrations</div>
@@ -308,8 +323,6 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
             </div>
           )}
 
-          {/* FULL SECTIONS */}
-
           {/* 1. CAMP MANAGEMENT */}
           {lobbyTab === 'camps' && (
             <div style={{ backgroundColor: colors.panel, padding: '30px', borderRadius: '8px', border: `2px solid ${colors.highlight}` }}>
@@ -321,13 +334,17 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
 
               {/* ACTION BAR */}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '20px', padding: '15px', backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: '4px', border: `1px solid ${colors.muted}` }}>
-                <button 
-                  onClick={() => { resetPropertyForms(); setIsAddingCamp(true); setSelectedCampId(null); }} 
-                  style={{ backgroundColor: colors.highlight, color: '#FFF', border: 'none', padding: '10px 15px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.utility, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
-                >
-                  <Plus size={16} /> ADD NEW
-                </button>
-                <div style={{ width: '1px', backgroundColor: colors.muted, margin: '0 5px' }}></div>
+                {profile?.access_tier === 'global_superadmin' && (
+                  <>
+                    <button 
+                      onClick={() => { resetPropertyForms(); setIsAddingCamp(true); setSelectedCampId(null); }} 
+                      style={{ backgroundColor: colors.highlight, color: '#FFF', border: 'none', padding: '10px 15px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.utility, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                    >
+                      <Plus size={16} /> ADD NEW
+                    </button>
+                    <div style={{ width: '1px', backgroundColor: colors.muted, margin: '0 5px' }}></div>
+                  </>
+                )}
                 <button 
                   disabled={!selectedCampId}
                   onClick={openEditForm} 
@@ -342,13 +359,15 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
                 >
                   <Settings size={16} /> MANAGE
                 </button>
-                <button 
-                  disabled={!selectedCampId}
-                  onClick={() => setIsDeletingCamp(true)} 
-                  style={{ backgroundColor: selectedCampId ? colors.error : 'transparent', color: selectedCampId ? 'white' : colors.muted, border: selectedCampId ? 'none' : `1px solid ${colors.muted}`, padding: '10px 15px', borderRadius: '4px', cursor: selectedCampId ? 'pointer' : 'not-allowed', fontFamily: fonts.utility, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px', marginLeft: 'auto' }}
-                >
-                  <Trash2 size={16} /> DELETE
-                </button>
+                {profile?.access_tier === 'global_superadmin' && (
+                  <button 
+                    disabled={!selectedCampId}
+                    onClick={() => setIsDeletingCamp(true)} 
+                    style={{ backgroundColor: selectedCampId ? colors.error : 'transparent', color: selectedCampId ? 'white' : colors.muted, border: selectedCampId ? 'none' : `1px solid ${colors.muted}`, padding: '10px 15px', borderRadius: '4px', cursor: selectedCampId ? 'pointer' : 'not-allowed', fontFamily: fonts.utility, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px', marginLeft: 'auto' }}
+                  >
+                    <Trash2 size={16} /> DELETE
+                  </button>
+                )}
               </div>
 
               {/* ADD / EDIT FORM */}
@@ -405,6 +424,22 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
                       value={campForm.mailing_address} onChange={(e) => setCampForm({...campForm, mailing_address: e.target.value})}
                       style={{ gridColumn: '1 / -1', boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: 'transparent', color: colors.textDark, fontFamily: fonts.body }}
                     />
+                    
+                    {profile?.access_tier === 'global_superadmin' && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', gridColumn: '1 / -1', padding: '10px', backgroundColor: isDarkMode ? '#1A1A1A' : '#F8F8F8', borderRadius: '4px', border: `1px solid ${colors.muted}` }}>
+                        <input 
+                          type="checkbox" 
+                          id="gsRestricted"
+                          checked={campForm.gs_restricted} 
+                          onChange={(e) => setCampForm({...campForm, gs_restricted: e.target.checked})} 
+                          style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                        />
+                        <label htmlFor="gsRestricted" style={{ color: colors.textDark, fontFamily: fonts.body, fontSize: '14px', fontWeight: 'bold', cursor: 'pointer' }}>
+                          GS Restricted (Lock out Global Admins)
+                        </label>
+                      </div>
+                    )}
+
                   </div>
                   
                   <button 
@@ -429,8 +464,8 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '500px', overflowY: 'auto' }}>
                 {isLoading ? <div style={{ textAlign: 'center', padding: '20px', color: colors.primary, fontFamily: fonts.utility }}>Loading...</div> : 
-                 filteredCamps.length === 0 ? <div style={{ textAlign: 'center', padding: '20px', color: colors.muted }}>No properties found.</div> : 
-                 filteredCamps.map(camp => (
+                 visibleCamps.length === 0 ? <div style={{ textAlign: 'center', padding: '20px', color: colors.muted }}>No properties found.</div> : 
+                 visibleCamps.map(camp => (
                   <div 
                     key={camp.id} 
                     onClick={() => { setSelectedCampId(camp.id); setIsAddingCamp(false); setIsEditingCamp(false); }}
@@ -442,7 +477,10 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
                     }}
                   >
                     <div>
-                      <div style={{ fontFamily: fonts.header, fontSize: '20px', color: colors.textDark, letterSpacing: '1px' }}>{camp.name}</div>
+                      <div style={{ fontFamily: fonts.header, fontSize: '20px', color: colors.textDark, letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        {camp.name}
+                        {camp.gs_restricted && <Lock size={14} color={colors.error} title="Restricted Access" />}
+                      </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px', color: colors.muted, fontSize: '12px', fontFamily: fonts.utility, textTransform: 'uppercase' }}>
                         <MapPin size={12} /> {camp.type ? camp.type.replace('_', ' ') : 'Standard Property'}
                         {camp.contact_name && <span style={{ marginLeft: '10px' }}>| Contact: {camp.contact_name}</span>}
