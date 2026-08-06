@@ -6,7 +6,14 @@ import StaffManager from './StaffManager'
 export default function Lobby({ profile, setCampData, setActiveTab }) {
   const [lobbyTab, setLobbyTab] = useState('dashboard')
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [isDarkMode, setIsDarkMode] = useState(false)
+  
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    return localStorage.getItem('trailhead_theme') === 'dark'
+  })
+
+  useEffect(() => {
+    localStorage.setItem('trailhead_theme', isDarkMode ? 'dark' : 'light')
+  }, [isDarkMode])
   
   // Camp Management State
   const [camps, setCamps] = useState([])
