@@ -1,3 +1,24 @@
+export default function App() {
+  // 0. Intercept Routes Immediately
+  const path = window.location.pathname
+  
+  // Use startsWith to ignore any trailing slashes added by the server
+  if (path.startsWith('/register')) {
+    return <Register />
+  }
+  
+  if (path.startsWith('/reset-password')) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#0B140E', color: '#C1531B', fontFamily: "'Staatliches', sans-serif", fontSize: '32px', letterSpacing: '2px' }}>
+        RESET PASSWORD SCREEN UNDER CONSTRUCTION
+      </div>
+    )
+  }
+
+  const [session, setSession] = useState(null)
+  const [profile, setProfile] = useState(null)
+  const [campData, setCampData] = useState(null)
+  // ... rest of your existing App.jsx code
 import { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
 import { Bell, Tent, X } from 'lucide-react'
