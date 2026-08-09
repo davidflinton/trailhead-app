@@ -120,8 +120,8 @@ export default function StaffManager({ colors, fonts, isDarkMode }) {
   const handleUnassignCamp = (campId) => setStaffForm(prev => ({ ...prev, assignedCamps: prev.assignedCamps.filter(id => id !== campId) }))
 
   const dispatchCredentials = (method) => {
-    if (method === 'email') setFeedbackMsg(`Credentials successfully dispatched to ${staffForm.email}.`)
-    if (method === 'sms') setFeedbackMsg(`Credentials successfully texted to ${staffForm.phone}.`)
+    if (method === 'email') setFeedbackMsg(`Mock notification: Email logic needs backend service to actually send to ${staffForm.email}.`)
+    if (method === 'sms') setFeedbackMsg(`Mock notification: SMS logic needs backend service to actually text ${staffForm.phone}.`)
   }
 
   const handleStaffCreate = async (method) => {
@@ -154,9 +154,9 @@ export default function StaffManager({ colors, fonts, isDarkMode }) {
 
       if (method === 'qr') {
         setFeedbackMsg(`Success. Account ${fullTrailheadId} created.`)
-        setShowQrCode(`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`https://trailhead.local/register?id=${fullTrailheadId}&code=${staffForm.passphrase}`)}`)
+        setShowQrCode(`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`https://trailhead.stupidroosterstudios.com/register?id=${fullTrailheadId}&code=${staffForm.passphrase}`)}`)
       } else {
-        setFeedbackMsg(`Success. Account ${fullTrailheadId} created. Setup link sent via ${method.toUpperCase()}.`)
+        setFeedbackMsg(`Success. Account ${fullTrailheadId} created. Reminder: Hook up backend to actually send via ${method.toUpperCase()}.`)
       }
       resetStaffForm()
       fetchStaffDirectory()
@@ -218,7 +218,7 @@ export default function StaffManager({ colors, fonts, isDarkMode }) {
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(authEmail)
       if (error) throw error
-      setFeedbackMsg(`Password reset link has been dispatched to the user's registered email.`)
+      setFeedbackMsg(`Action triggered. Note: This currently goes to a dummy .local email and needs backend logic to reroute.`)
     } catch (error) {
       setFeedbackMsg(`Error initiating password reset: ${error.message}`)
     }
@@ -316,7 +316,7 @@ export default function StaffManager({ colors, fonts, isDarkMode }) {
               <div style={{ width: '1px', backgroundColor: colors.muted, margin: '0 5px' }}></div>
               <button onClick={handlePasswordReset} style={{ backgroundColor: 'transparent', color: colors.textDark, border: `1px solid ${colors.muted}`, padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.utility, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}><Key size={16} /> RESET PW</button>
               <button onClick={() => {
-                  const encodedUrl = encodeURIComponent(`https://trailhead.local/reset-password?id=${selected.trailhead_id}`)
+                  const encodedUrl = encodeURIComponent(`https://trailhead.stupidroosterstudios.com/reset-password?id=${selected.trailhead_id}`)
                   setShowQrCode(`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodedUrl}`)
                 }} style={{ backgroundColor: colors.highlight, color: '#FFF', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.utility, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}><QrCode size={16} /> SHOW QR</button>
               <button onClick={handleToggleAccess} style={{ backgroundColor: isActive ? 'transparent' : colors.primary, color: isActive ? colors.textDark : '#FFF', border: `1px solid ${colors.muted}`, padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.utility, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -449,36 +449,36 @@ export default function StaffManager({ colors, fonts, isDarkMode }) {
                 </div>
               )}
             </div>
-          )}
-
-          <div style={{ backgroundColor: isDarkMode ? '#111' : '#fff', borderRadius: '4px', border: `1px solid ${colors.muted}`, overflow: 'hidden' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', padding: '15px 20px', borderBottom: `2px solid ${colors.muted}`, backgroundColor: 'rgba(0,0,0,0.02)', fontFamily: fonts.utility, fontSize: '11px', fontWeight: 'bold', color: colors.muted, textTransform: 'uppercase', letterSpacing: '1px' }}>
-              <div>Employee Name</div>
-              <div>Trailhead ID</div>
-              <div>Access Tier</div>
-              <div>Status</div>
-            </div>
-            
-            {activeStaff.length === 0 ? (
-              <div style={{ padding: '30px', textAlign: 'center', color: colors.muted, fontFamily: fonts.body }}>
-                No staff records found in the directory.
-              </div>
-            ) : (
-              activeStaff.map((staff) => {
-                const displayStr = staff.display_name || `${staff.first_name || ''} ${staff.last_name || ''}`.trim() || 'Unknown User'
-                const isSelected = selectedStaffId === staff.id
-                
-                return (
-                  <div key={staff.id} onClick={() => { setSelectedStaffId(staff.id); setIsCreatingStaff(false); setIsEditingStaff(false); }} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', alignItems: 'center', padding: '15px 20px', borderBottom: `1px solid ${colors.border}`, cursor: 'pointer', backgroundColor: isSelected ? 'rgba(193, 83, 27, 0.1)' : 'transparent', transition: 'background-color 0.1s', opacity: staff.is_active ? 1 : 0.6 }}>
-                    <div style={{ color: colors.textDark, fontWeight: 'bold', fontFamily: fonts.body, fontSize: '15px' }}>{displayStr}</div>
-                    <div style={{ color: colors.muted, fontFamily: fonts.utility, fontSize: '13px' }}>{staff.trailhead_id || 'NO-ID'}</div>
-                    <div><span style={{ backgroundColor: colors.highlight, color: '#FFF', padding: '4px 8px', borderRadius: '2px', fontFamily: fonts.utility, fontSize: '10px', textTransform: 'uppercase' }}>{staff.access_tier ? staff.access_tier.replace('_', ' ') : 'USER'}</span></div>
-                    <div><span style={{ color: staff.is_active ? colors.primary : colors.error, fontFamily: fonts.utility, fontSize: '11px', fontWeight: 'bold' }}>{staff.is_active ? 'ACTIVE' : 'DISABLED'}</span></div>
-                  </div>
-                )
-              })
-            )}
           </div>
+        )}
+
+        <div style={{ backgroundColor: isDarkMode ? '#111' : '#fff', borderRadius: '4px', border: `1px solid ${colors.muted}`, overflow: 'hidden' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', padding: '15px 20px', borderBottom: `2px solid ${colors.muted}`, backgroundColor: 'rgba(0,0,0,0.02)', fontFamily: fonts.utility, fontSize: '11px', fontWeight: 'bold', color: colors.muted, textTransform: 'uppercase', letterSpacing: '1px' }}>
+            <div>Employee Name</div>
+            <div>Trailhead ID</div>
+            <div>Access Tier</div>
+            <div>Status</div>
+          </div>
+          
+          {activeStaff.length === 0 ? (
+            <div style={{ padding: '30px', textAlign: 'center', color: colors.muted, fontFamily: fonts.body }}>
+              No staff records found in the directory.
+            </div>
+          ) : (
+            activeStaff.map((staff) => {
+              const displayStr = staff.display_name || `${staff.first_name || ''} ${staff.last_name || ''}`.trim() || 'Unknown User'
+              const isSelected = selectedStaffId === staff.id
+              
+              return (
+                <div key={staff.id} onClick={() => { setSelectedStaffId(staff.id); setIsCreatingStaff(false); setIsEditingStaff(false); }} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', alignItems: 'center', padding: '15px 20px', borderBottom: `1px solid ${colors.border}`, cursor: 'pointer', backgroundColor: isSelected ? 'rgba(193, 83, 27, 0.1)' : 'transparent', transition: 'background-color 0.1s', opacity: staff.is_active ? 1 : 0.6 }}>
+                  <div style={{ color: colors.textDark, fontWeight: 'bold', fontFamily: fonts.body, fontSize: '15px' }}>{displayStr}</div>
+                  <div style={{ color: colors.muted, fontFamily: fonts.utility, fontSize: '13px' }}>{staff.trailhead_id || 'NO-ID'}</div>
+                  <div><span style={{ backgroundColor: colors.highlight, color: '#FFF', padding: '4px 8px', borderRadius: '2px', fontFamily: fonts.utility, fontSize: '10px', textTransform: 'uppercase' }}>{staff.access_tier ? staff.access_tier.replace('_', ' ') : 'USER'}</span></div>
+                  <div><span style={{ color: staff.is_active ? colors.primary : colors.error, fontFamily: fonts.utility, fontSize: '11px', fontWeight: 'bold' }}>{staff.is_active ? 'ACTIVE' : 'DISABLED'}</span></div>
+                </div>
+              )
+            })
+          )}
         </div>
       </div>
     </div>
