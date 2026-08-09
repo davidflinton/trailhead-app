@@ -6,6 +6,7 @@ import { Bell, Tent, X } from 'lucide-react'
 import Navigation from './components/Navigation'
 import Login from './components/Login'
 import Lobby from './components/Lobby'
+import Register from './components/Register'
 import NewsTab from './components/NewsTab'
 import EventsTab from './components/EventsTab'
 import SocialTab from './components/SocialTab'
@@ -16,6 +17,12 @@ import ChallengesTab from './components/ChallengesTab'
 import RequestsTab from './components/RequestsTab'
 
 export default function App() {
+  // 0. Intercept Registration Route Immediately
+  const isRegisterRoute = window.location.pathname === '/register'
+  if (isRegisterRoute) {
+    return <Register />
+  }
+
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)
   const [campData, setCampData] = useState(null)
