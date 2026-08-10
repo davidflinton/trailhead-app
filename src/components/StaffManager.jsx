@@ -82,7 +82,7 @@ export default function StaffManager({ supabase, currentUser }) {
         break;
 
       case 'reset_passphrase':
-        const newPass = Math.random().toString(36.slice(-8));
+        const newPass = Math.random().toString(36).substring(2, 10);
         const { error: resetErr } = await supabase
           .from('profiles')
           .update({ passphrase: newPass })
