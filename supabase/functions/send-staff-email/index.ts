@@ -35,25 +35,25 @@ serve(async (req) => {
     let htmlContent = ''
 
     if (type === 'new_account') {
-      subject = 'Welcome to CampNexus - Your Account Credentials'
+      subject = 'Welcome to Trailhead - Your Account Credentials'
       htmlContent = `
-        <h2>Welcome to the CampNexus System</h2>
+        <h2>Welcome to the Trailhead System</h2>
         <p>Your administrator has created an account for you.</p>
-        <p><strong>CampNexus ID:</strong> ${trailheadId}</p>
+        <p><strong>Trailhead ID:</strong> ${trailheadId}</p>
         <p><strong>Passphrase:</strong> ${passphrase}</p>
-        <p>Please log in here: <a href="https://campnexus.stupidroosterstudios.com/login">CampNexus Portal</a></p>
+        <p>Please log in here: <a href="https://trailhead.stupidroosterstudios.com/login">Trailhead Portal</a></p>
       `
     } else if (type === 'recovery') {
-      subject = 'CampNexus - Passphrase Recovery'
+      subject = 'Trailhead - Passphrase Recovery'
       htmlContent = `
         <h2>Passphrase Recovery Request</h2>
         <p>You requested a temporary recovery passphrase.</p>
-        <p><strong>CampNexus ID:</strong> ${trailheadId}</p>
+        <p><strong>Trailhead ID:</strong> ${trailheadId}</p>
         <p><strong>Temporary Passphrase:</strong> ${passphrase}</p>
         <p>Please enter this on the recovery screen to reset your password.</p>
       `
     } else {
-      subject = 'CampNexus Notification'
+      subject = 'Trailhead Notification'
       htmlContent = `<p>System notification for ID: ${trailheadId}</p>`
     }
 
@@ -64,7 +64,7 @@ serve(async (req) => {
         'Authorization': `Bearer ${resendApiKey}`
       },
       body: JSON.stringify({
-        from: 'CampNexus Admin <admin@stupidroosterstudios.com>',
+        from: 'Trailhead Admin <admin@stupidroosterstudios.com>',
         to: [email],
         subject: subject,
         html: htmlContent
