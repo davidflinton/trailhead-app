@@ -119,9 +119,36 @@ export default function StaffManager({ colors, fonts, isDarkMode }) {
   const handleAssignCamp = (campId) => setStaffForm(prev => ({ ...prev, assignedCamps: [...prev.assignedCamps, campId] }))
   const handleUnassignCamp = (campId) => setStaffForm(prev => ({ ...prev, assignedCamps: prev.assignedCamps.filter(id => id !== campId) }))
 
-  const dispatchCredentials = (method) => {
-    if (method === 'email') setFeedbackMsg(`Mock notification: Email logic needs backend service to actually send to ${staffForm.email}.`)
-    if (method === 'sms') setFeedbackMsg(`Mock notification: SMS logic needs backend service to actually text ${staffForm.phone}.`)
+  const dispatchCredentials = async (method) => {
+    if (method === 'sms') {
+      setFeedbackMsg(`Mock notification: SMS logic needs Twilio backend service to text ${staffForm.phone}.`)
+      return
+    }
+
+    if (method === 'email') {
+      setIsLoading(true)
+      setFeedbackMsg(null)
+      
+      const fullTrailheadId = `${getRolePrefix(staffForm.role)}${staffForm.idSuffix}`
+
+      try {
+        const { error } = await supabase.functions.invoke('send-staff-email', {
+          body: {
+            email: staffForm.email,
+            trailheadId: fullTrailheadId,
+            passphrase: staffForm.passphrase,
+            type: isEditingStaff ? 'recovery' : 'new_account'
+          }
+        })
+
+        if (error) throw error
+        setFeedbackMsg(`Credentials successfully dispatched to ${staffForm.email}.`)
+      } catch (err) {
+        setFeedbackMsg(`Email Error: ${err.message}`)
+      } finally {
+        setIsLoading(false)
+      }
+    }
   }
 
   const handleStaffCreate = async (method) => {
@@ -155,8 +182,11 @@ export default function StaffManager({ colors, fonts, isDarkMode }) {
       if (method === 'qr') {
         setFeedbackMsg(`Success. Account ${fullTrailheadId} created.`)
         setShowQrCode(`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`https://trailhead.stupidroosterstudios.com/register?id=${fullTrailheadId}&code=${staffForm.passphrase}`)}`)
+      } else if (method === 'email') {
+        await dispatchCredentials('email')
+        setFeedbackMsg(`Success. Account ${fullTrailheadId} created and email dispatched.`)
       } else {
-        setFeedbackMsg(`Success. Account ${fullTrailheadId} created. Reminder: Hook up backend to actually send via ${method.toUpperCase()}.`)
+        setFeedbackMsg(`Success. Account ${fullTrailheadId} created. Reminder: Hook up Twilio to actually send SMS.`)
       }
       resetStaffForm()
       fetchStaffDirectory()
