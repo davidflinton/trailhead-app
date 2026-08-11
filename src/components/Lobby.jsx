@@ -368,7 +368,7 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
 
           {lobbyTab === 'staff' && (
             <div style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '8px', border: `2px solid ${colors.highlight}` }}>
-              <StaffManager colors={colors} fonts={fonts} isDarkMode={isDarkMode} />
+              <StaffManager supabase={supabase} colors={colors} fonts={fonts} isDarkMode={isDarkMode} />
             </div>
           )}
 
