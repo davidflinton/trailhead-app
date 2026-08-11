@@ -80,7 +80,7 @@ export default function StaffManager({ supabase, selectedPropertyName }) {
         break;
 
       case 'text':
-        alert(`SMS text dispatch for ${user.name} goes here.`);
+        alert(`SMS text dispatch for ${user.name || user.first_name} goes here.`);
         break;
 
       case 'view_passphrase':
@@ -98,7 +98,7 @@ export default function StaffManager({ supabase, selectedPropertyName }) {
         if (resetErr) {
           setActionMessage({ type: 'error', text: 'Failed to reset passphrase' });
         } else {
-          setActionMessage({ type: 'success', text: `Passphrase reset for ${user.name}` });
+          setActionMessage({ type: 'success', text: `Passphrase reset for ${user.name || user.first_name}` });
           fetchUsers();
         }
         break;
@@ -123,7 +123,8 @@ export default function StaffManager({ supabase, selectedPropertyName }) {
         break;
 
       case 'delete':
-        if (window.confirm(`Are you sure you want to delete ${user.name}? This cannot be undone.`)) {
+        const userName = user.name || user.first_name || 'this user';
+        if (window.confirm(`Are you sure you want to delete ${userName}? This cannot be undone.`)) {
           const { error: deleteErr } = await supabase
             .from('customer_personnel')
             .delete()
@@ -142,141 +143,153 @@ export default function StaffManager({ supabase, selectedPropertyName }) {
     }
   }
 
-  const filteredUsers = users.filter(u => 
-    u.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    u.trailhead_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    u.email?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredUsers = users.filter(u => {
+    const fullName = u.name || `${u.first_name || ''} ${u.last_name || ''}`.trim();
+    const tId = u.trailhead_id || '';
+    const userEmail = u.email || '';
+    const term = searchTerm.toLowerCase();
+    return fullName.toLowerCase().includes(term) || tId.toLowerCase().includes(term) || userEmail.toLowerCase().includes(term);
+  });
 
   return (
-    <div className="p-6 max-w-7xl mx-auto text-white">
-      <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+    <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto', color: '#F1E8D0', fontFamily: 'sans-serif' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', mdFlexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', gap: '16px' }}>
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Shield className="text-blue-500" /> Customer Staff Management
+          <h1 style={{ fontSize: '24px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 4px 0', color: '#F1E8D0' }}>
+            <Shield style={{ color: '#C1531B' }} /> Customer Staff Management
           </h1>
-          <p className="text-gray-400 text-sm">
+          <p style={{ color: '#8A9A8F', fontSize: '14px', margin: 0 }}>
             {selectedPropertyName ? `Managing staff for ${selectedPropertyName}` : 'Managing all customer staff accounts'}
           </p>
         </div>
-        <div className="relative w-full md:w-72">
-          <Search className="absolute left-3 top-2.5 text-gray-500" size={18} />
+        <div style={{ position: 'relative', width: '100%', maxWidth: '288px' }}>
+          <Search style={{ position: 'absolute', left: '12px', top: '10px', color: '#8A9A8F' }} size={18} />
           <input
+            id="staff-search-input"
+            name="staffSearch"
             type="text"
             placeholder="Search staff..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-gray-900 border border-gray-800 rounded-xl pl-10 pr-4 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+            style={{ width: '100%', backgroundColor: '#0F1D14', border: '1px solid #2A4731', borderRadius: '12px', padding: '8px 16px 8px 36px', fontSize: '14px', color: '#F1E8D0', outline: 'none', boxSizing: 'border-box' }}
           />
         </div>
       </div>
 
       {actionMessage && (
-        <div className={`mb-4 p-3 rounded-xl text-sm flex justify-between items-center ${actionMessage.type === 'success' ? 'bg-green-950/60 border border-green-800 text-green-300' : 'bg-red-950/60 border border-red-800 text-red-300'}`}>
+        <div style={{ marginBottom: '16px', padding: '12px 16px', borderRadius: '12px', fontSize: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: actionMessage.type === 'success' ? 'rgba(20, 83, 45, 0.4)' : 'rgba(220, 38, 38, 0.4)', border: `1px solid ${actionMessage.type === 'success' ? '#14532d' : '#dc2626'}`, color: '#F1E8D0' }}>
           <span>{actionMessage.text}</span>
-          <button onClick={() => setActionMessage(null)} className="text-gray-400 hover:text-white">&times;</button>
+          <button onClick={() => setActionMessage(null)} style={{ background: 'none', border: 'none', color: '#8A9A8F', cursor: 'pointer', fontSize: '16px' }}>&times;</button>
         </div>
       )}
 
-      <div className="bg-gray-900/40 border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
-        <div className="overflow-x-auto min-h-[300px]">
-          <table className="w-full text-left border-collapse">
+      <div style={{ backgroundColor: '#0F1D14', border: '1px solid #2A4731', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)' }}>
+        <div style={{ overflowX: 'auto', minHeight: '300px' }}>
+          <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
             <thead>
-              <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wider bg-gray-900/60">
-                <th className="py-3.5 px-4">User</th>
-                <th className="py-3.5 px-4">Trailhead ID</th>
-                <th className="py-3.5 px-4">Role</th>
-                <th className="py-3.5 px-4">Status</th>
-                <th className="py-3.5 px-4 text-right">Actions</th>
+              <tr style={{ borderBottom: '1px solid #2A4731', color: '#8A9A8F', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em', backgroundColor: '#070C08' }}>
+                <th style={{ padding: '14px 16px' }}>User</th>
+                <th style={{ padding: '14px 16px' }}>Trailhead ID</th>
+                <th style={{ padding: '14px 16px' }}>Role</th>
+                <th style={{ padding: '14px 16px' }}>Status</th>
+                <th style={{ padding: '14px 16px', textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-800/60">
+            <tbody style={{ borderTop: '1px solid #2A4731' }}>
               {loading ? (
                 <tr>
-                  <td colSpan="5" className="text-center py-12 text-gray-500">Loading accounts...</td>
+                  <td colSpan="5" style={{ textAlign: 'center', padding: '48px', color: '#8A9A8F' }}>Loading accounts...</td>
                 </tr>
               ) : filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="text-center py-12 text-gray-500">No staff accounts found.</td>
+                  <td colSpan="5" style={{ textAlign: 'center', padding: '48px', color: '#8A9A8F' }}>No staff accounts found.</td>
                 </tr>
               ) : (
-                filteredUsers.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-900/60 transition-colors">
-                    <td className="py-3 px-4">
-                      <div className="font-medium text-white">{user.name || `${user.first_name || ''} ${user.last_name || ''}`.trim()}</div>
-                      <div className="text-xs text-gray-400">{user.email}</div>
-                    </td>
-                    <td className="py-3 px-4 text-gray-300 font-mono text-sm">{user.trailhead_id || 'N/A'}</td>
-                    <td className="py-3 px-4 text-gray-300 capitalize">{user.role || 'Staff'}</td>
-                    <td className="py-3 px-4">
-                      <span className={`px-2.5 py-1 text-xs rounded-full font-medium ${user.active !== false ? 'bg-green-950 text-green-400 border border-green-800/60' : 'bg-red-950 text-red-400 border border-red-800/60'}`}>
-                        {user.active !== false ? 'Active' : 'Disabled'}
-                      </span>
-                    </td>
-                    
-                    <td className="py-3 px-4 text-right relative">
-                      <button
-                        onClick={() => setActiveMenuId(activeMenuId === user.id ? null : user.id)}
-                        className="p-1.5 hover:bg-gray-800 rounded-lg text-gray-400 hover:text-white transition-colors"
-                        aria-label="Account Actions"
-                      >
-                        <MoreVertical size={18} />
-                      </button>
+                filteredUsers.map((user) => {
+                  const displayName = user.name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username || 'Unnamed Staff';
+                  const displayEmail = user.email || user.contact_email || 'No email provided';
+                  const displayId = user.trailhead_id || user.id?.substring(0, 8) || 'N/A';
+                  const displayRole = user.role || user.camp_role || 'Staff';
+                  const isActive = user.active !== false;
 
-                      {activeMenuId === user.id && (
-                        <div 
-                          ref={menuRef}
-                          className="absolute right-6 top-12 w-52 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl py-1.5 z-50 text-left"
+                  return (
+                    <tr key={user.id} style={{ borderBottom: '1px solid rgba(42, 71, 49, 0.4)' }}>
+                      <td style={{ padding: '12px 16px' }}>
+                        <div style={{ fontWeight: '500', color: '#F1E8D0' }}>{displayName}</div>
+                        <div style={{ fontSize: '12px', color: '#8A9A8F', marginTop: '2px' }}>{displayEmail}</div>
+                      </td>
+                      <td style={{ padding: '12px 16px', color: '#8A9A8F', fontFamily: 'monospace', fontSize: '14px' }}>{displayId}</td>
+                      <td style={{ padding: '12px 16px', color: '#F1E8D0', textTransform: 'capitalize' }}>{displayRole}</td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <span style={{ padding: '4px 10px', fontSize: '12px', borderRadius: '9999px', fontWeight: '500', backgroundColor: isActive ? 'rgba(20, 83, 45, 0.4)' : 'rgba(220, 38, 38, 0.4)', color: isActive ? '#86efac' : '#fca5a5', border: `1px solid ${isActive ? '#14532d' : '#dc2626'}` }}>
+                          {isActive ? 'Active' : 'Disabled'}
+                        </span>
+                      </td>
+                      
+                      <td style={{ padding: '12px 16px', textAlign: 'right', position: 'relative' }}>
+                        <button
+                          onClick={() => setActiveMenuId(activeMenuId === user.id ? null : user.id)}
+                          style={{ padding: '6px', background: 'none', border: 'none', borderRadius: '8px', color: '#8A9A8F', cursor: 'pointer' }}
+                          aria-label="Account Actions"
                         >
-                          <button
-                            onClick={() => handleAction('email', user)}
-                            className="w-full px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white flex items-center gap-2.5"
+                          <MoreVertical size={18} />
+                        </button>
+
+                        {activeMenuId === user.id && (
+                          <div 
+                            ref={menuRef}
+                            style={{ position: 'absolute', right: '24px', top: '48px', width: '208px', backgroundColor: '#070C08', border: '1px solid #2A4731', borderRadius: '12px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.7)', padding: '6px 0', zIndex: 50, textAlign: 'left' }}
                           >
-                            <Mail size={15} className="text-gray-400" /> Send Email
-                          </button>
-                          <button
-                            onClick={() => handleAction('text', user)}
-                            className="w-full px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white flex items-center gap-2.5"
-                          >
-                            <MessageSquare size={15} className="text-gray-400" /> Send Text
-                          </button>
-                          <button
-                            onClick={() => handleAction('view_passphrase', user)}
-                            className="w-full px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white flex items-center gap-2.5"
-                          >
-                            <Key size={15} className="text-gray-400" /> View Passphrase
-                          </button>
-                          <button
-                            onClick={() => handleAction('reset_passphrase', user)}
-                            className="w-full px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white flex items-center gap-2.5"
-                          >
-                            <RefreshCw size={15} className="text-gray-400" /> Reset Passphrase
-                          </button>
-                          <button
-                            onClick={() => handleAction('qr', user)}
-                            className="w-full px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white flex items-center gap-2.5"
-                          >
-                            <QrCode size={15} className="text-gray-400" /> Generate QR
-                          </button>
-                          <div className="border-t border-gray-800 my-1"></div>
-                          <button
-                            onClick={() => handleAction('toggle_disable', user)}
-                            className="w-full px-4 py-2 text-sm text-yellow-400 hover:bg-gray-800 flex items-center gap-2.5"
-                          >
-                            {user.active !== false ? <UserX size={15} /> : <UserCheck size={15} />} 
-                            {user.active !== false ? 'Disable User' : 'Enable User'}
-                          </button>
-                          <button
-                            onClick={() => handleAction('delete', user)}
-                            className="w-full px-4 py-2 text-sm text-red-400 hover:bg-gray-800 flex items-center gap-2.5"
-                          >
-                            <Trash2 size={15} /> Delete User
-                          </button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))
+                            <button
+                              onClick={() => handleAction('email', user)}
+                              style={{ width: '100%', padding: '8px 16px', fontSize: '14px', color: '#F1E8D0', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}
+                            >
+                              <Mail size={15} style={{ color: '#8A9A8F' }} /> Send Email
+                            </button>
+                            <button
+                              onClick={() => handleAction('text', user)}
+                              style={{ width: '100%', padding: '8px 16px', fontSize: '14px', color: '#F1E8D0', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}
+                            >
+                              <MessageSquare size={15} style={{ color: '#8A9A8F' }} /> Send Text
+                            </button>
+                            <button
+                              onClick={() => handleAction('view_passphrase', user)}
+                              style={{ width: '100%', padding: '8px 16px', fontSize: '14px', color: '#F1E8D0', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}
+                            >
+                              <Key size={15} style={{ color: '#8A9A8F' }} /> View Passphrase
+                            </button>
+                            <button
+                              onClick={() => handleAction('reset_passphrase', user)}
+                              style={{ width: '100%', padding: '8px 16px', fontSize: '14px', color: '#F1E8D0', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}
+                            >
+                              <RefreshCw size={15} style={{ color: '#8A9A8F' }} /> Reset Passphrase
+                            </button>
+                            <button
+                              onClick={() => handleAction('qr', user)}
+                              style={{ width: '100%', padding: '8px 16px', fontSize: '14px', color: '#F1E8D0', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}
+                            >
+                              <QrCode size={15} style={{ color: '#8A9A8F' }} /> Generate QR
+                            </button>
+                            <div style={{ height: '1px', backgroundColor: '#2A4731', margin: '4px 0' }}></div>
+                            <button
+                              onClick={() => handleAction('toggle_disable', user)}
+                              style={{ width: '100%', padding: '8px 16px', fontSize: '14px', color: '#facc15', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}
+                            >
+                              {isActive ? <UserX size={15} /> : <UserCheck size={15} />} 
+                              {isActive ? 'Disable User' : 'Enable User'}
+                            </button>
+                            <button
+                              onClick={() => handleAction('delete', user)}
+                              style={{ width: '100%', padding: '8px 16px', fontSize: '14px', color: '#f87171', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}
+                            >
+                              <Trash2 size={15} /> Delete User
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -284,29 +297,29 @@ export default function StaffManager({ supabase, selectedPropertyName }) {
       </div>
 
       {modalType && modalData && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900 border border-gray-700 rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
-            <h3 className="text-lg font-bold mb-2">
-              {modalType === 'passphrase' ? `Passphrase for ${modalData.name}` : `QR Code for ${modalData.name}`}
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0, 0, 0, 0.8)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '16px' }}>
+          <div style={{ backgroundColor: '#070C08', border: '1px solid #2A4731', borderRadius: '16px', maxWidth: '448px', width: '100%', padding: '24px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)', position: 'relative' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: 'bold', margin: '0 0 16px 0', color: '#F1E8D0' }}>
+              {modalType === 'passphrase' ? `Passphrase for ${modalData.name || modalData.first_name}` : `QR Code for ${modalData.name || modalData.first_name}`}
             </h3>
             
             {modalType === 'passphrase' ? (
-              <div className="my-4 p-4 bg-black/40 border border-gray-800 rounded-xl font-mono text-center text-xl text-blue-400 tracking-wider">
+              <div style={{ margin: '16px 0', padding: '16px', backgroundColor: '#0F1D14', border: '1px solid #2A4731', borderRadius: '12px', fontFamily: 'monospace', textAlign: 'center', fontSize: '20px', color: '#C1531B', letterSpacing: '0.05em' }}>
                 {modalData.passphrase || 'No passphrase stored'}
               </div>
             ) : (
-              <div className="my-6 flex flex-col items-center justify-center">
-                <div className="w-48 h-48 bg-white p-3 rounded-xl flex items-center justify-center">
-                  <span className="text-black font-mono text-xs text-center">[QR Code for ID: {modalData.trailhead_id}]</span>
+              <div style={{ margin: '24px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: '192px', height: '192px', backgroundColor: 'white', padding: '12px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ color: 'black', fontFamily: 'monospace', fontSize: '12px', textAlign: 'center' }}>[QR Code for ID: {modalData.trailhead_id || modalData.id}]</span>
                 </div>
-                <p className="text-xs text-gray-400 mt-3 font-mono">{modalData.trailhead_id}</p>
+                <p style={{ fontSize: '12px', color: '#8A9A8F', marginTop: '12px', fontFamily: 'monospace' }}>{modalData.trailhead_id || modalData.id}</p>
               </div>
             )}
 
-            <div className="flex justify-end gap-3 mt-6">
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px' }}>
               <button
                 onClick={() => { setModalType(null); setModalData(null); }}
-                className="px-4 py-2 text-sm bg-gray-800 hover:bg-gray-700 rounded-xl font-medium transition-colors"
+                style={{ padding: '8px 16px', fontSize: '14px', backgroundColor: '#16281D', color: '#F1E8D0', border: '1px solid #2A4731', borderRadius: '12px', fontWeight: '500', cursor: 'pointer' }}
               >
                 Close
               </button>
