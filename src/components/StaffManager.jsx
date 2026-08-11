@@ -1,21 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   MoreVertical, Mail, MessageSquare, Key, RefreshCw, 
-  QrCode, UserX, UserCheck, Trash2, Search, Plus, Shield
+  QrCode, UserX, UserCheck, Trash2, Search, Shield
 } from 'lucide-react';
 
-export default function StaffManager({ supabase, currentUser }) {
+export default function StaffManager({ supabase, selectedPropertyName }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeMenuId, setActiveMenuId] = useState(null);
-  const [modalData, setModalData] = useState(null); // For viewing passphrase or QR
-  const [modalType, setModalType] = useState(null); // 'qr' or 'passphrase'
+  const [modalData, setModalData] = useState(null);
+  const [modalType, setModalType] = useState(null);
   const [actionMessage, setActionMessage] = useState(null);
   
   const menuRef = useRef(null);
 
-  // Close inline dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -26,27 +25,31 @@ export default function StaffManager({ supabase, currentUser }) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Fetch users from database
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [selectedPropertyName]);
 
   async function fetchUsers() {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('profiles') // Adjust table name if different
+    let query = supabase
+      .from('customer_personnel')
       .select('*')
       .order('created_at', { ascending: false });
 
+    if (selectedPropertyName && selectedPropertyName.trim() !== '') {
+      query = query.eq('property_name', selectedPropertyName);
+    }
+
+    const { data, error } = await query;
+
     if (error) {
-      console.error('Error fetching users:', error);
+      console.error('Error fetching customer personnel:', error);
     } else {
       setUsers(data || []);
     }
     setLoading(false);
   }
 
-  // Handle action dispatch from dropdown
   async function handleAction(action, user) {
     setActiveMenuId(null);
     setActionMessage(null);
@@ -84,7 +87,7 @@ export default function StaffManager({ supabase, currentUser }) {
       case 'reset_passphrase':
         const newPass = Math.random().toString(36).substring(2, 10);
         const { error: resetErr } = await supabase
-          .from('profiles')
+          .from('customer_personnel')
           .update({ passphrase: newPass })
           .eq('id', user.id);
 
@@ -104,7 +107,7 @@ export default function StaffManager({ supabase, currentUser }) {
       case 'toggle_disable':
         const newStatus = !user.active;
         const { error: statusErr } = await supabase
-          .from('profiles')
+          .from('customer_personnel')
           .update({ active: newStatus })
           .eq('id', user.id);
 
@@ -118,7 +121,7 @@ export default function StaffManager({ supabase, currentUser }) {
       case 'delete':
         if (window.confirm(`Are you sure you want to delete ${user.name}? This cannot be undone.`)) {
           const { error: deleteErr } = await supabase
-            .from('profiles')
+            .from('customer_personnel')
             .delete()
             .eq('id', user.id);
 
@@ -143,19 +146,20 @@ export default function StaffManager({ supabase, currentUser }) {
 
   return (
     <div className="p-6 max-w-7xl mx-auto text-white">
-      {/* Header & Search */}
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Shield className="text-blue-500" /> Staff & User Management
+            <Shield className="text-blue-500" /> Customer Staff Management
           </h1>
-          <p className="text-gray-400 text-sm">Manage accounts, credentials, and permissions</p>
+          <p className="text-gray-400 text-sm">
+            {selectedPropertyName ? `Managing staff for ${selectedPropertyName}` : 'Managing all customer staff accounts'}
+          </p>
         </div>
         <div className="relative w-full md:w-72">
           <Search className="absolute left-3 top-2.5 text-gray-500" size={18} />
           <input
             type="text"
-            placeholder="Search users..."
+            placeholder="Search staff..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full bg-gray-900 border border-gray-800 rounded-xl pl-10 pr-4 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
@@ -163,7 +167,6 @@ export default function StaffManager({ supabase, currentUser }) {
         </div>
       </div>
 
-      {/* Action Status Banner */}
       {actionMessage && (
         <div className={`mb-4 p-3 rounded-xl text-sm flex justify-between items-center ${actionMessage.type === 'success' ? 'bg-green-950/60 border border-green-800 text-green-300' : 'bg-red-950/60 border border-red-800 text-red-300'}`}>
           <span>{actionMessage.text}</span>
@@ -171,7 +174,6 @@ export default function StaffManager({ supabase, currentUser }) {
         </div>
       )}
 
-      {/* Main Table */}
       <div className="bg-gray-900/40 border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
         <div className="overflow-x-auto min-h-[300px]">
           <table className="w-full text-left border-collapse">
@@ -191,13 +193,13 @@ export default function StaffManager({ supabase, currentUser }) {
                 </tr>
               ) : filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="text-center py-12 text-gray-500">No users found.</td>
+                  <td colSpan="5" className="text-center py-12 text-gray-500">No staff accounts found.</td>
                 </tr>
               ) : (
                 filteredUsers.map((user) => (
                   <tr key={user.id} className="hover:bg-gray-900/60 transition-colors">
                     <td className="py-3 px-4">
-                      <div className="font-medium text-white">{user.name}</div>
+                      <div className="font-medium text-white">{user.name || `${user.first_name || ''} ${user.last_name || ''}`.trim()}</div>
                       <div className="text-xs text-gray-400">{user.email}</div>
                     </td>
                     <td className="py-3 px-4 text-gray-300 font-mono text-sm">{user.trailhead_id || 'N/A'}</td>
@@ -208,7 +210,6 @@ export default function StaffManager({ supabase, currentUser }) {
                       </span>
                     </td>
                     
-                    {/* Inline Action Menu Column */}
                     <td className="py-3 px-4 text-right relative">
                       <button
                         onClick={() => setActiveMenuId(activeMenuId === user.id ? null : user.id)}
@@ -278,7 +279,6 @@ export default function StaffManager({ supabase, currentUser }) {
         </div>
       </div>
 
-      {/* Modal for View Passphrase or QR Code */}
       {modalType && modalData && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-gray-900 border border-gray-700 rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
@@ -293,7 +293,6 @@ export default function StaffManager({ supabase, currentUser }) {
             ) : (
               <div className="my-6 flex flex-col items-center justify-center">
                 <div className="w-48 h-48 bg-white p-3 rounded-xl flex items-center justify-center">
-                  {/* Mock QR container - replace with your QR generator library component if desired */}
                   <span className="text-black font-mono text-xs text-center">[QR Code for ID: {modalData.trailhead_id}]</span>
                 </div>
                 <p className="text-xs text-gray-400 mt-3 font-mono">{modalData.trailhead_id}</p>
