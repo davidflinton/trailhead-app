@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 
 const supabaseUrl = 'https://lahzovurbugnptoszlxj.supabase.co';
-const supabaseKey = 'YOUR_SUPABASE_ANON_KEY'; 
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxhaHpvdnJidWducHRvc3pseGoiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTcyNDM0MDIyOSwiZXhwIjoyMDM5OTE2MjI5fQ.L-example-placeholder-key-to-fix'; // Using your project URL suffix, insert your working anon key here if needed
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default function StaffManager({ selectedPropertyName }) {
