@@ -35,18 +35,14 @@ export default function StaffManager({ supabase, selectedPropertyName }) {
     if (!supabase) return;
     setLoading(true);
     let query = supabase
-      .from('customer_personnel')
+      .from('trailhead_personnel')
       .select('*')
       .order('created_at', { ascending: false });
-
-    if (selectedPropertyName && selectedPropertyName.trim() !== '') {
-      query = query.eq('property_name', selectedPropertyName);
-    }
 
     const { data, error } = await query;
 
     if (error) {
-      console.error('Error fetching customer personnel:', error);
+      console.error('Error fetching trailhead personnel:', error);
     } else {
       setUsers(data || []);
     }
@@ -57,6 +53,8 @@ export default function StaffManager({ supabase, selectedPropertyName }) {
     if (!supabase) return;
     setActiveMenuId(null);
     setActionMessage(null);
+
+    const userName = user.display_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Staff Member';
 
     switch (action) {
       case 'email':
@@ -80,7 +78,7 @@ export default function StaffManager({ supabase, selectedPropertyName }) {
         break;
 
       case 'text':
-        alert(`SMS text dispatch for ${user.name || user.first_name} goes here.`);
+        alert(`SMS text dispatch for ${userName} goes here.`);
         break;
 
       case 'view_passphrase':
@@ -91,14 +89,14 @@ export default function StaffManager({ supabase, selectedPropertyName }) {
       case 'reset_passphrase':
         const newPass = Math.random().toString(36).substring(2, 10);
         const { error: resetErr } = await supabase
-          .from('customer_personnel')
+          .from('trailhead_personnel')
           .update({ passphrase: newPass })
           .eq('id', user.id);
 
         if (resetErr) {
           setActionMessage({ type: 'error', text: 'Failed to reset passphrase' });
         } else {
-          setActionMessage({ type: 'success', text: `Passphrase reset for ${user.name || user.first_name}` });
+          setActionMessage({ type: 'success', text: `Passphrase reset for ${userName}` });
           fetchUsers();
         }
         break;
@@ -109,9 +107,9 @@ export default function StaffManager({ supabase, selectedPropertyName }) {
         break;
 
       case 'toggle_disable':
-        const newStatus = !user.active;
+        const newStatus = !(user.active ?? true);
         const { error: statusErr } = await supabase
-          .from('customer_personnel')
+          .from('trailhead_personnel')
           .update({ active: newStatus })
           .eq('id', user.id);
 
@@ -123,10 +121,9 @@ export default function StaffManager({ supabase, selectedPropertyName }) {
         break;
 
       case 'delete':
-        const userName = user.name || user.first_name || 'this user';
         if (window.confirm(`Are you sure you want to delete ${userName}? This cannot be undone.`)) {
           const { error: deleteErr } = await supabase
-            .from('customer_personnel')
+            .from('trailhead_personnel')
             .delete()
             .eq('id', user.id);
 
@@ -144,7 +141,7 @@ export default function StaffManager({ supabase, selectedPropertyName }) {
   }
 
   const filteredUsers = users.filter(u => {
-    const fullName = u.name || `${u.first_name || ''} ${u.last_name || ''}`.trim();
+    const fullName = u.display_name || `${u.first_name || ''} ${u.last_name || ''}`.trim() || '';
     const tId = u.trailhead_id || '';
     const userEmail = u.email || '';
     const term = searchTerm.toLowerCase();
@@ -156,10 +153,10 @@ export default function StaffManager({ supabase, selectedPropertyName }) {
       <div style={{ display: 'flex', flexDirection: 'column', mdFlexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', gap: '16px' }}>
         <div>
           <h1 style={{ fontSize: '24px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 4px 0', color: '#F1E8D0' }}>
-            <Shield style={{ color: '#C1531B' }} /> Customer Staff Management
+            <Shield style={{ color: '#C1531B' }} /> Trailhead Personnel Management
           </h1>
           <p style={{ color: '#8A9A8F', fontSize: '14px', margin: 0 }}>
-            {selectedPropertyName ? `Managing staff for ${selectedPropertyName}` : 'Managing all customer staff accounts'}
+            Managing administrative and staff personnel accounts
           </p>
         </div>
         <div style={{ position: 'relative', width: '100%', maxWidth: '288px' }}>
@@ -190,7 +187,7 @@ export default function StaffManager({ supabase, selectedPropertyName }) {
               <tr style={{ borderBottom: '1px solid #2A4731', color: '#8A9A8F', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em', backgroundColor: '#070C08' }}>
                 <th style={{ padding: '14px 16px' }}>User</th>
                 <th style={{ padding: '14px 16px' }}>Trailhead ID</th>
-                <th style={{ padding: '14px 16px' }}>Role</th>
+                <th style={{ padding: '14px 16px' }}>Role / Tier</th>
                 <th style={{ padding: '14px 16px' }}>Status</th>
                 <th style={{ padding: '14px 16px', textAlign: 'right' }}>Actions</th>
               </tr>
@@ -202,14 +199,14 @@ export default function StaffManager({ supabase, selectedPropertyName }) {
                 </tr>
               ) : filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan="5" style={{ textAlign: 'center', padding: '48px', color: '#8A9A8F' }}>No staff accounts found.</td>
+                  <td colSpan="5" style={{ textAlign: 'center', padding: '48px', color: '#8A9A8F' }}>No personnel records found.</td>
                 </tr>
               ) : (
                 filteredUsers.map((user) => {
-                  const displayName = user.name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username || 'Unnamed Staff';
-                  const displayEmail = user.email || user.contact_email || 'No email provided';
+                  const displayName = user.display_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Unnamed Personnel';
+                  const displayEmail = user.email || 'No email provided';
                   const displayId = user.trailhead_id || user.id?.substring(0, 8) || 'N/A';
-                  const displayRole = user.role || user.camp_role || 'Staff';
+                  const displayRole = user.job_title || user.access_tier || 'Staff';
                   const isActive = user.active !== false;
 
                   return (
@@ -219,7 +216,7 @@ export default function StaffManager({ supabase, selectedPropertyName }) {
                         <div style={{ fontSize: '12px', color: '#8A9A8F', marginTop: '2px' }}>{displayEmail}</div>
                       </td>
                       <td style={{ padding: '12px 16px', color: '#8A9A8F', fontFamily: 'monospace', fontSize: '14px' }}>{displayId}</td>
-                      <td style={{ padding: '12px 16px', color: '#F1E8D0', textTransform: 'capitalize' }}>{displayRole}</td>
+                      <td style={{ padding: '12px 16px', color: '#F1E8D0', textTransform: 'capitalize' }}>{displayRole.replace('_', ' ')}</td>
                       <td style={{ padding: '12px 16px' }}>
                         <span style={{ padding: '4px 10px', fontSize: '12px', borderRadius: '9999px', fontWeight: '500', backgroundColor: isActive ? 'rgba(20, 83, 45, 0.4)' : 'rgba(220, 38, 38, 0.4)', color: isActive ? '#86efac' : '#fca5a5', border: `1px solid ${isActive ? '#14532d' : '#dc2626'}` }}>
                           {isActive ? 'Active' : 'Disabled'}
@@ -300,7 +297,7 @@ export default function StaffManager({ supabase, selectedPropertyName }) {
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0, 0, 0, 0.8)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '16px' }}>
           <div style={{ backgroundColor: '#070C08', border: '1px solid #2A4731', borderRadius: '16px', maxWidth: '448px', width: '100%', padding: '24px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)', position: 'relative' }}>
             <h3 style={{ fontSize: '18px', fontWeight: 'bold', margin: '0 0 16px 0', color: '#F1E8D0' }}>
-              {modalType === 'passphrase' ? `Passphrase for ${modalData.name || modalData.first_name}` : `QR Code for ${modalData.name || modalData.first_name}`}
+              {modalType === 'passphrase' ? `Passphrase for ${modalData.display_name || modalData.first_name}` : `QR Code for ${modalData.display_name || modalData.first_name}`}
             </h3>
             
             {modalType === 'passphrase' ? (
