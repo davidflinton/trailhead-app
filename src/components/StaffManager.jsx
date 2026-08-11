@@ -1,17 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { createClient } from '@supabase/supabase-js';
 import { 
   MoreVertical, Mail, MessageSquare, Key, RefreshCw, 
   QrCode, UserX, UserCheck, Trash2, Search, Shield
 } from 'lucide-react';
 
-const supabaseUrl = 'https://lahzovurbugnptoszlxj.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxhaHpvdnJidWducHRvc3pseGoiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTcyNDM0MDIyOSwiZXhwIjoyMDM5OTE2MjI5fQ.L-example-placeholder-key-to-fix';
-const supabase = createClient(supabaseUrl, supabaseKey, {
-  auth: { persistSession: false, autoRefreshToken: false }
-});
-
-export default function StaffManager({ selectedPropertyName }) {
+export default function StaffManager({ supabase, selectedPropertyName }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -33,10 +26,13 @@ export default function StaffManager({ selectedPropertyName }) {
   }, []);
 
   useEffect(() => {
-    fetchUsers();
-  }, [selectedPropertyName]);
+    if (supabase) {
+      fetchUsers();
+    }
+  }, [selectedPropertyName, supabase]);
 
   async function fetchUsers() {
+    if (!supabase) return;
     setLoading(true);
     let query = supabase
       .from('customer_personnel')
@@ -58,6 +54,7 @@ export default function StaffManager({ selectedPropertyName }) {
   }
 
   async function handleAction(action, user) {
+    if (!supabase) return;
     setActiveMenuId(null);
     setActionMessage(null);
 
