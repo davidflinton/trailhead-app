@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
-import { Tent, Users, CheckSquare, MessageSquare, LogOut, Search, MapPin, ClipboardList, ThumbsUp, MessageCircle, BarChart2, Edit2, Plus, LayoutDashboard, Menu, X, Settings, Trash2, AlertTriangle, Moon, Sun, Lock, ShieldAlert } from 'lucide-react'
+import { Tent, Users, CheckSquare, MessageSquare, LogOut, Search, MapPin, ClipboardList, ThumbsUp, MessageCircle, BarChart2, Edit2, Plus, LayoutDashboard, Menu, X, Settings, Trash2, AlertTriangle, Moon, Sun, Lock, ShieldAlert, Database } from 'lucide-react'
 import StaffManager from './StaffManager'
+import CustomerDatabase from './CustomerDatabase'
 
 export default function Lobby({ profile, setCampData, setActiveTab }) {
   const [lobbyTab, setLobbyTab] = useState('dashboard')
@@ -175,6 +176,7 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
           <SideNavButton icon={<LayoutDashboard size={20} />} label="Dashboard" active={lobbyTab === 'dashboard'} onClick={() => { setLobbyTab('dashboard'); setIsMenuOpen(false); }} colors={colors} fonts={fonts} />
           <SideNavButton icon={<Tent size={20} />} label="Properties" active={lobbyTab === 'camps'} onClick={() => { setLobbyTab('camps'); setIsMenuOpen(false); }} colors={colors} fonts={fonts} />
           <SideNavButton icon={<Users size={20} />} label="Staff" active={lobbyTab === 'staff'} onClick={() => { setLobbyTab('staff'); setIsMenuOpen(false); }} colors={colors} fonts={fonts} />
+          <SideNavButton icon={<Database size={20} />} label="Customer DB" active={lobbyTab === 'database'} onClick={() => { setLobbyTab('database'); setIsMenuOpen(false); }} colors={colors} fonts={fonts} />
           <SideNavButton icon={<CheckSquare size={20} />} label="Approvals" active={lobbyTab === 'approvals'} onClick={() => { setLobbyTab('approvals'); setIsMenuOpen(false); }} colors={colors} fonts={fonts} />
           <SideNavButton icon={<MessageSquare size={20} />} label="Discuss" active={lobbyTab === 'discussions'} onClick={() => { setLobbyTab('discussions'); setIsMenuOpen(false); }} colors={colors} fonts={fonts} />
           <SideNavButton icon={<ClipboardList size={20} />} label="Notes" active={lobbyTab === 'feedback'} onClick={() => { setLobbyTab('feedback'); setIsMenuOpen(false); }} colors={colors} fonts={fonts} />
@@ -243,6 +245,19 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
                     <div style={{ width: '100%', backgroundColor: colors.primary, height: '100%', borderRadius: '3px' }}></div>
                   </div>
                   <div style={{ marginTop: '10px', fontSize: '12px', fontFamily: fonts.utility, color: colors.primary, fontWeight: 'bold' }}>MANAGE STAFF &rarr;</div>
+                </div>
+
+                {/* Customer DB Widget */}
+                <div onClick={() => setLobbyTab('database')} style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '8px', border: `2px solid ${colors.highlight}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h3 style={{ margin: 0, fontFamily: fonts.header, fontSize: '24px', color: colors.textDark }}>Customer DB</h3>
+                    <Database color={colors.primary} size={24} />
+                  </div>
+                  <div style={{ fontSize: '14px', color: colors.muted }}>Master Repository</div>
+                  <div style={{ width: '100%', backgroundColor: colors.border, height: '6px', borderRadius: '3px', marginTop: '5px' }}>
+                    <div style={{ width: '100%', backgroundColor: colors.primary, height: '100%', borderRadius: '3px' }}></div>
+                  </div>
+                  <div style={{ marginTop: '10px', fontSize: '12px', fontFamily: fonts.utility, color: colors.primary, fontWeight: 'bold' }}>VIEW REPOSITORY &rarr;</div>
                 </div>
 
                 {/* Approvals Widget */}
@@ -370,6 +385,10 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
             <div style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '8px', border: `2px solid ${colors.highlight}` }}>
               <StaffManager supabase={supabase} colors={colors} fonts={fonts} isDarkMode={isDarkMode} />
             </div>
+          )}
+
+          {lobbyTab === 'database' && (
+            <CustomerDatabase colors={colors} fonts={fonts} isDarkMode={isDarkMode} />
           )}
 
           {lobbyTab === 'approvals' && (
