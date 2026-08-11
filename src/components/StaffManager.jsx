@@ -1,10 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createClient } from '@supabase/supabase-js';
 import { 
   MoreVertical, Mail, MessageSquare, Key, RefreshCw, 
   QrCode, UserX, UserCheck, Trash2, Search, Shield
 } from 'lucide-react';
 
-export default function StaffManager({ supabase, selectedPropertyName }) {
+const supabaseUrl = 'https://lahzovurbugnptoszlxj.supabase.co';
+const supabaseKey = 'YOUR_SUPABASE_ANON_KEY'; 
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+export default function StaffManager({ selectedPropertyName }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
