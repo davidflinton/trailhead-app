@@ -21,12 +21,7 @@ export default function CustomerDatabase({ colors, fonts, isDarkMode }) {
       .order('created_at', { ascending: false })
 
     if (personnelError) console.error("Error fetching customer personnel:", personnelError.message)
-    else {
-      setPersonnel(personnelData || [])
-      if (personnelData && personnelData.length > 0) {
-        console.log("Sample personnel record columns:", Object.keys(personnelData[0]))
-      }
-    }
+    else setPersonnel(personnelData || [])
 
     const { data: campersData, error: campersError } = await supabase
       .from('customer_campers')
@@ -34,28 +29,26 @@ export default function CustomerDatabase({ colors, fonts, isDarkMode }) {
       .order('created_at', { ascending: false })
 
     if (campersError) console.error("Error fetching customer campers:", campersError.message)
-    else {
-      setCampers(campersData || [])
-      if (campersData && campersData.length > 0) {
-        console.log("Sample camper record columns:", Object.keys(campersData[0]))
-      }
-    }
+    else setCampers(campersData || [])
 
     setIsLoading(false)
   }
 
   const filteredPersonnel = personnel.filter(p => {
-    const fullName = p.name || `${p.first_name || ''} ${p.last_name || ''}`.trim() || p.username || ''
-    const email = p.email || p.contact_email || ''
-    const property = p.property_name || p.camp_name || ''
+    const rawName = (p.name && p.name !== 'Imported Staff Member') ? p.name : ''
+    const constructedName = `${p.first_name || ''} ${p.last_name || ''}`.trim()
+    const fullName = constructedName || rawName || p.username || ''
+    const email = p.email || ''
+    const property = p.property_name || ''
     const term = searchTerm.toLowerCase()
     return fullName.toLowerCase().includes(term) || email.toLowerCase().includes(term) || property.toLowerCase().includes(term)
   })
 
   const filteredCampers = campers.filter(c => {
-    const fullName = `${c.first_name || ''} ${c.last_name || ''}`.trim() || c.name || c.username || ''
-    const property = c.property_name || c.camp_name || ''
-    const cabin = c.current_cabin || c.cabin || ''
+    const constructedName = `${c.first_name || ''} ${c.last_name || ''}`.trim()
+    const fullName = constructedName || c.name || ''
+    const property = c.property_name || ''
+    const cabin = c.site_or_cabin || c.current_cabin || ''
     const term = searchTerm.toLowerCase()
     return fullName.toLowerCase().includes(term) || property.toLowerCase().includes(term) || cabin.toLowerCase().includes(term)
   })
@@ -136,10 +129,11 @@ export default function CustomerDatabase({ colors, fonts, isDarkMode }) {
                   </tr>
                 ) : (
                   filteredPersonnel.map(user => {
-                    const displayName = user.name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username || 'Unnamed Personnel'
-                    const displayProperty = user.property_name || user.camp_name || 'Global / Unassigned'
-                    const displayEmail = user.email || user.contact_email || 'No email provided'
-                    const displayRole = user.role || user.camp_role || 'Staff'
+                    const constructedName = `${user.first_name || ''} ${user.last_name || ''}`.trim()
+                    const displayName = constructedName || (user.name !== 'Imported Staff Member' ? user.name : '') || 'Unnamed Personnel'
+                    const displayProperty = user.property_name || 'Global / Unassigned'
+                    const displayEmail = user.email || 'No email provided'
+                    const displayRole = user.role || 'Staff'
 
                     return (
                       <tr key={user.id} style={{ borderBottom: `1px solid ${colors.border}` }}>
@@ -166,10 +160,11 @@ export default function CustomerDatabase({ colors, fonts, isDarkMode }) {
                   </tr>
                 ) : (
                   filteredCampers.map(camper => {
-                    const fullName = `${camper.first_name || ''} ${camper.last_name || ''}`.trim() || camper.name || camper.username || 'Unnamed Camper'
-                    const displayCamp = camper.property_name || camper.camp_name || 'Assigned Camp'
-                    const displayContact = camper.email || camper.contact_email || 'No email'
-                    const displayCabin = camper.current_cabin || camper.cabin || 'Unassigned'
+                    const constructedName = `${camper.first_name || ''} ${camper.last_name || ''}`.trim()
+                    const fullName = constructedName || camper.name || 'Unnamed Camper'
+                    const displayCamp = camper.property_name || 'Assigned Camp'
+                    const displayContact = camper.email || camper.phone || 'No contact info'
+                    const displayCabin = camper.site_or_cabin || camper.current_cabin || 'Unassigned'
 
                     return (
                       <tr key={camper.id} style={{ borderBottom: `1px solid ${colors.border}` }}>
@@ -179,7 +174,7 @@ export default function CustomerDatabase({ colors, fonts, isDarkMode }) {
                         </td>
                         <td style={{ padding: '14px 16px', color: colors.textDark }}>{displayCamp}</td>
                         <td style={{ padding: '14px 16px', color: colors.muted, fontSize: '14px' }}>{displayContact}</td>
-                        <td style={{ padding: '14px 16px', color: colors.textDark }}>Cabin: {displayCabin}</td>
+                        <td style={{ padding: '14px 16px', color: colors.textDark }}>Site/Cabin: {displayCabin}</td>
                         <td style={{ padding: '14px 16px', textAlign: 'right' }}>
                           <span style={{ padding: '4px 10px', fontSize: '11px', borderRadius: '9999px', fontWeight: 'bold', backgroundColor: 'rgba(59, 130, 246, 0.2)', color: '#3b82f6', fontFamily: fonts.utility }}>
                             CAMPER
