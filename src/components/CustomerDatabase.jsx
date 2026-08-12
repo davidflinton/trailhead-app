@@ -35,20 +35,19 @@ export default function CustomerDatabase({ colors, fonts, isDarkMode }) {
   }
 
   const filteredPersonnel = personnel.filter(p => {
-    const rawName = (p.name && p.name !== 'Imported Staff Member') ? p.name : ''
     const constructedName = `${p.first_name || ''} ${p.last_name || ''}`.trim()
-    const fullName = constructedName || rawName || p.username || ''
-    const email = p.email || ''
-    const property = p.property_name || ''
+    const fullName = p.display_name || constructedName || p.name || ''
+    const email = p.work_email || p.personal_email || p.email || ''
+    const property = p.property_assignment || p.property_name || ''
     const term = searchTerm.toLowerCase()
     return fullName.toLowerCase().includes(term) || email.toLowerCase().includes(term) || property.toLowerCase().includes(term)
   })
 
   const filteredCampers = campers.filter(c => {
     const constructedName = `${c.first_name || ''} ${c.last_name || ''}`.trim()
-    const fullName = constructedName || c.name || ''
-    const property = c.property_name || ''
-    const cabin = c.site_or_cabin || c.current_cabin || ''
+    const fullName = c.display_name || constructedName || c.name || ''
+    const property = c.property_assignment || c.property_name || ''
+    const cabin = c.cabin_assignment || c.site_or_cabin || ''
     const term = searchTerm.toLowerCase()
     return fullName.toLowerCase().includes(term) || property.toLowerCase().includes(term) || cabin.toLowerCase().includes(term)
   })
@@ -74,13 +73,13 @@ export default function CustomerDatabase({ colors, fonts, isDarkMode }) {
   return (
     <div style={{ backgroundColor: colors.panel, padding: '30px', borderRadius: '8px', border: `2px solid ${colors.highlight}`, color: colors.textDark, fontFamily: fonts.body }}>
       
-      <div style={{ display: 'flex', flexDirection: 'column', mdFlexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', gap: '16px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', gap: '16px' }}>
         <div>
           <h2 style={{ fontFamily: fonts.header, fontSize: '32px', margin: '0 0 5px 0', color: colors.textDark, letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '10px' }}>
             <Database color={colors.primary} size={28} /> CUSTOMER DATABASE
           </h2>
           <p style={{ color: colors.muted, margin: 0, fontSize: '14px' }}>
-            Centralized master repository for all customer personnel and camper records across properties.
+            Centralized master repository utilizing uniform identity and directory fields across all records.
           </p>
         </div>
 
@@ -110,11 +109,11 @@ export default function CustomerDatabase({ colors, fonts, isDarkMode }) {
           <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: `2px solid ${colors.border}`, color: colors.muted, fontSize: '12px', textTransform: 'uppercase', fontFamily: fonts.utility, backgroundColor: isDarkMode ? '#0F1D14' : '#F2F2F2' }}>
-                <th style={{ padding: '14px 16px' }}>Name / Identity</th>
-                <th style={{ padding: '14px 16px' }}>Property / Camp</th>
-                <th style={{ padding: '14px 16px' }}>Contact / Email</th>
-                <th style={{ padding: '14px 16px' }}>Role / Cabin</th>
-                <th style={{ padding: '14px 16px', textAlign: 'right' }}>Status</th>
+                <th style={{ padding: '14px 16px' }}>Display Name / Identity</th>
+                <th style={{ padding: '14px 16px' }}>Property Assignment</th>
+                <th style={{ padding: '14px 16px' }}>Contact / Emails</th>
+                <th style={{ padding: '14px 16px' }}>Role / Status / Location</th>
+                <th style={{ padding: '14px 16px', textAlign: 'right' }}>Employment Status</th>
               </tr>
             </thead>
             <tbody>
@@ -129,11 +128,12 @@ export default function CustomerDatabase({ colors, fonts, isDarkMode }) {
                   </tr>
                 ) : (
                   filteredPersonnel.map(user => {
-                    const constructedName = `${user.first_name || ''} ${user.last_name || ''}`.trim()
-                    const displayName = constructedName || (user.name !== 'Imported Staff Member' ? user.name : '') || 'Unnamed Personnel'
-                    const displayProperty = user.property_name || 'Global / Unassigned'
-                    const displayEmail = user.email || 'No email provided'
-                    const displayRole = user.role || 'Staff'
+                    const constructedName = [user.prefix, user.first_name, user.middle_name, user.last_name, user.suffix].filter(Boolean).join(' ')
+                    const displayName = user.display_name || constructedName || user.name || 'Unnamed Personnel'
+                    const displayProperty = user.property_assignment || user.property_name || 'Unassigned'
+                    const displayEmail = user.work_email || user.personal_email || user.email || 'No email provided'
+                    const displayRole = user.system_role || user.role || 'Staff'
+                    const status = user.employment_status || 'Active'
 
                     return (
                       <tr key={user.id} style={{ borderBottom: `1px solid ${colors.border}` }}>
@@ -143,10 +143,13 @@ export default function CustomerDatabase({ colors, fonts, isDarkMode }) {
                         </td>
                         <td style={{ padding: '14px 16px', color: colors.textDark }}>{displayProperty}</td>
                         <td style={{ padding: '14px 16px', color: colors.muted, fontSize: '14px' }}>{displayEmail}</td>
-                        <td style={{ padding: '14px 16px', color: colors.textDark, textTransform: 'capitalize' }}>{displayRole}</td>
+                        <td style={{ padding: '14px 16px', color: colors.textDark }}>
+                          <div style={{ textTransform: 'capitalize' }}>{displayRole.replace('_', ' ')}</div>
+                          <div style={{ fontSize: '11px', color: colors.muted, fontFamily: fonts.utility }}>Dept: {user.department || 'N/A'}</div>
+                        </td>
                         <td style={{ padding: '14px 16px', textAlign: 'right' }}>
-                          <span style={{ padding: '4px 10px', fontSize: '11px', borderRadius: '9999px', fontWeight: 'bold', backgroundColor: user.active !== false ? 'rgba(20, 83, 45, 0.2)' : 'rgba(220, 38, 38, 0.2)', color: user.active !== false ? '#22c55e' : '#ef4444', fontFamily: fonts.utility }}>
-                            {user.active !== false ? 'ACTIVE' : 'DISABLED'}
+                          <span style={{ padding: '4px 10px', fontSize: '11px', borderRadius: '9999px', fontWeight: 'bold', backgroundColor: status === 'Active' ? 'rgba(20, 83, 45, 0.2)' : 'rgba(220, 38, 38, 0.2)', color: status === 'Active' ? '#22c55e' : '#ef4444', fontFamily: fonts.utility }}>
+                            {status.toUpperCase()}
                           </span>
                         </td>
                       </tr>
@@ -160,21 +163,21 @@ export default function CustomerDatabase({ colors, fonts, isDarkMode }) {
                   </tr>
                 ) : (
                   filteredCampers.map(camper => {
-                    const constructedName = `${camper.first_name || ''} ${camper.last_name || ''}`.trim()
-                    const fullName = constructedName || camper.name || 'Unnamed Camper'
-                    const displayCamp = camper.property_name || 'Assigned Camp'
-                    const displayContact = camper.email || camper.phone || 'No contact info'
-                    const displayCabin = camper.site_or_cabin || camper.current_cabin || 'Unassigned'
+                    const constructedName = [camper.prefix, camper.first_name, camper.middle_name, camper.last_name, camper.suffix].filter(Boolean).join(' ')
+                    const fullName = camper.display_name || constructedName || camper.name || 'Unnamed Camper'
+                    const displayCamp = camper.property_assignment || camper.property_name || 'Assigned Camp'
+                    const displayContact = camper.personal_email || camper.email || camper.personal_phone || 'No contact info'
+                    const locationInfo = `Cabin: ${camper.cabin_assignment || camper.site_or_cabin || 'Unassigned'} | Lot: ${camper.lot_assignment || 'N/A'}`
 
                     return (
                       <tr key={camper.id} style={{ borderBottom: `1px solid ${colors.border}` }}>
                         <td style={{ padding: '14px 16px' }}>
                           <div style={{ fontWeight: 'bold', color: colors.textDark }}>{fullName}</div>
-                          <div style={{ fontSize: '11px', color: colors.muted, fontFamily: fonts.utility }}>ID: {camper.id.substring(0,8)}</div>
+                          <div style={{ fontSize: '11px', color: colors.muted, fontFamily: fonts.utility }}>ID: {camper.trailhead_id || camper.id.substring(0,8)}</div>
                         </td>
                         <td style={{ padding: '14px 16px', color: colors.textDark }}>{displayCamp}</td>
                         <td style={{ padding: '14px 16px', color: colors.muted, fontSize: '14px' }}>{displayContact}</td>
-                        <td style={{ padding: '14px 16px', color: colors.textDark }}>Site/Cabin: {displayCabin}</td>
+                        <td style={{ padding: '14px 16px', color: colors.textDark, fontSize: '13px' }}>{locationInfo}</td>
                         <td style={{ padding: '14px 16px', textAlign: 'right' }}>
                           <span style={{ padding: '4px 10px', fontSize: '11px', borderRadius: '9999px', fontWeight: 'bold', backgroundColor: 'rgba(59, 130, 246, 0.2)', color: '#3b82f6', fontFamily: fonts.utility }}>
                             CAMPER
