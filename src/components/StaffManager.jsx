@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   MoreVertical, Mail, MessageSquare, Key, RefreshCw, 
-  QrCode, UserX, UserCheck, Trash2, Search, Shield
+  QrCode, UserX, UserCheck, Trash2, Search, Shield, FileText, Upload, X, Save
 } from 'lucide-react';
 
-export default function StaffManager({ supabase, selectedPropertyName }) {
+export default function StaffManager({ supabase, selectedPropertyName, colors, fonts, isDarkMode }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -12,6 +12,11 @@ export default function StaffManager({ supabase, selectedPropertyName }) {
   const [modalData, setModalData] = useState(null);
   const [modalType, setModalType] = useState(null);
   const [actionMessage, setActionMessage] = useState(null);
+
+  // New states for Full Details & Documents
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [userForm, setUserForm] = useState({});
+  const [userDocuments, setUserDocuments] = useState([]);
   
   const menuRef = useRef(null);
 
@@ -49,12 +54,39 @@ export default function StaffManager({ supabase, selectedPropertyName }) {
     setLoading(false);
   }
 
+  function handleOpenDetails(user) {
+    setSelectedUser(user);
+    setUserForm(user);
+    setActiveMenuId(null);
+    setUserDocuments([
+      { id: '1', name: 'Personnel_Agreement.pdf', size: '210 KB', date: '2026-06-12' },
+      { id: '2', name: 'Background_Check_Cleared.pdf', size: '95 KB', date: '2026-06-12' }
+    ]);
+  }
+
+  async function handleSaveUser() {
+    if (!selectedUser) return;
+    const { error } = await supabase
+      .from('trailhead_personnel')
+      .update(userForm)
+      .eq('id', selectedUser.id);
+
+    if (error) {
+      setActionMessage({ type: 'error', text: 'Failed to update user profile: ' + error.message });
+    } else {
+      setActionMessage({ type: 'success', text: 'User profile updated successfully.' });
+      fetchUsers();
+      setSelectedUser(null);
+    }
+  }
+
   async function handleAction(action, user) {
     if (!supabase) return;
     setActiveMenuId(null);
     setActionMessage(null);
 
-    const userName = user.display_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Staff Member';
+    const constructedName = [user.prefix, user.first_name, user.middle_name, user.last_name, user.suffix].filter(Boolean).join(' ');
+    const userName = user.display_name || constructedName || user.name || 'Staff Member';
 
     switch (action) {
       case 'email':
@@ -63,7 +95,7 @@ export default function StaffManager({ supabase, selectedPropertyName }) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              email: user.email,
+              email: user.work_email || user.email,
               trailheadId: user.trailhead_id || user.id,
               passphrase: user.passphrase || '********',
               type: 'new_account'
@@ -71,7 +103,7 @@ export default function StaffManager({ supabase, selectedPropertyName }) {
           });
           const data = await res.json();
           if (!res.ok) throw new Error(data.error || 'Failed to send email');
-          setActionMessage({ type: 'success', text: `Email successfully sent to ${user.email}` });
+          setActionMessage({ type: 'success', text: `Email successfully sent to ${user.work_email || user.email}` });
         } catch (err) {
           setActionMessage({ type: 'error', text: err.message });
         }
@@ -141,9 +173,10 @@ export default function StaffManager({ supabase, selectedPropertyName }) {
   }
 
   const filteredUsers = users.filter(u => {
-    const fullName = u.display_name || `${u.first_name || ''} ${u.last_name || ''}`.trim() || '';
+    const constructedName = [u.prefix, u.first_name, u.middle_name, u.last_name, u.suffix].filter(Boolean).join(' ');
+    const fullName = u.display_name || constructedName || u.name || '';
     const tId = u.trailhead_id || '';
-    const userEmail = u.email || '';
+    const userEmail = u.work_email || u.personal_email || u.email || '';
     const term = searchTerm.toLowerCase();
     return fullName.toLowerCase().includes(term) || tId.toLowerCase().includes(term) || userEmail.toLowerCase().includes(term);
   });
@@ -156,7 +189,7 @@ export default function StaffManager({ supabase, selectedPropertyName }) {
             <Shield style={{ color: '#C1531B' }} /> Trailhead Personnel Management
           </h1>
           <p style={{ color: '#8A9A8F', fontSize: '14px', margin: 0 }}>
-            Managing administrative and staff personnel accounts
+            Managing administrative and staff personnel accounts with uniform directory fields
           </p>
         </div>
         <div style={{ position: 'relative', width: '100%', maxWidth: '288px' }}>
@@ -185,7 +218,7 @@ export default function StaffManager({ supabase, selectedPropertyName }) {
           <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid #2A4731', color: '#8A9A8F', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em', backgroundColor: '#070C08' }}>
-                <th style={{ padding: '14px 16px' }}>User</th>
+                <th style={{ padding: '14px 16px' }}>User / Identity</th>
                 <th style={{ padding: '14px 16px' }}>Trailhead ID</th>
                 <th style={{ padding: '14px 16px' }}>Role / Tier</th>
                 <th style={{ padding: '14px 16px' }}>Status</th>
@@ -203,10 +236,11 @@ export default function StaffManager({ supabase, selectedPropertyName }) {
                 </tr>
               ) : (
                 filteredUsers.map((user) => {
-                  const displayName = user.display_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Unnamed Personnel';
-                  const displayEmail = user.email || 'No email provided';
+                  const constructedName = [user.prefix, user.first_name, user.middle_name, user.last_name, user.suffix].filter(Boolean).join(' ');
+                  const displayName = user.display_name || constructedName || user.name || 'Unnamed Personnel';
+                  const displayEmail = user.work_email || user.personal_email || user.email || 'No email provided';
                   const displayId = user.trailhead_id || user.id?.substring(0, 8) || 'N/A';
-                  const displayRole = user.job_title || user.access_tier || 'Staff';
+                  const displayRole = user.system_role || user.job_title || user.access_tier || 'Staff';
                   const isActive = user.active !== false;
 
                   return (
@@ -235,8 +269,15 @@ export default function StaffManager({ supabase, selectedPropertyName }) {
                         {activeMenuId === user.id && (
                           <div 
                             ref={menuRef}
-                            style={{ position: 'absolute', right: '24px', top: '48px', width: '208px', backgroundColor: '#070C08', border: '1px solid #2A4731', borderRadius: '12px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.7)', padding: '6px 0', zIndex: 50, textAlign: 'left' }}
+                            style={{ position: 'absolute', right: '24px', top: '48px', width: '220px', backgroundColor: '#070C08', border: '1px solid #2A4731', borderRadius: '12px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.7)', padding: '6px 0', zIndex: 50, textAlign: 'left' }}
                           >
+                            <button
+                              onClick={() => handleOpenDetails(user)}
+                              style={{ width: '100%', padding: '8px 16px', fontSize: '14px', color: '#86efac', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', fontWeight: 'bold' }}
+                            >
+                              <FileText size={15} style={{ color: '#86efac' }} /> View Details & Edit
+                            </button>
+                            <div style={{ height: '1px', backgroundColor: '#2A4731', margin: '4px 0' }}></div>
                             <button
                               onClick={() => handleAction('email', user)}
                               style={{ width: '100%', padding: '8px 16px', fontSize: '14px', color: '#F1E8D0', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}
@@ -293,6 +334,222 @@ export default function StaffManager({ supabase, selectedPropertyName }) {
         </div>
       </div>
 
+      {/* FULL USER DETAILS & SHAREPOINT-STYLE DOCUMENTS MODAL */}
+      {selectedUser && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '20px' }}>
+          <div style={{ backgroundColor: '#070C08', border: '1px solid #2A4731', borderRadius: '16px', maxWidth: '850px', width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: '30px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)', color: '#F1E8D0', boxSizing: 'border-box' }}>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #2A4731', paddingBottom: '15px', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '22px', fontWeight: 'bold', margin: 0, color: '#F1E8D0', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <FileText style={{ color: '#C1531B' }} /> Personnel Profile & Directory Details
+              </h3>
+              <button onClick={() => setSelectedUser(null)} style={{ background: 'none', border: 'none', color: '#8A9A8F', cursor: 'pointer' }}>
+                <X size={24} />
+              </button>
+            </div>
+
+            {/* UNIFORM FORM FIELDS */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '15px', marginBottom: '30px' }}>
+              
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontFamily: 'monospace', color: '#8A9A8F', marginBottom: '5px' }}>PREFIX</label>
+                <select value={userForm.prefix || ''} onChange={(e) => setUserForm({...userForm, prefix: e.target.value})} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #2A4731', backgroundColor: '#0F1D14', color: '#F1E8D0' }}>
+                  <option value="">Select Prefix</option>
+                  <option value="Mr.">Mr.</option>
+                  <option value="Mrs.">Mrs.</option>
+                  <option value="Ms.">Ms.</option>
+                  <option value="Dr.">Dr.</option>
+                  <option value="Prof.">Prof.</option>
+                  <option value="Rev.">Rev.</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontFamily: 'monospace', color: '#8A9A8F', marginBottom: '5px' }}>FIRST NAME</label>
+                <input type="text" value={userForm.first_name || ''} onChange={(e) => setUserForm({...userForm, first_name: e.target.value})} style={{ width: '100%', boxSizing: 'border-box', padding: '8px', borderRadius: '6px', border: '1px solid #2A4731', backgroundColor: '#0F1D14', color: '#F1E8D0' }} />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontFamily: 'monospace', color: '#8A9A8F', marginBottom: '5px' }}>MIDDLE NAME</label>
+                <input type="text" value={userForm.middle_name || ''} onChange={(e) => setUserForm({...userForm, middle_name: e.target.value})} style={{ width: '100%', boxSizing: 'border-box', padding: '8px', borderRadius: '6px', border: '1px solid #2A4731', backgroundColor: '#0F1D14', color: '#F1E8D0' }} />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontFamily: 'monospace', color: '#8A9A8F', marginBottom: '5px' }}>LAST NAME</label>
+                <input type="text" value={userForm.last_name || ''} onChange={(e) => setUserForm({...userForm, last_name: e.target.value})} style={{ width: '100%', boxSizing: 'border-box', padding: '8px', borderRadius: '6px', border: '1px solid #2A4731', backgroundColor: '#0F1D14', color: '#F1E8D0' }} />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontFamily: 'monospace', color: '#8A9A8F', marginBottom: '5px' }}>SUFFIX</label>
+                <select value={userForm.suffix || ''} onChange={(e) => setUserForm({...userForm, suffix: e.target.value})} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #2A4731', backgroundColor: '#0F1D14', color: '#F1E8D0' }}>
+                  <option value="">Select Suffix</option>
+                  <option value="Jr.">Jr.</option>
+                  <option value="Sr.">Sr.</option>
+                  <option value="II">II</option>
+                  <option value="III">III</option>
+                  <option value="IV">IV</option>
+                  <option value="Ph. D.">Ph. D.</option>
+                  <option value="M.D.">M.D.</option>
+                  <option value="D.D.S.">D.D.S.</option>
+                  <option value="Esq.">Esq.</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontFamily: 'monospace', color: '#8A9A8F', marginBottom: '5px' }}>DISPLAY NAME</label>
+                <input type="text" value={userForm.display_name || ''} onChange={(e) => setUserForm({...userForm, display_name: e.target.value})} style={{ width: '100%', boxSizing: 'border-box', padding: '8px', borderRadius: '6px', border: '1px solid #2A4731', backgroundColor: '#0F1D14', color: '#F1E8D0' }} />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontFamily: 'monospace', color: '#8A9A8F', marginBottom: '5px' }}>TRAILHEAD ID</label>
+                <input type="text" value={userForm.trailhead_id || ''} onChange={(e) => setUserForm({...userForm, trailhead_id: e.target.value})} style={{ width: '100%', boxSizing: 'border-box', padding: '8px', borderRadius: '6px', border: '1px solid #2A4731', backgroundColor: '#0F1D14', color: '#F1E8D0' }} />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontFamily: 'monospace', color: '#8A9A8F', marginBottom: '5px' }}>PERSONAL PHONE</label>
+                <input type="text" value={userForm.personal_phone || ''} onChange={(e) => setUserForm({...userForm, personal_phone: e.target.value})} style={{ width: '100%', boxSizing: 'border-box', padding: '8px', borderRadius: '6px', border: '1px solid #2A4731', backgroundColor: '#0F1D14', color: '#F1E8D0' }} />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontFamily: 'monospace', color: '#8A9A8F', marginBottom: '5px' }}>WORK PHONE</label>
+                <input type="text" value={userForm.work_phone || ''} onChange={(e) => setUserForm({...userForm, work_phone: e.target.value})} style={{ width: '100%', boxSizing: 'border-box', padding: '8px', borderRadius: '6px', border: '1px solid #2A4731', backgroundColor: '#0F1D14', color: '#F1E8D0' }} />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontFamily: 'monospace', color: '#8A9A8F', marginBottom: '5px' }}>PERSONAL EMAIL</label>
+                <input type="email" value={userForm.personal_email || ''} onChange={(e) => setUserForm({...userForm, personal_email: e.target.value})} style={{ width: '100%', boxSizing: 'border-box', padding: '8px', borderRadius: '6px', border: '1px solid #2A4731', backgroundColor: '#0F1D14', color: '#F1E8D0' }} />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontFamily: 'monospace', color: '#8A9A8F', marginBottom: '5px' }}>WORK EMAIL</label>
+                <input type="email" value={userForm.work_email || ''} onChange={(e) => setUserForm({...userForm, work_email: e.target.value})} style={{ width: '100%', boxSizing: 'border-box', padding: '8px', borderRadius: '6px', border: '1px solid #2A4731', backgroundColor: '#0F1D14', color: '#F1E8D0' }} />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontFamily: 'monospace', color: '#8A9A8F', marginBottom: '5px' }}>START DATE</label>
+                <input type="date" value={userForm.start_date || ''} onChange={(e) => setUserForm({...userForm, start_date: e.target.value})} style={{ width: '100%', boxSizing: 'border-box', padding: '8px', borderRadius: '6px', border: '1px solid #2A4731', backgroundColor: '#0F1D14', color: '#F1E8D0' }} />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontFamily: 'monospace', color: '#8A9A8F', marginBottom: '5px' }}>EMPLOYMENT TYPE</label>
+                <select value={userForm.employment_type || ''} onChange={(e) => setUserForm({...userForm, employment_type: e.target.value})} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #2A4731', backgroundColor: '#0F1D14', color: '#F1E8D0' }}>
+                  <option value="">Select Type</option>
+                  <option value="FT">FT</option>
+                  <option value="PT">PT</option>
+                  <option value="Contract">Contract</option>
+                  <option value="Seasonal">Seasonal</option>
+                  <option value="Volunteer">Volunteer</option>
+                  <option value="Intern">Intern</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontFamily: 'monospace', color: '#8A9A8F', marginBottom: '5px' }}>EMPLOYMENT STATUS</label>
+                <select value={userForm.employment_status || ''} onChange={(e) => setUserForm({...userForm, employment_status: e.target.value})} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #2A4731', backgroundColor: '#0F1D14', color: '#F1E8D0' }}>
+                  <option value="">Select Status</option>
+                  <option value="Active">Active</option>
+                  <option value="On Leave">On Leave</option>
+                  <option value="Disabled">Disabled</option>
+                  <option value="Terminated">Terminated</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontFamily: 'monospace', color: '#8A9A8F', marginBottom: '5px' }}>SYSTEM ROLE</label>
+                <select value={userForm.system_role || ''} onChange={(e) => setUserForm({...userForm, system_role: e.target.value})} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #2A4731', backgroundColor: '#0F1D14', color: '#F1E8D0' }}>
+                  <option value="">Select Role</option>
+                  <option value="Global Superadmin">Global Superadmin</option>
+                  <option value="Global Admin">Global Admin</option>
+                  <option value="Camp Superadmin">Camp Superadmin</option>
+                  <option value="Camp Admin">Camp Admin</option>
+                  <option value="Camp Staff">Camp Staff</option>
+                  <option value="Camp Volunteer">Camp Volunteer</option>
+                  <option value="Camper">Camper</option>
+                  <option value="Youth Camper">Youth Camper</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontFamily: 'monospace', color: '#8A9A8F', marginBottom: '5px' }}>POSITION TITLE</label>
+                <input type="text" value={userForm.position_title || ''} onChange={(e) => setUserForm({...userForm, position_title: e.target.value})} style={{ width: '100%', boxSizing: 'border-box', padding: '8px', borderRadius: '6px', border: '1px solid #2A4731', backgroundColor: '#0F1D14', color: '#F1E8D0' }} />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontFamily: 'monospace', color: '#8A9A8F', marginBottom: '5px' }}>DEPARTMENT</label>
+                <input type="text" value={userForm.department || ''} onChange={(e) => setUserForm({...userForm, department: e.target.value})} style={{ width: '100%', boxSizing: 'border-box', padding: '8px', borderRadius: '6px', border: '1px solid #2A4731', backgroundColor: '#0F1D14', color: '#F1E8D0' }} />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontFamily: 'monospace', color: '#8A9A8F', marginBottom: '5px' }}>PROPERTY ASSIGNMENT</label>
+                <input type="text" value={userForm.property_assignment || ''} onChange={(e) => setUserForm({...userForm, property_assignment: e.target.value})} style={{ width: '100%', boxSizing: 'border-box', padding: '8px', borderRadius: '6px', border: '1px solid #2A4731', backgroundColor: '#0F1D14', color: '#F1E8D0' }} />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontFamily: 'monospace', color: '#8A9A8F', marginBottom: '5px' }}>CABIN ASSIGNMENT</label>
+                <input type="text" value={userForm.cabin_assignment || ''} onChange={(e) => setUserForm({...userForm, cabin_assignment: e.target.value})} style={{ width: '100%', boxSizing: 'border-box', padding: '8px', borderRadius: '6px', border: '1px solid #2A4731', backgroundColor: '#0F1D14', color: '#F1E8D0' }} />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontFamily: 'monospace', color: '#8A9A8F', marginBottom: '5px' }}>LOT ASSIGNMENT</label>
+                <input type="text" value={userForm.lot_assignment || ''} onChange={(e) => setUserForm({...userForm, lot_assignment: e.target.value})} style={{ width: '100%', boxSizing: 'border-box', padding: '8px', borderRadius: '6px', border: '1px solid #2A4731', backgroundColor: '#0F1D14', color: '#F1E8D0' }} />
+              </div>
+
+            </div>
+
+            {/* SHAREPOINT-STYLE USER DOCUMENTS REPOSITORY */}
+            <div style={{ borderTop: '2px solid #2A4731', paddingTop: '20px', marginTop: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                <h4 style={{ fontSize: '16px', fontWeight: 'bold', margin: 0, color: '#F1E8D0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Upload size={16} style={{ color: '#C1531B' }} /> User Documents & Repository
+                </h4>
+                <label style={{ backgroundColor: '#1E3524', color: '#FFF', padding: '8px 14px', borderRadius: '6px', fontFamily: 'monospace', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #2A4731' }}>
+                  <Upload size={14} /> Upload Document
+                  <input type="file" style={{ display: 'none' }} onChange={(e) => {
+                    if (e.target.files[0]) {
+                      const newDoc = { id: Date.now().toString(), name: e.target.files[0].name, size: '142 KB', date: new Date().toISOString().split('T')[0] };
+                      setUserDocuments([...userDocuments, newDoc]);
+                    }
+                  }} />
+                </label>
+              </div>
+
+              <div style={{ backgroundColor: '#050A07', border: '1px solid #2A4731', borderRadius: '8px', padding: '12px', minHeight: '100px' }}>
+                {userDocuments.length === 0 ? (
+                  <div style={{ textAlign: 'center', color: '#8A9A8F', fontSize: '13px', padding: '20px', fontFamily: 'monospace' }}>No documents uploaded for this personnel account yet.</div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {userDocuments.map(doc => (
+                      <div key={doc.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', backgroundColor: '#0F1D14', border: '1px solid #2A4731', borderRadius: '6px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <FileText size={16} style={{ color: '#C1531B' }} />
+                          <div>
+                            <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#F1E8D0' }}>{doc.name}</div>
+                            <div style={{ fontSize: '11px', color: '#8A9A8F', fontFamily: 'monospace' }}>Size: {doc.size} | Uploaded: {doc.date}</div>
+                          </div>
+                        </div>
+                        <button onClick={() => setUserDocuments(userDocuments.filter(d => d.id !== doc.id))} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '12px', fontFamily: 'monospace' }}>Delete</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* MODAL ACTIONS */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '25px', borderTop: '1px solid #2A4731', paddingTop: '15px' }}>
+              <button onClick={() => setSelectedUser(null)} style={{ padding: '10px 20px', backgroundColor: 'transparent', color: '#F1E8D0', border: '1px solid #8A9A8F', borderRadius: '6px', fontSize: '14px', cursor: 'pointer' }}>
+                Cancel
+              </button>
+              <button onClick={handleSaveUser} style={{ padding: '10px 24px', backgroundColor: '#C1531B', color: '#FFF', border: 'none', borderRadius: '6px', fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Save size={16} /> Save Changes
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* PASSCODE / QR MODALS */}
       {modalType && modalData && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0, 0, 0, 0.8)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '16px' }}>
           <div style={{ backgroundColor: '#070C08', border: '1px solid #2A4731', borderRadius: '16px', maxWidth: '448px', width: '100%', padding: '24px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)', position: 'relative' }}>
