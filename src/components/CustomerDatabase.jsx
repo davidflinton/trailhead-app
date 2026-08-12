@@ -357,6 +357,26 @@ export default function CustomerDatabase({ colors, fonts, isDarkMode }) {
               </div>
 
               <div>
+                <label style={{ display: 'block', fontSize: '12px', fontFamily: fonts.utility, color: colors.muted, marginBottom: '5px' }}>PRIMARY EMERGENCY CONTACT NAME</label>
+                <input type="text" value={userForm.primary_emergency_contact_name || ''} onChange={(e) => setUserForm({...userForm, primary_emergency_contact_name: e.target.value})} style={{ width: '100%', boxSizing: 'border-box', padding: '8px', borderRadius: '6px', border: `1px solid ${colors.muted}`, backgroundColor: 'transparent', color: colors.textDark }} />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontFamily: fonts.utility, color: colors.muted, marginBottom: '5px' }}>PRIMARY EMERGENCY CONTACT PHONE</label>
+                <input type="text" value={userForm.primary_emergency_contact_phone || ''} onChange={(e) => setUserForm({...userForm, primary_emergency_contact_phone: e.target.value})} style={{ width: '100%', boxSizing: 'border-box', padding: '8px', borderRadius: '6px', border: `1px solid ${colors.muted}`, backgroundColor: 'transparent', color: colors.textDark }} />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontFamily: fonts.utility, color: colors.muted, marginBottom: '5px' }}>SECONDARY EMERGENCY CONTACT NAME</label>
+                <input type="text" value={userForm.secondary_emergency_contact_name || ''} onChange={(e) => setUserForm({...userForm, secondary_emergency_contact_name: e.target.value})} style={{ width: '100%', boxSizing: 'border-box', padding: '8px', borderRadius: '6px', border: `1px solid ${colors.muted}`, backgroundColor: 'transparent', color: colors.textDark }} />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontFamily: fonts.utility, color: colors.muted, marginBottom: '5px' }}>SECONDARY EMERGENCY CONTACT PHONE</label>
+                <input type="text" value={userForm.secondary_emergency_contact_phone || ''} onChange={(e) => setUserForm({...userForm, secondary_emergency_contact_phone: e.target.value})} style={{ width: '100%', boxSizing: 'border-box', padding: '8px', borderRadius: '6px', border: `1px solid ${colors.muted}`, backgroundColor: 'transparent', color: colors.textDark }} />
+              </div>
+
+              <div>
                 <label style={{ display: 'block', fontSize: '12px', fontFamily: fonts.utility, color: colors.muted, marginBottom: '5px' }}>START DATE</label>
                 <input type="date" value={userForm.start_date || ''} onChange={(e) => setUserForm({...userForm, start_date: e.target.value})} style={{ width: '100%', boxSizing: 'border-box', padding: '8px', borderRadius: '6px', border: `1px solid ${colors.muted}`, backgroundColor: 'transparent', color: colors.textDark }} />
               </div>
