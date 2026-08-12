@@ -13,7 +13,6 @@ export default function StaffManager({ supabase, selectedPropertyName, colors, f
   const [modalType, setModalType] = useState(null);
   const [actionMessage, setActionMessage] = useState(null);
 
-  // New states for Full Details & Documents
   const [selectedUser, setSelectedUser] = useState(null);
   const [userForm, setUserForm] = useState({});
   const [userDocuments, setUserDocuments] = useState([]);
@@ -54,6 +53,15 @@ export default function StaffManager({ supabase, selectedPropertyName, colors, f
     setLoading(false);
   }
 
+  function getDisplayName(user) {
+    if (user.display_name && user.display_name.trim() !== '') {
+      return user.display_name;
+    }
+    const standardName = [user.first_name, user.last_name].filter(Boolean).join(' ');
+    if (standardName) return standardName;
+    return user.name || 'Unnamed Personnel';
+  }
+
   function handleOpenDetails(user) {
     setSelectedUser(user);
     setUserForm(user);
@@ -85,8 +93,7 @@ export default function StaffManager({ supabase, selectedPropertyName, colors, f
     setActiveMenuId(null);
     setActionMessage(null);
 
-    const constructedName = [user.prefix, user.first_name, user.middle_name, user.last_name, user.suffix].filter(Boolean).join(' ');
-    const userName = user.display_name || constructedName || user.name || 'Staff Member';
+    const userName = getDisplayName(user);
 
     switch (action) {
       case 'email':
@@ -173,8 +180,7 @@ export default function StaffManager({ supabase, selectedPropertyName, colors, f
   }
 
   const filteredUsers = users.filter(u => {
-    const constructedName = [u.prefix, u.first_name, u.middle_name, u.last_name, u.suffix].filter(Boolean).join(' ');
-    const fullName = u.display_name || constructedName || u.name || '';
+    const fullName = getDisplayName(u);
     const tId = u.trailhead_id || '';
     const userEmail = u.work_email || u.personal_email || u.email || '';
     const term = searchTerm.toLowerCase();
@@ -236,8 +242,7 @@ export default function StaffManager({ supabase, selectedPropertyName, colors, f
                 </tr>
               ) : (
                 filteredUsers.map((user) => {
-                  const constructedName = [user.prefix, user.first_name, user.middle_name, user.last_name, user.suffix].filter(Boolean).join(' ');
-                  const displayName = user.display_name || constructedName || user.name || 'Unnamed Personnel';
+                  const displayName = getDisplayName(user);
                   const displayEmail = user.work_email || user.personal_email || user.email || 'No email provided';
                   const displayId = user.trailhead_id || user.id?.substring(0, 8) || 'N/A';
                   const displayRole = user.system_role || user.job_title || user.access_tier || 'Staff';
@@ -554,7 +559,7 @@ export default function StaffManager({ supabase, selectedPropertyName, colors, f
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0, 0, 0, 0.8)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '16px' }}>
           <div style={{ backgroundColor: '#070C08', border: '1px solid #2A4731', borderRadius: '16px', maxWidth: '448px', width: '100%', padding: '24px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)', position: 'relative' }}>
             <h3 style={{ fontSize: '18px', fontWeight: 'bold', margin: '0 0 16px 0', color: '#F1E8D0' }}>
-              {modalType === 'passphrase' ? `Passphrase for ${modalData.display_name || modalData.first_name}` : `QR Code for ${modalData.display_name || modalData.first_name}`}
+              {modalType === 'passphrase' ? `Passphrase for ${getDisplayName(modalData)}` : `QR Code for ${getDisplayName(modalData)}`}
             </h3>
             
             {modalType === 'passphrase' ? (

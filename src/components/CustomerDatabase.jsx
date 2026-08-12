@@ -13,7 +13,6 @@ export default function CustomerDatabase({ colors, fonts, isDarkMode }) {
   const [selectedUser, setSelectedUser] = useState(null)
   const [userForm, setUserForm] = useState({})
   const [userDocuments, setUserDocuments] = useState([])
-  const [uploadingDoc, setUploadingDoc] = useState(false)
   const [actionMessage, setActionMessage] = useState(null)
 
   useEffect(() => {
@@ -41,14 +40,22 @@ export default function CustomerDatabase({ colors, fonts, isDarkMode }) {
     setIsLoading(false)
   }
 
-  async function handleOpenDetails(user) {
+  function getDisplayName(user) {
+    if (user.display_name && user.display_name.trim() !== '') {
+      return user.display_name;
+    }
+    const standardName = [user.first_name, user.last_name].filter(Boolean).join(' ');
+    if (standardName) return standardName;
+    return user.name || 'Unnamed Record';
+  }
+
+  function handleOpenDetails(user) {
     setSelectedUser(user)
     setUserForm(user)
     setActiveMenuId(null)
-    // Fetch user documents if you have a storage bucket or table for them
     setUserDocuments([
-      { id: '1', name: 'Onboarding_Agreement.pdf', size: '245 KB', date: '2026-06-10' },
-      { id: '2', name: 'Emergency_Contact_Form.pdf', size: '120 KB', date: '2026-06-10' }
+      { id: '1', name: 'Agreement_Form.pdf', size: '180 KB', date: '2026-06-12' },
+      { id: '2', name: 'Emergency_Contact.pdf', size: '110 KB', date: '2026-06-12' }
     ])
   }
 
@@ -61,17 +68,16 @@ export default function CustomerDatabase({ colors, fonts, isDarkMode }) {
       .eq('id', selectedUser.id)
 
     if (error) {
-      setActionMessage({ type: 'error', text: 'Failed to update user profile: ' + error.message })
+      setActionMessage({ type: 'error', text: 'Failed to update record: ' + error.message })
     } else {
-      setActionMessage({ type: 'success', text: 'User profile updated successfully.' })
+      setActionMessage({ type: 'success', text: 'Record updated successfully.' })
       fetchCustomerData()
       setSelectedUser(null)
     }
   }
 
   const filteredPersonnel = personnel.filter(p => {
-    const constructedName = [p.prefix, p.first_name, p.middle_name, p.last_name, p.suffix].filter(Boolean).join(' ')
-    const fullName = p.display_name || constructedName || p.name || ''
+    const fullName = getDisplayName(p)
     const email = p.work_email || p.personal_email || p.email || ''
     const property = p.property_assignment || p.property_name || ''
     const term = searchTerm.toLowerCase()
@@ -79,8 +85,7 @@ export default function CustomerDatabase({ colors, fonts, isDarkMode }) {
   })
 
   const filteredCampers = campers.filter(c => {
-    const constructedName = [c.prefix, c.first_name, c.middle_name, c.last_name, c.suffix].filter(Boolean).join(' ')
-    const fullName = c.display_name || constructedName || c.name || ''
+    const fullName = getDisplayName(c)
     const property = c.property_assignment || c.property_name || ''
     const cabin = c.cabin_assignment || c.site_or_cabin || ''
     const term = searchTerm.toLowerCase()
@@ -170,8 +175,7 @@ export default function CustomerDatabase({ colors, fonts, isDarkMode }) {
                   </tr>
                 ) : (
                   filteredPersonnel.map(user => {
-                    const constructedName = [user.prefix, user.first_name, user.middle_name, user.last_name, user.suffix].filter(Boolean).join(' ')
-                    const displayName = user.display_name || constructedName || user.name || 'Unnamed Personnel'
+                    const displayName = getDisplayName(user);
                     const displayProperty = user.property_assignment || user.property_name || 'Unassigned'
                     const displayEmail = user.work_email || user.personal_email || user.email || 'No email provided'
                     const displayRole = user.system_role || user.role || 'Staff'
@@ -200,9 +204,9 @@ export default function CustomerDatabase({ colors, fonts, isDarkMode }) {
                             <div style={{ position: 'absolute', right: '24px', top: '48px', width: '160px', backgroundColor: isDarkMode ? '#070C08' : '#FFF', border: `1px solid ${colors.border}`, borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.5)', padding: '6px 0', zIndex: 50, textAlign: 'left' }}>
                               <button
                                 onClick={() => handleOpenDetails(user)}
-                                style={{ width: '100%', padding: '8px 16px', fontSize: '13px', color: colors.textDark, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+                                style={{ width: '100%', padding: '8px 16px', fontSize: '13px', color: colors.textDark, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold' }}
                               >
-                                <FileText size={14} /> View Details
+                                <FileText size={14} color={colors.primary} /> View Details
                               </button>
                             </div>
                           )}
@@ -218,8 +222,7 @@ export default function CustomerDatabase({ colors, fonts, isDarkMode }) {
                   </tr>
                 ) : (
                   filteredCampers.map(camper => {
-                    const constructedName = [camper.prefix, camper.first_name, camper.middle_name, camper.last_name, camper.suffix].filter(Boolean).join(' ')
-                    const fullName = camper.display_name || constructedName || camper.name || 'Unnamed Camper'
+                    const fullName = getDisplayName(camper);
                     const displayCamp = camper.property_assignment || camper.property_name || 'Assigned Camp'
                     const displayContact = camper.personal_email || camper.email || camper.personal_phone || 'No contact info'
                     const locationInfo = `Cabin: ${camper.cabin_assignment || camper.site_or_cabin || 'Unassigned'}`
@@ -245,9 +248,9 @@ export default function CustomerDatabase({ colors, fonts, isDarkMode }) {
                             <div style={{ position: 'absolute', right: '24px', top: '48px', width: '160px', backgroundColor: isDarkMode ? '#070C08' : '#FFF', border: `1px solid ${colors.border}`, borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.5)', padding: '6px 0', zIndex: 50, textAlign: 'left' }}>
                               <button
                                 onClick={() => handleOpenDetails(camper)}
-                                style={{ width: '100%', padding: '8px 16px', fontSize: '13px', color: colors.textDark, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+                                style={{ width: '100%', padding: '8px 16px', fontSize: '13px', color: colors.textDark, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold' }}
                               >
-                                <FileText size={14} /> View Details
+                                <FileText size={14} color={colors.primary} /> View Details
                               </button>
                             </div>
                           )}
@@ -262,14 +265,14 @@ export default function CustomerDatabase({ colors, fonts, isDarkMode }) {
         </div>
       </div>
 
-      {/* FULL USER DETAILS & DOCUMENTS MODAL */}
+      {/* FULL RECORD DETAILS & DOCUMENTS MODAL */}
       {selectedUser && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '20px' }}>
-          <div style={{ backgroundColor: isDarkMode ? '#070C08' : '#FFF', border: `2px solid ${colors.primary}`, borderRadius: '16px', maxWidth: '800px', width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: '30px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)', color: colors.textDark, boxSizing: 'border-box' }}>
+          <div style={{ backgroundColor: isDarkMode ? '#070C08' : '#FFF', border: `2px solid ${colors.primary}`, borderRadius: '16px', maxWidth: '850px', width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: '30px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)', color: colors.textDark, boxSizing: 'border-box' }}>
             
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${colors.border}`, paddingBottom: '15px', marginBottom: '20px' }}>
               <h3 style={{ fontFamily: fonts.header, fontSize: '24px', margin: 0, color: colors.textDark, display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <FileText color={colors.primary} /> USER PROFILE & DIRECTORY DETAILS
+                <FileText color={colors.primary} /> Record Profile & Directory Details
               </h3>
               <button onClick={() => setSelectedUser(null)} style={{ background: 'none', border: 'none', color: colors.muted, cursor: 'pointer' }}>
                 <X size={24} />
@@ -428,13 +431,13 @@ export default function CustomerDatabase({ colors, fonts, isDarkMode }) {
             <div style={{ borderTop: `2px solid ${colors.border}`, paddingTop: '20px', marginTop: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                 <h4 style={{ fontFamily: fonts.header, fontSize: '18px', margin: 0, color: colors.textDark, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Upload size={18} color={colors.primary} /> USER DOCUMENTS & REPOSITORY
+                  <Upload size={18} color={colors.primary} /> User Documents & Repository
                 </h4>
                 <label style={{ backgroundColor: colors.highlight, color: '#FFF', padding: '8px 14px', borderRadius: '6px', fontFamily: fonts.utility, fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Upload size={14} /> UPLOAD DOCUMENT
+                  <Upload size={14} /> Upload Document
                   <input type="file" style={{ display: 'none' }} onChange={(e) => {
                     if (e.target.files[0]) {
-                      const newDoc = { id: Date.now().toString(), name: e.target.files[0].name, size: '150 KB', date: new Date().toISOString().split('T')[0] }
+                      const newDoc = { id: Date.now().toString(), name: e.target.files[0].name, size: '142 KB', date: new Date().toISOString().split('T')[0] }
                       setUserDocuments([...userDocuments, newDoc])
                     }
                   }} />
@@ -443,7 +446,7 @@ export default function CustomerDatabase({ colors, fonts, isDarkMode }) {
 
               <div style={{ backgroundColor: isDarkMode ? '#111' : '#F9F9F9', border: `1px solid ${colors.border}`, borderRadius: '8px', padding: '12px', minHeight: '100px' }}>
                 {userDocuments.length === 0 ? (
-                  <div style={{ textAlign: 'center', color: colors.muted, fontSize: '13px', padding: '20px', fontFamily: fonts.utility }}>No documents uploaded for this user yet. Use SharePoint-style upload above.</div>
+                  <div style={{ textAlign: 'center', color: colors.muted, fontSize: '13px', padding: '20px', fontFamily: fonts.utility }}>No documents uploaded for this entry yet.</div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {userDocuments.map(doc => (
@@ -466,10 +469,10 @@ export default function CustomerDatabase({ colors, fonts, isDarkMode }) {
             {/* MODAL ACTIONS */}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '25px', borderTop: `1px solid ${colors.border}`, paddingTop: '15px' }}>
               <button onClick={() => setSelectedUser(null)} style={{ padding: '10px 20px', backgroundColor: 'transparent', color: colors.textDark, border: `1px solid ${colors.muted}`, borderRadius: '6px', fontFamily: fonts.header, fontSize: '14px', cursor: 'pointer' }}>
-                CANCEL
+                Cancel
               </button>
               <button onClick={handleSaveUser} style={{ padding: '10px 24px', backgroundColor: colors.primary, color: '#FFF', border: 'none', borderRadius: '6px', fontFamily: fonts.header, fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Save size={16} /> SAVE CHANGES
+                <Save size={16} /> Save Changes
               </button>
             </div>
 
