@@ -63,7 +63,6 @@ export default function Navigation({ activeTab, setActiveTab, campBranding, sess
         <FileText size={18} color="#C1531B" /> Notes
       </button>
 
-      {/* Settings Navigation Item */}
       <button onClick={() => { setActiveTab('settings'); setIsMoreOpen(false); }} style={navItemStyle('settings')}>
         <Settings size={18} color="#C1531B" /> Settings
       </button>
