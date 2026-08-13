@@ -129,7 +129,7 @@ export default function SettingsTab({ colors, fonts, isDarkMode, setIsDarkMode, 
           <Scale size={20} color={colors.primary} /> Legal Ownership & Proprietary Rights
         </h3>
         <p style={{ fontSize: '13px', color: colors.textDark, margin: '0 0 10px 0', lineHeight: 1.6 }}>
-          © 2026 Trailhead Media Group & StupidRooster Studios. All rights reserved. The Trailhead Application, interface layouts, backend schemas, and proprietary code architecture are protected under United States and international copyright, trademark, and intellectual property laws.
+          © 2026 StupidRooster Studios & Squirrel Hill Media Group. All rights reserved. The Trailhead Application, interface layouts, backend schemas, and proprietary code architecture are protected under United States and international copyright, trademark, and intellectual property laws.
         </p>
         <p style={{ fontSize: '12px', color: colors.muted, margin: 0, fontFamily: fonts.utility }}>
           Unauthorized duplication, distribution, reverse engineering, or commercial deployment of this software system or its assets is strictly prohibited.
