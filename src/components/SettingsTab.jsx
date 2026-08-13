@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings, Palette, Sun, Moon, Shield, Sliders } from 'lucide-react';
+import { Settings, Palette, Sun, Moon, Shield, Sliders, Scale } from 'lucide-react';
 import { THEMES } from '../App';
 
 export default function SettingsTab({ colors, fonts, isDarkMode, setIsDarkMode, themeKey, setThemeKey, selectedPropertyName }) {
@@ -103,7 +103,7 @@ export default function SettingsTab({ colors, fonts, isDarkMode, setIsDarkMode, 
               }}
             >
               {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
-              Switch to {isDarkMode ? 'Light Mode' : 'Dark Mode'}
+              Switch to {isDarkMode ? 'Light Mode' : 'Light Mode'}
             </button>
           </div>
 
@@ -112,7 +112,7 @@ export default function SettingsTab({ colors, fonts, isDarkMode, setIsDarkMode, 
               <Shield size={20} color={colors.primary} /> Property Portal Info
             </h3>
             <p style={{ fontSize: '13px', color: colors.muted, margin: '0 0 12px 0' }}>
-              Active Property Context: <strong style={{ color: colors.textDark }}>{selectedPropertyName || 'General Admin'}</strong>
+              Active Property Context: <strong style={{ color: colors.textDark }}>{selectedPropertyName || 'Trailhead Admin Console'}</strong>
             </p>
             <p style={{ fontSize: '12px', color: colors.muted, margin: 0, fontFamily: fonts.utility }}>
               Settings modifications configured here synchronize with your active agent profile session.
@@ -121,6 +121,19 @@ export default function SettingsTab({ colors, fonts, isDarkMode, setIsDarkMode, 
 
         </div>
 
+      </div>
+
+      {/* LEGAL OWNERSHIP & COPYRIGHT STATEMENT */}
+      <div style={{ marginTop: '20px', backgroundColor: colors.panel, border: `1px solid ${colors.border}`, borderRadius: '12px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+        <h3 style={{ fontFamily: fonts.header, fontSize: '20px', margin: '0 0 12px 0', color: colors.textDark, display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <Scale size={20} color={colors.primary} /> Legal Ownership & Proprietary Rights
+        </h3>
+        <p style={{ fontSize: '13px', color: colors.textDark, margin: '0 0 10px 0', lineHeight: 1.6 }}>
+          © 2026 Trailhead Media Group & StupidRooster Studios. All rights reserved. The Trailhead Application, interface layouts, backend schemas, and proprietary code architecture are protected under United States and international copyright, trademark, and intellectual property laws.
+        </p>
+        <p style={{ fontSize: '12px', color: colors.muted, margin: 0, fontFamily: fonts.utility }}>
+          Unauthorized duplication, distribution, reverse engineering, or commercial deployment of this software system or its assets is strictly prohibited.
+        </p>
       </div>
 
     </div>
