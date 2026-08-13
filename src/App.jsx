@@ -50,6 +50,7 @@ export const THEMES = {
 };
 
 export default function App() {
+  // 0. Intercept Routes Immediately
   const path = window.location.pathname
   
   if (path.startsWith('/register')) {
@@ -76,12 +77,14 @@ export default function App() {
   const activeThemePalette = THEMES[themeKey] || THEMES.forest
   const colors = isDarkMode ? activeThemePalette.dark : activeThemePalette.light
 
+  // Official Fonts
   const fonts = {
     header: "'Staatliches', sans-serif",
     body: "'Karla', sans-serif",
     utility: "'JetBrains Mono', monospace"
   }
 
+  // 1. Check Authentication State
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
@@ -96,6 +99,7 @@ export default function App() {
     return () => subscription.unsubscribe()
   }, [])
 
+  // 2. Fetch Profile and Camp Data securely
   useEffect(() => {
     if (session) {
       fetchUserData()
@@ -130,19 +134,23 @@ export default function App() {
     }
   }
 
+  // 3. Render Loading State
   if (isLoading) {
     return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: colors.background, color: colors.primary, fontFamily: fonts.header, fontSize: '24px', letterSpacing: '2px' }}>LOADING TRAILHEAD...</div>
   }
 
+  // 4. Render Login Screen if no session exists
   if (!session) {
     return <Login />
   }
 
+  // 5. INTERCEPT: Render Global Admin Lobby if no camp is selected
   const isGlobalAdmin = profile?.access_tier === 'global_superadmin' || profile?.access_tier === 'global_admin'
   if (!campData && isGlobalAdmin) {
     return <Lobby profile={profile} setCampData={setCampData} setActiveTab={setActiveTab} />
   }
 
+  // 6. Drawer Link Helper
   const DrawerLink = ({ label, targetTab }) => (
     <button 
       onClick={() => { setActiveTab(targetTab); setIsMoreOpen(false); }} 
@@ -164,9 +172,10 @@ export default function App() {
           </h1>
         </div>
         
+        {/* Right Header Actions & Theme Selector */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           
-          {/* Top Quick Theme Dropdown */}
+          {/* Theme Dropdown Selector */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Palette size={16} color={colors.muted} />
             <select 
@@ -180,6 +189,7 @@ export default function App() {
             </select>
           </div>
 
+          {/* Light/Dark Mode Toggle */}
           <button 
             onClick={() => setIsDarkMode(!isDarkMode)} 
             style={{ padding: '6px', borderRadius: '6px', border: `1px solid ${colors.highlight}`, backgroundColor: 'transparent', color: colors.textLight, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
@@ -188,6 +198,7 @@ export default function App() {
             {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
           </button>
 
+          {/* Notification Bell */}
           <button style={{ background: 'none', border: 'none', color: colors.textLight, cursor: 'pointer', position: 'relative' }}>
             <Bell size={24} />
             <span style={{ position: 'absolute', top: '0', right: '0', width: '10px', height: '10px', backgroundColor: colors.error, borderRadius: '50%', border: `2px solid ${colors.sidebar}` }}></span>
@@ -195,41 +206,33 @@ export default function App() {
         </div>
       </div>
 
-      {/* MAIN CONTENT AREA */}
+      {/* MAIN SCROLLABLE CONTENT AREA */}
       <div style={{ flexGrow: 1, overflowY: 'auto', padding: '20px', position: 'relative' }}>
+        
+        {/* Core Tabs */}
         {activeTab === 'news' && <NewsTab activeCamp={campData} colors={colors} fonts={fonts} />}
         {activeTab === 'events' && <EventsTab activeCamp={campData} colors={colors} fonts={fonts} />}
         {activeTab === 'social' && <SocialTab session={session} activeCamp={campData} colors={colors} fonts={fonts} />}
         {activeTab === 'profile' && <ProfileTab session={session} profile={profile} colors={colors} fonts={fonts} />}
         
+        {/* Admin & Utility Tabs */}
         {activeTab === 'admin' && <AdminTab profile={profile} campData={campData} colors={colors} fonts={fonts} />}
         {activeTab === 'staff-manager' && <StaffManager supabase={supabase} selectedPropertyName={campData?.name || 'Whispering Pines Youth Camp'} colors={colors} fonts={fonts} isDarkMode={isDarkMode} />}
         {activeTab === 'customer-db' && <CustomerDatabase colors={colors} fonts={fonts} isDarkMode={isDarkMode} />}
-        
-        {/* Settings Tab Routing */}
-        {activeTab === 'settings' && (
-          <SettingsTab 
-            colors={colors} 
-            fonts={fonts} 
-            isDarkMode={isDarkMode} 
-            setIsDarkMode={setIsDarkMode} 
-            themeKey={themeKey} 
-            setThemeKey={setThemeKey} 
-            selectedPropertyName={campData?.name || 'Trailhead Admin Console'} 
-          />
-        )}
-
+        {activeTab === 'settings' && <SettingsTab colors={colors} fonts={fonts} isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} themeKey={themeKey} setThemeKey={setThemeKey} selectedPropertyName={campData?.name || 'Trailhead Admin Console'} />}
         {activeTab === 'challenges' && <ChallengesTab activeCamp={campData} colors={colors} fonts={fonts} />}
         {activeTab === 'requests' && <RequestsTab activeCamp={campData} colors={colors} fonts={fonts} />}
         
+        {/* Conditional Tabs based on Camp Type */}
         {activeTab === 'teams' && campData?.type === 'youth_camp' && <TeamTab activeCamp={campData} colors={colors} fonts={fonts} />}
         {activeTab === 'comms' && campData?.type === 'standard_rv' && <div style={{ color: colors.textLight, fontFamily: fonts.body }}>Comms Component Here</div>}
         
+        {/* Placeholders */}
         {activeTab === 'store' && <div style={{ color: colors.textLight, fontFamily: fonts.body }}>Camp Store Here</div>}
         {activeTab === 'forms' && <div style={{ color: colors.textLight, fontFamily: fonts.body }}>Online Forms Here</div>}
       </div>
 
-      {/* SLIDE-OUT MENU DRAWER */}
+      {/* GLOBAL SLIDE-OUT MENU DRAWER */}
       <div 
         onClick={() => setIsMoreOpen(false)} 
         style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 999, opacity: isMoreOpen ? 1 : 0, pointerEvents: isMoreOpen ? 'auto' : 'none', transition: 'opacity 0.3s' }}
@@ -245,9 +248,7 @@ export default function App() {
           
           <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
             
-            {/* Settings Link at Top of Menu */}
-            <DrawerLink label="Settings" targetTab="settings" />
-
+            {/* Admin Links */}
             {(profile?.access_tier === 'global_superadmin' || profile?.access_tier === 'global_admin' || profile?.access_tier === 'camp_superadmin' || profile?.access_tier === 'camp_admin') && (
               <>
                 <DrawerLink label="Admin Dashboard" targetTab="admin" />
@@ -256,6 +257,8 @@ export default function App() {
               </>
             )}
             
+            {/* Global & Settings Links */}
+            <DrawerLink label="Settings" targetTab="settings" />
             <DrawerLink label="Camp Store" targetTab="store" />
             <DrawerLink label="Payments" targetTab="payments" />
             <DrawerLink label="Online Forms" targetTab="forms" />
@@ -264,6 +267,7 @@ export default function App() {
             <DrawerLink label="Challenges" targetTab="challenges" />
             <DrawerLink label="Requests" targetTab="requests" />
 
+            {/* Youth Camp Specific Links */}
             {campData?.type === 'youth_camp' && (
               <>
                 <DrawerLink label="Team Performance Reviews" targetTab="team-reviews" />
@@ -274,6 +278,7 @@ export default function App() {
               </>
             )}
 
+            {/* Standard RV Specific Links */}
             {campData?.type === 'standard_rv' && (
               <>
                 <DrawerLink label="Private Performance Reviews" targetTab="private-reviews" />
@@ -286,6 +291,7 @@ export default function App() {
               </>
             )}
             
+            {/* Leave Camp Button */}
             {isGlobalAdmin && (
               <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: `2px solid ${colors.highlight}` }}>
                 <button 
@@ -300,7 +306,7 @@ export default function App() {
         </div>
       </div>
 
-      {/* BOTTOM NAVIGATION BAR (FOR PROPERTY PORTALS) */}
+      {/* BOTTOM NAVIGATION BAR */}
       <Navigation 
         activeTab={activeTab} 
         setActiveTab={setActiveTab} 
