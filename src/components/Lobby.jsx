@@ -173,6 +173,12 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
         </div>
 
         <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <SideNavButton icon={<Settings size={20} />} label="Settings" active={false} onClick={() => { 
+            setIsMenuOpen(false); 
+            // Select a dummy camp context or route directly to settings tab handler if supported, 
+            // otherwise trigger the global settings navigation state.
+            setActiveTab('settings');
+          }} colors={colors} fonts={fonts} />
           <SideNavButton icon={<LayoutDashboard size={20} />} label="Dashboard" active={lobbyTab === 'dashboard'} onClick={() => { setLobbyTab('dashboard'); setIsMenuOpen(false); }} colors={colors} fonts={fonts} />
           <SideNavButton icon={<Tent size={20} />} label="Properties" active={lobbyTab === 'camps'} onClick={() => { setLobbyTab('camps'); setIsMenuOpen(false); }} colors={colors} fonts={fonts} />
           <SideNavButton icon={<Users size={20} />} label="Staff" active={lobbyTab === 'staff'} onClick={() => { setLobbyTab('staff'); setIsMenuOpen(false); }} colors={colors} fonts={fonts} />
