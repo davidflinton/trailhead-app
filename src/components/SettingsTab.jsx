@@ -108,7 +108,7 @@ export default function SettingsTab({ colors, fonts, isDarkMode, setIsDarkMode, 
           </div>
 
           <div style={{ backgroundColor: colors.panel, border: `1px solid ${colors.border}`, borderRadius: '12px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
-            <h3 style={{ fontFamily: fonts.header, fontSize: '20px', margin: '0 0 12px 0', color: colors.textDark, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h3 style={{ fontFamily: fonts.header, fontSize: '20px', margin: '0 0 12px 0', color: colors.textDark, display: 'flex', alignItems: 'center', gap: '10px' }}>
               <Shield size={20} color={colors.primary} /> Property Portal Info
             </h3>
             <p style={{ fontSize: '13px', color: colors.muted, margin: '0 0 12px 0' }}>
