@@ -98,7 +98,7 @@ export default function App() {
     return () => subscription.unsubscribe()
   }, [])
 
-  // 2. Fetch Profile and Camp Data securely
+  // 2. Fetch Profile and Camp Data securely (with URL campId query parameter support)
   useEffect(() => {
     if (session) {
       fetchUserData()
@@ -116,7 +116,20 @@ export default function App() {
       if (profileError) throw profileError
       setProfile(profileData)
 
-      if (profileData?.camp_id) {
+      // Check URL parameters for a specific campId to load in a separate tab
+      const params = new URLSearchParams(window.location.search)
+      const urlCampId = params.get('campId')
+
+      if (urlCampId) {
+        const { data: campResult, error: campError } = await supabase
+          .from('camps')
+          .select('*')
+          .eq('id', urlCampId)
+          .single()
+        
+        if (campError) throw campError
+        setCampData(campResult)
+      } else if (profileData?.camp_id) {
         const { data: campResult, error: campError } = await supabase
           .from('camps')
           .select('*')

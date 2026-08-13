@@ -292,7 +292,16 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
                   </>
                 )}
                 <button disabled={!selectedCampId} onClick={openEditForm} style={{ backgroundColor: selectedCampId ? colors.primary : 'transparent', color: selectedCampId ? '#FFF' : colors.muted, border: selectedCampId ? 'none' : `1px solid ${colors.muted}`, padding: '10px 15px', borderRadius: '4px', cursor: selectedCampId ? 'pointer' : 'not-allowed', fontFamily: fonts.utility, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}><Edit2 size={16} /> EDIT</button>
-                <button disabled={!selectedCampId} onClick={() => { setCampData(selectedCamp); setActiveTab('news'); }} style={{ backgroundColor: selectedCampId ? colors.primary : 'transparent', color: selectedCampId ? '#FFF' : colors.muted, border: selectedCampId ? 'none' : `1px solid ${colors.muted}`, padding: '10px 15px', borderRadius: '4px', cursor: selectedCampId ? 'pointer' : 'not-allowed', fontFamily: fonts.utility, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}><Settings size={16} /> MANAGE</button>
+                <button 
+                  disabled={!selectedCampId} 
+                  onClick={() => { 
+                    const newTabUrl = `${window.location.origin}/?campId=${selectedCampId}`;
+                    window.open(newTabUrl, '_blank', 'noopener,noreferrer');
+                  }} 
+                  style={{ backgroundColor: selectedCampId ? colors.primary : 'transparent', color: selectedCampId ? '#FFF' : colors.muted, border: selectedCampId ? 'none' : `1px solid ${colors.muted}`, padding: '10px 15px', borderRadius: '4px', cursor: selectedCampId ? 'pointer' : 'not-allowed', fontFamily: fonts.utility, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Settings size={16} /> MANAGE
+                </button>
                 {profile?.access_tier === 'global_superadmin' && (
                   <button disabled={!selectedCampId} onClick={() => setIsDeletingCamp(true)} style={{ backgroundColor: selectedCampId ? colors.error : 'transparent', color: selectedCampId ? 'white' : colors.muted, border: selectedCampId ? 'none' : `1px solid ${colors.muted}`, padding: '10px 15px', borderRadius: '4px', cursor: selectedCampId ? 'pointer' : 'not-allowed', fontFamily: fonts.utility, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px', marginLeft: 'auto' }}><Trash2 size={16} /> DELETE</button>
                 )}
@@ -342,7 +351,14 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
                 {isLoading ? <div style={{ textAlign: 'center', padding: '20px', color: colors.primary, fontFamily: fonts.utility }}>Loading...</div> : 
                  visibleCamps.length === 0 ? <div style={{ textAlign: 'center', padding: '20px', color: colors.muted }}>No properties found.</div> : 
                  visibleCamps.map(camp => (
-                  <div key={camp.id} onClick={() => { setSelectedCampId(camp.id); setIsAddingCamp(false); setIsEditingCamp(false); }} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px', backgroundColor: selectedCampId === camp.id ? (isDarkMode ? '#2A4731' : '#E5DCC0') : (isDarkMode ? '#16281D' : 'white'), border: selectedCampId === camp.id ? `2px solid ${colors.primary}` : `1px solid ${colors.border}`, borderRadius: '4px', cursor: 'pointer', transition: 'all 0.1s' }}>
+                  <div 
+                    key={camp.id} 
+                    onClick={() => { 
+                      const newTabUrl = `${window.location.origin}/?campId=${camp.id}`;
+                      window.open(newTabUrl, '_blank', 'noopener,noreferrer');
+                    }} 
+                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px', backgroundColor: selectedCampId === camp.id ? (isDarkMode ? '#2A4731' : '#E5DCC0') : (isDarkMode ? '#16281D' : 'white'), border: selectedCampId === camp.id ? `2px solid ${colors.primary}` : `1px solid ${colors.border}`, borderRadius: '4px', cursor: 'pointer', transition: 'all 0.1s' }}
+                  >
                     <div>
                       <div style={{ fontFamily: fonts.header, fontSize: '20px', color: colors.textDark, letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                         {camp.name}
