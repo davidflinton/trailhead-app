@@ -192,10 +192,10 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
                 
                 {/* System Alerts */}
-                <div style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '8px', border: `2px solid ${colors.error}`, gridColumn: '1 / -1' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: colors.error, marginBottom: '10px' }}>
+                <div style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '8px', border: '2px solid #ef4444', gridColumn: '1 / -1', textAlign: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', color: '#ef4444', marginBottom: '10px' }}>
                     <ShieldAlert size={24} />
-                    <h3 style={{ margin: 0, fontFamily: fonts.header, fontSize: '20px' }}>SYSTEM ALERTS</h3>
+                    <h3 style={{ margin: 0, fontFamily: fonts.header, fontSize: '20px', color: '#ef4444' }}>SYSTEM ALERTS</h3>
                   </div>
                   <p style={{ color: colors.textDark, margin: 0, fontSize: '14px' }}>All deployment nodes operating nominally. Database sync complete.</p>
                 </div>
