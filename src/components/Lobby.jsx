@@ -3,8 +3,9 @@ import { supabase } from '../supabaseClient'
 import { Tent, Users, CheckSquare, MessageSquare, LogOut, Search, MapPin, ClipboardList, ThumbsUp, MessageCircle, BarChart2, Edit2, Plus, LayoutDashboard, Menu, X, Settings, Trash2, AlertTriangle, Moon, Sun, Lock, ShieldAlert, Database } from 'lucide-react'
 import StaffManager from './StaffManager'
 import CustomerDatabase from './CustomerDatabase'
+import SettingsTab from './SettingsTab'
 
-export default function Lobby({ profile, setCampData, setActiveTab }) {
+export default function Lobby({ profile, setCampData, setActiveTab, colors: propColors, fonts: propFonts, isDarkMode: propIsDarkMode, setIsDarkMode: propSetIsDarkMode, themeKey, setThemeKey }) {
   const [lobbyTab, setLobbyTab] = useState('dashboard')
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   
@@ -180,10 +181,7 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
           <SideNavButton icon={<CheckSquare size={20} />} label="Approvals" active={lobbyTab === 'approvals'} onClick={() => { setLobbyTab('approvals'); setIsMenuOpen(false); }} colors={colors} fonts={fonts} />
           <SideNavButton icon={<MessageSquare size={20} />} label="Discuss" active={lobbyTab === 'discussions'} onClick={() => { setLobbyTab('discussions'); setIsMenuOpen(false); }} colors={colors} fonts={fonts} />
           <SideNavButton icon={<ClipboardList size={20} />} label="Notes" active={lobbyTab === 'feedback'} onClick={() => { setLobbyTab('feedback'); setIsMenuOpen(false); }} colors={colors} fonts={fonts} />
-          <SideNavButton icon={<Settings size={20} />} label="Settings" active={false} onClick={() => { 
-            setIsMenuOpen(false); 
-            setActiveTab('settings');
-          }} colors={colors} fonts={fonts} />
+          <SideNavButton icon={<Settings size={20} />} label="Settings" active={lobbyTab === 'settings'} onClick={() => { setLobbyTab('settings'); setIsMenuOpen(false); }} colors={colors} fonts={fonts} />
         </div>
       </div>
 
@@ -393,6 +391,18 @@ export default function Lobby({ profile, setCampData, setActiveTab }) {
 
           {lobbyTab === 'database' && (
             <CustomerDatabase colors={colors} fonts={fonts} isDarkMode={isDarkMode} />
+          )}
+
+          {lobbyTab === 'settings' && (
+            <SettingsTab 
+              colors={colors} 
+              fonts={fonts} 
+              isDarkMode={isDarkMode} 
+              setIsDarkMode={setIsDarkMode} 
+              themeKey={themeKey || 'forest'} 
+              setThemeKey={setThemeKey || (() => {})} 
+              selectedPropertyName="Global Admin Console" 
+            />
           )}
 
           {lobbyTab === 'approvals' && (
