@@ -5,17 +5,9 @@ import StaffManager from './StaffManager'
 import CustomerDatabase from './CustomerDatabase'
 import SettingsTab from './SettingsTab'
 
-export default function Lobby({ profile, setCampData, setActiveTab, colors: propColors, fonts: propFonts, isDarkMode: propIsDarkMode, setIsDarkMode: propSetIsDarkMode, themeKey, setThemeKey }) {
+export default function Lobby({ profile, setCampData, setActiveTab, colors, fonts, isDarkMode, setIsDarkMode, themeKey, setThemeKey }) {
   const [lobbyTab, setLobbyTab] = useState('dashboard')
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    return localStorage.getItem('trailhead_theme') === 'dark'
-  })
-
-  useEffect(() => {
-    localStorage.setItem('trailhead_theme', isDarkMode ? 'dark' : 'light')
-  }, [isDarkMode])
   
   const [camps, setCamps] = useState([])
   const [myAssignedCamps, setMyAssignedCamps] = useState([])
@@ -38,21 +30,6 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors: prop
   const [selectedProject, setSelectedProject] = useState('Squirrel Hill Campground')
   const [newProjectName, setNewProjectName] = useState('')
   
-  const themes = {
-    light: {
-      background: '#E4DFD0', sidebar: '#0F1D14', panel: '#F1E8D0', textDark: '#24201A',
-      textLight: '#F1E8D0', primary: '#C1531B', muted: '#6B6250', error: '#E8896B',
-      highlight: '#1E3524', border: '#CCC'
-    },
-    dark: {
-      background: '#0B140E', sidebar: '#070C08', panel: '#16281D', textDark: '#F1E8D0',
-      textLight: '#0F1D14', primary: '#C1531B', muted: '#8A9A8F', error: '#D9534F',
-      highlight: '#2A4731', border: '#1E3524'
-    }
-  }
-  
-  const colors = isDarkMode ? themes.dark : themes.light
-  const fonts = { header: "'Staatliches', sans-serif", body: "'Karla', sans-serif", utility: "'JetBrains Mono', monospace" }
   const headerDisplayName = profile?.display_name || `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() || profile?.access_tier
 
   useEffect(() => { fetchProperties() }, [])
@@ -148,13 +125,13 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors: prop
           </h1>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <button onClick={() => setIsDarkMode(!isDarkMode)} style={{ background: 'none', border: 'none', color: '#F1E8D0', cursor: 'pointer', padding: '8px', display: 'flex', alignItems: 'center' }} title="Toggle Theme">
+          <button onClick={() => setIsDarkMode(!isDarkMode)} style={{ background: 'none', border: 'none', color: colors.textLight, cursor: 'pointer', padding: '8px', display: 'flex', alignItems: 'center' }} title="Toggle Theme">
             {isDarkMode ? <Sun size={24} /> : <Moon size={24} />}
           </button>
           <button onClick={handleLogout} style={{ background: 'none', border: 'none', color: colors.error, cursor: 'pointer', padding: '8px', display: 'flex', alignItems: 'center' }} title="Sign Out">
             <LogOut size={24} />
           </button>
-          <button onClick={() => setIsMenuOpen(true)} style={{ background: 'none', border: 'none', color: '#F1E8D0', cursor: 'pointer', padding: '8px', display: 'flex', alignItems: 'center' }} title="Menu">
+          <button onClick={() => setIsMenuOpen(true)} style={{ background: 'none', border: 'none', color: colors.textLight, cursor: 'pointer', padding: '8px', display: 'flex', alignItems: 'center' }} title="Menu">
             <Menu size={28} />
           </button>
         </div>
@@ -168,7 +145,7 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors: prop
           <div style={{ color: colors.primary, fontFamily: fonts.utility, fontSize: '12px', textTransform: 'uppercase', fontWeight: 'bold' }}>
             User: {headerDisplayName}
           </div>
-          <button onClick={() => setIsMenuOpen(false)} style={{ background: 'none', border: 'none', color: '#F1E8D0', cursor: 'pointer', display: 'flex' }}>
+          <button onClick={() => setIsMenuOpen(false)} style={{ background: 'none', border: 'none', color: colors.textLight, cursor: 'pointer', display: 'flex' }}>
             <X size={24} />
           </button>
         </div>
@@ -399,8 +376,8 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors: prop
               fonts={fonts} 
               isDarkMode={isDarkMode} 
               setIsDarkMode={setIsDarkMode} 
-              themeKey={themeKey || 'forest'} 
-              setThemeKey={setThemeKey || (() => {})} 
+              themeKey={themeKey} 
+              setThemeKey={setThemeKey} 
               selectedPropertyName="Global Admin Console" 
             />
           )}
@@ -471,7 +448,7 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors: prop
 
 function SideNavButton({ icon, label, active, onClick, colors, fonts }) {
   return (
-    <button onClick={onClick} style={{ display: 'flex', alignItems: 'center', gap: '15px', width: '100%', background: active ? colors.highlight : 'none', border: 'none', color: active ? '#FFF' : '#F1E8D0', cursor: 'pointer', padding: '15px 20px', borderRadius: '4px', transition: 'background 0.2s', fontFamily: fonts.header, fontSize: '18px', letterSpacing: '1px' }}>
+    <button onClick={onClick} style={{ display: 'flex', alignItems: 'center', gap: '15px', width: '100%', background: active ? colors.highlight : 'none', border: 'none', color: active ? '#FFF' : colors.textLight, cursor: 'pointer', padding: '15px 20px', borderRadius: '4px', transition: 'background 0.2s', fontFamily: fonts.header, fontSize: '18px', letterSpacing: '1px' }}>
       {icon}<span>{label}</span>
     </button>
   )

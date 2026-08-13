@@ -50,7 +50,6 @@ export const THEMES = {
 };
 
 export default function App() {
-  // 0. Intercept Routes Immediately
   const path = window.location.pathname
   
   if (path.startsWith('/register')) {
@@ -147,7 +146,19 @@ export default function App() {
   // 5. INTERCEPT: Render Global Admin Lobby if no camp is selected
   const isGlobalAdmin = profile?.access_tier === 'global_superadmin' || profile?.access_tier === 'global_admin'
   if (!campData && isGlobalAdmin) {
-    return <Lobby profile={profile} setCampData={setCampData} setActiveTab={setActiveTab} />
+    return (
+      <Lobby 
+        profile={profile} 
+        setCampData={setCampData} 
+        setActiveTab={setActiveTab} 
+        colors={colors} 
+        fonts={fonts} 
+        isDarkMode={isDarkMode} 
+        setIsDarkMode={setIsDarkMode} 
+        themeKey={themeKey} 
+        setThemeKey={setThemeKey} 
+      />
+    )
   }
 
   // 6. Drawer Link Helper
@@ -257,8 +268,7 @@ export default function App() {
               </>
             )}
             
-            {/* Global & Settings Links */}
-            <DrawerLink label="Settings" targetTab="settings" />
+            {/* Global & Standard Links */}
             <DrawerLink label="Camp Store" targetTab="store" />
             <DrawerLink label="Payments" targetTab="payments" />
             <DrawerLink label="Online Forms" targetTab="forms" />
@@ -290,6 +300,9 @@ export default function App() {
                 <DrawerLink label="Employee Handbook" targetTab="employee-handbook" />
               </>
             )}
+
+            {/* Settings Link at the bottom of the menu */}
+            <DrawerLink label="Settings" targetTab="settings" />
             
             {/* Leave Camp Button */}
             {isGlobalAdmin && (
