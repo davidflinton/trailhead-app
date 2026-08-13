@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
-import { Bell, Tent, X, Palette, Shield, Database, Sun, Moon } from 'lucide-react'
+import { Bell, Tent, X, Palette, Shield, Database, Sun, Moon, Settings } from 'lucide-react'
 
-// Import all your existing components
+// Import all existing components
 import Navigation from './components/Navigation'
 import Login from './components/Login'
 import Lobby from './components/Lobby'
@@ -18,6 +18,7 @@ import ChallengesTab from './components/ChallengesTab'
 import RequestsTab from './components/RequestsTab'
 import StaffManager from './components/StaffManager'
 import CustomerDatabase from './components/CustomerDatabase'
+import SettingsTab from './components/SettingsTab'
 
 // Freshdesk-inspired theme palette definitions
 export const THEMES = {
@@ -218,6 +219,7 @@ export default function App() {
         {activeTab === 'admin' && <AdminTab profile={profile} campData={campData} colors={colors} fonts={fonts} />}
         {activeTab === 'staff-manager' && <StaffManager supabase={supabase} selectedPropertyName={campData?.name || 'Whispering Pines Youth Camp'} colors={colors} fonts={fonts} isDarkMode={isDarkMode} />}
         {activeTab === 'customer-db' && <CustomerDatabase colors={colors} fonts={fonts} isDarkMode={isDarkMode} />}
+        {activeTab === 'settings' && <SettingsTab colors={colors} fonts={fonts} isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} themeKey={themeKey} setThemeKey={setThemeKey} selectedPropertyName={campData?.name || 'Trailhead Admin Console'} />}
         {activeTab === 'challenges' && <ChallengesTab activeCamp={campData} colors={colors} fonts={fonts} />}
         {activeTab === 'requests' && <RequestsTab activeCamp={campData} colors={colors} fonts={fonts} />}
         
@@ -255,7 +257,8 @@ export default function App() {
               </>
             )}
             
-            {/* Global Links */}
+            {/* Global & Settings Links */}
+            <DrawerLink label="Settings" targetTab="settings" />
             <DrawerLink label="Camp Store" targetTab="store" />
             <DrawerLink label="Payments" targetTab="payments" />
             <DrawerLink label="Online Forms" targetTab="forms" />
