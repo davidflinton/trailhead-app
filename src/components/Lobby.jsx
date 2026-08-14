@@ -22,10 +22,35 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
   const [isDeletingCamp, setIsDeletingCamp] = useState(false)
   const [deletePassword, setDeletePassword] = useState('')
 
-  // Admin Announcements State
-  const [adminAnnouncement, setAdminAnnouncement] = useState('<h3>Welcome to the Trailhead Admin Console</h3><p>Use this space to post global updates, maintenance schedules, or urgent notices for your administrative team.</p>')
+  // Admin Announcements State loaded from Database
+  const [adminAnnouncement, setAdminAnnouncement] = useState('<h3>Welcome to the Project Trailhead Admin Console</h3><p>Thanks for agreeing to be our test pilots for this phase. Your feedback is what will iron out the bugs before we open this up to a larger public test group.</p>')
   const [isEditingAnnouncement, setIsEditingAnnouncement] = useState(false)
   const [tempAnnouncement, setTempAnnouncement] = useState('')
+
+  useEffect(() => {
+    fetchAnnouncement()
+  }, [])
+
+  async function fetchAnnouncement() {
+    const { data, error } = await supabase
+      .from('global_settings')
+      .select('value')
+      .eq('key', 'admin_announcement')
+      .single()
+
+    if (data && data.value) {
+      setAdminAnnouncement(data.value)
+    }
+  }
+
+  async function saveAnnouncement() {
+    setAdminAnnouncement(tempAnnouncement)
+    setIsEditingAnnouncement(false)
+
+    await supabase
+      .from('global_settings')
+      .upsert({ key: 'admin_announcement', value: tempAnnouncement })
+  }
 
   const defaultCampForm = {
     name: '', type: 'Campground', contact_name: '', contact_number: '', 
@@ -117,7 +142,17 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: colors.background, color: colors.textDark, fontFamily: fonts.body, overflow: 'hidden' }}>
-      <style>{`::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-track { background: ${colors.background}; } ::-webkit-scrollbar-thumb { background: ${colors.highlight}; border-radius: 4px; }`}</style>
+      <style>{`
+        ::-webkit-scrollbar { width: 8px; } 
+        ::-webkit-scrollbar-track { background: ${colors.background}; } 
+        ::-webkit-scrollbar-thumb { background: ${colors.highlight}; border-radius: 4px; }
+        
+        /* Quill Auto-Expand Fix */
+        .quill { display: flex; flexDirection: column; }
+        .ql-container.ql-snow { height: auto !important; min-height: 180px; max-height: none !important; border-bottom-left-radius: 6px; border-bottom-right-radius: 6px; }
+        .ql-toolbar.ql-snow { border-top-left-radius: 6px; border-top-right-radius: 6px; }
+        .ql-editor { height: auto !important; min-height: 180px; max-height: none !important; overflow-y: visible !important; white-space: pre-wrap; }
+      `}</style>
 
       {/* TOP HEADER */}
       <div style={{ backgroundColor: colors.sidebar, padding: '15px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `2px solid ${colors.highlight}`, zIndex: 10 }}>
@@ -226,12 +261,12 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
 
                   {isEditingAnnouncement ? (
                     <div>
-                      <div style={{ backgroundColor: isDarkMode ? '#111' : '#FFF', color: colors.textDark, marginBottom: '15px' }}>
-                        <ReactQuill theme="snow" value={tempAnnouncement} onChange={setTempAnnouncement} style={{ height: '180px', marginBottom: '40px' }} />
+                      <div style={{ backgroundColor: isDarkMode ? '#111' : '#FFF', color: colors.textDark, marginBottom: '20px' }}>
+                        <ReactQuill theme="snow" value={tempAnnouncement} onChange={setTempAnnouncement} />
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
                         <button onClick={() => setIsEditingAnnouncement(false)} style={{ padding: '6px 14px', background: 'transparent', border: `1px solid ${colors.muted}`, borderRadius: '4px', cursor: 'pointer', color: colors.textDark, fontFamily: fonts.utility, fontSize: '12px' }}>Cancel</button>
-                        <button onClick={() => { setAdminAnnouncement(tempAnnouncement); setIsEditingAnnouncement(false); }} style={{ padding: '6px 14px', backgroundColor: colors.primary, color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontFamily: fonts.utility, fontSize: '12px', fontWeight: 'bold' }}><Save size={14} /> Save</button>
+                        <button onClick={saveAnnouncement} style={{ padding: '6px 14px', backgroundColor: colors.primary, color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontFamily: fonts.utility, fontSize: '12px', fontWeight: 'bold' }}><Save size={14} /> Save</button>
                       </div>
                     </div>
                   ) : (
