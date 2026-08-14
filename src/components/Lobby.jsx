@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
-import { Tent, Users, CheckSquare, MessageSquare, LogOut, Search, MapPin, ClipboardList, ThumbsUp, MessageCircle, BarChart2, Edit2, Plus, LayoutDashboard, Menu, X, Settings, Trash2, AlertTriangle, Moon, Sun, Lock, ShieldAlert, Database, Megaphone, Save } from 'lucide-react'
+import { Tent, Users, CheckSquare, MessageSquare, LogOut, Search, MapPin, ClipboardList, ThumbsUp, MessageCircle, BarChart2, Edit2, Plus, LayoutDashboard, Menu, X, Settings, Trash2, AlertTriangle, Moon, Sun, Lock, ShieldAlert, Database, Megaphone, Save, ChevronUp, ChevronDown } from 'lucide-react'
 import StaffManager from './StaffManager'
 import CustomerDatabase from './CustomerDatabase'
 import SettingsTab from './SettingsTab'
@@ -26,6 +26,8 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
   const [adminAnnouncement, setAdminAnnouncement] = useState('<h3>Welcome to the Project Trailhead Admin Console</h3><p>Thanks for agreeing to be our test pilots for this phase. Your feedback is what will iron out the bugs before we open this up to a larger public test group.</p>')
   const [isEditingAnnouncement, setIsEditingAnnouncement] = useState(false)
   const [tempAnnouncement, setTempAnnouncement] = useState('')
+  const [isAnnouncementCollapsed, setIsAnnouncementCollapsed] = useState(false)
+  const [hasBeenUpdated, setHasBeenUpdated] = useState(false)
 
   useEffect(() => {
     fetchAnnouncement()
@@ -46,6 +48,7 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
   async function saveAnnouncement() {
     setAdminAnnouncement(tempAnnouncement)
     setIsEditingAnnouncement(false)
+    setHasBeenUpdated(true)
 
     await supabase
       .from('global_settings')
@@ -147,11 +150,19 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
         ::-webkit-scrollbar-track { background: ${colors.background}; } 
         ::-webkit-scrollbar-thumb { background: ${colors.highlight}; border-radius: 4px; }
         
-        /* Quill Auto-Expand Fix */
-        .quill { display: flex; flexDirection: column; }
-        .ql-container.ql-snow { height: auto !important; min-height: 180px; max-height: none !important; border-bottom-left-radius: 6px; border-bottom-right-radius: 6px; }
-        .ql-toolbar.ql-snow { border-top-left-radius: 6px; border-top-right-radius: 6px; }
-        .ql-editor { height: auto !important; min-height: 180px; max-height: none !important; overflow-y: visible !important; white-space: pre-wrap; }
+        /* Locked Scrollable Height for Announcements */
+        .announcement-scroll-box {
+          max-height: 120px;
+          overflow-y: auto;
+        }
+        .quill .ql-container.ql-snow {
+          height: 120px !important;
+          overflow-y: auto !important;
+        }
+        .quill .ql-editor {
+          height: 120px !important;
+          overflow-y: auto !important;
+        }
       `}</style>
 
       {/* TOP HEADER */}
@@ -244,35 +255,54 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
 
                 {/* Admin Announcements Section */}
                 <div style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '8px', border: `1px solid ${colors.border}`, gridColumn: '1 / -1' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${colors.border}`, paddingBottom: '10px', marginBottom: '15px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${colors.border}`, paddingBottom: '10px', marginBottom: isAnnouncementCollapsed ? '0' : '15px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: colors.primary }}>
                       <Megaphone size={20} />
-                      <h3 style={{ margin: 0, fontFamily: fonts.header, fontSize: '20px', color: colors.textDark, letterSpacing: '0.5px' }}>ADMIN ANNOUNCEMENTS</h3>
+                      <h3 style={{ margin: 0, fontFamily: fonts.header, fontSize: '20px', color: colors.textDark, letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        ADMIN ANNOUNCEMENTS
+                        {hasBeenUpdated && (
+                          <span style={{ backgroundColor: colors.primary, color: '#FFF', fontSize: '10px', fontFamily: fonts.utility, padding: '2px 6px', borderRadius: '4px', letterSpacing: '1px', textTransform: 'uppercase' }}>
+                            UPDATED
+                          </span>
+                        )}
+                      </h3>
                     </div>
-                    {!isEditingAnnouncement && (
+                    
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                      {!isEditingAnnouncement && !isAnnouncementCollapsed && (
+                        <button 
+                          onClick={() => { setTempAnnouncement(adminAnnouncement); setIsEditingAnnouncement(true); }} 
+                          style={{ background: 'none', border: 'none', color: colors.primary, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px', fontWeight: 'bold' }}
+                        >
+                          <Edit2 size={14} /> Edit
+                        </button>
+                      )}
                       <button 
-                        onClick={() => { setTempAnnouncement(adminAnnouncement); setIsEditingAnnouncement(true); }} 
-                        style={{ background: 'none', border: 'none', color: colors.primary, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px', fontWeight: 'bold' }}
+                        onClick={() => setIsAnnouncementCollapsed(!isAnnouncementCollapsed)} 
+                        style={{ background: 'none', border: 'none', color: colors.muted, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px', fontFamily: fonts.utility }}
+                        title={isAnnouncementCollapsed ? "Expand Section" : "Collapse Section"}
                       >
-                        <Edit2 size={14} /> Edit
+                        {isAnnouncementCollapsed ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
                       </button>
-                    )}
+                    </div>
                   </div>
 
-                  {isEditingAnnouncement ? (
-                    <div>
-                      <div style={{ backgroundColor: isDarkMode ? '#111' : '#FFF', color: colors.textDark, marginBottom: '20px' }}>
-                        <ReactQuill theme="snow" value={tempAnnouncement} onChange={setTempAnnouncement} />
+                  {!isAnnouncementCollapsed && (
+                    isEditingAnnouncement ? (
+                      <div>
+                        <div style={{ backgroundColor: isDarkMode ? '#111' : '#FFF', color: colors.textDark, marginBottom: '20px' }}>
+                          <ReactQuill theme="snow" value={tempAnnouncement} onChange={setTempAnnouncement} />
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                          <button onClick={() => setIsEditingAnnouncement(false)} style={{ padding: '6px 14px', background: 'transparent', border: `1px solid ${colors.muted}`, borderRadius: '4px', cursor: 'pointer', color: colors.textDark, fontFamily: fonts.utility, fontSize: '12px' }}>Cancel</button>
+                          <button onClick={saveAnnouncement} style={{ padding: '6px 14px', backgroundColor: colors.primary, color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontFamily: fonts.utility, fontSize: '12px', fontWeight: 'bold' }}><Save size={14} /> Save</button>
+                        </div>
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                        <button onClick={() => setIsEditingAnnouncement(false)} style={{ padding: '6px 14px', background: 'transparent', border: `1px solid ${colors.muted}`, borderRadius: '4px', cursor: 'pointer', color: colors.textDark, fontFamily: fonts.utility, fontSize: '12px' }}>Cancel</button>
-                        <button onClick={saveAnnouncement} style={{ padding: '6px 14px', backgroundColor: colors.primary, color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontFamily: fonts.utility, fontSize: '12px', fontWeight: 'bold' }}><Save size={14} /> Save</button>
+                    ) : (
+                      <div className="ql-snow" style={{ textAlign: 'left' }}>
+                        <div className="ql-editor announcement-scroll-box" style={{ padding: 0, color: colors.textDark, lineHeight: '1.6' }} dangerouslySetInnerHTML={{ __html: adminAnnouncement }} />
                       </div>
-                    </div>
-                  ) : (
-                    <div className="ql-snow" style={{ textAlign: 'left' }}>
-                      <div className="ql-editor" style={{ padding: 0, color: colors.textDark, lineHeight: '1.6' }} dangerouslySetInnerHTML={{ __html: adminAnnouncement }} />
-                    </div>
+                    )
                   )}
                 </div>
 
