@@ -68,9 +68,21 @@ export default function App() {
   const [isMoreOpen, setIsMoreOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 
-  // Theme state controls
-  const [themeKey, setThemeKey] = useState('forest')
-  const [isDarkMode, setIsDarkMode] = useState(true)
+  // Theme state controls with localStorage persistence
+  const [themeKey, setThemeKey] = useState(() => {
+    return localStorage.getItem('trailhead_theme_key') || 'forest'
+  })
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    return localStorage.getItem('trailhead_is_dark') !== null ? localStorage.getItem('trailhead_is_dark') === 'true' : true
+  })
+
+  useEffect(() => {
+    localStorage.setItem('trailhead_theme_key', themeKey)
+  }, [themeKey])
+
+  useEffect(() => {
+    localStorage.setItem('trailhead_is_dark', isDarkMode)
+  }, [isDarkMode])
 
   // Active theme colors resolution
   const activeThemePalette = THEMES[themeKey] || THEMES.forest
@@ -98,7 +110,7 @@ export default function App() {
     return () => subscription.unsubscribe()
   }, [])
 
-  // 2. Fetch Profile and Camp Data securely (with URL campId query parameter support)
+  // 2. Fetch Profile and Camp Data securely
   useEffect(() => {
     if (session) {
       fetchUserData()
@@ -116,7 +128,6 @@ export default function App() {
       if (profileError) throw profileError
       setProfile(profileData)
 
-      // Check URL parameters for a specific campId to load in a separate tab
       const params = new URLSearchParams(window.location.search)
       const urlCampId = params.get('campId')
 
