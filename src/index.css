@@ -109,3 +109,26 @@ code {
   padding: 4px 8px;
   background: var(--code-bg);
 }
+/* Force React Quill container and editor to expand dynamically */
+.quill {
+  background-color: inherit;
+}
+
+.ql-container.ql-snow {
+  height: auto !important;
+  min-height: 150px;
+  border-bottom-left-radius: 6px;
+  border-bottom-right-radius: 6px;
+}
+
+.ql-toolbar.ql-snow {
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+}
+
+.ql-editor {
+  min-height: 150px;
+  max-height: none !important;
+  overflow-y: visible !important;
+  white-space: pre-wrap;
+}
