@@ -68,21 +68,32 @@ export default function App() {
   const [isMoreOpen, setIsMoreOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 
-  // Theme state controls with localStorage persistence
-  const [themeKey, setThemeKey] = useState(() => {
-    return localStorage.getItem('trailhead_theme_key') || 'forest'
-  })
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    return localStorage.getItem('trailhead_is_dark') !== null ? localStorage.getItem('trailhead_is_dark') === 'true' : true
-  })
+  // Theme state controls
+  const [themeKey, setThemeKey] = useState('forest')
+  const [isDarkMode, setIsDarkMode] = useState(true)
 
-  useEffect(() => {
-    localStorage.setItem('trailhead_theme_key', themeKey)
-  }, [themeKey])
+  // Function to change theme and save to database profile
+  async function handleThemeChange(newKey) {
+    setThemeKey(newKey)
+    if (session?.user?.id) {
+      await supabase
+        .from('profiles')
+        .update({ theme_key: newKey })
+        .eq('id', session.user.id)
+    }
+  }
 
-  useEffect(() => {
-    localStorage.setItem('trailhead_is_dark', isDarkMode)
-  }, [isDarkMode])
+  // Function to toggle dark mode and save to database profile
+  async function handleDarkModeToggle() {
+    const nextMode = !isDarkMode
+    setIsDarkMode(nextMode)
+    if (session?.user?.id) {
+      await supabase
+        .from('profiles')
+        .update({ is_dark_mode: nextMode })
+        .eq('id', session.user.id)
+    }
+  }
 
   // Active theme colors resolution
   const activeThemePalette = THEMES[themeKey] || THEMES.forest
@@ -127,6 +138,14 @@ export default function App() {
 
       if (profileError) throw profileError
       setProfile(profileData)
+
+      // Apply theme preferences saved in profile if available
+      if (profileData?.theme_key) {
+        setThemeKey(profileData.theme_key)
+      }
+      if (profileData?.is_dark_mode !== undefined && profileData?.is_dark_mode !== null) {
+        setIsDarkMode(profileData.is_dark_mode)
+      }
 
       const params = new URLSearchParams(window.location.search)
       const urlCampId = params.get('campId')
@@ -178,9 +197,9 @@ export default function App() {
         colors={colors} 
         fonts={fonts} 
         isDarkMode={isDarkMode} 
-        setIsDarkMode={setIsDarkMode} 
+        setIsDarkMode={handleDarkModeToggle} 
         themeKey={themeKey} 
-        setThemeKey={setThemeKey} 
+        setThemeKey={handleThemeChange} 
       />
     )
   }
@@ -215,7 +234,7 @@ export default function App() {
             <Palette size={16} color={colors.muted} />
             <select 
               value={themeKey} 
-              onChange={(e) => setThemeKey(e.target.value)}
+              onChange={(e) => handleThemeChange(e.target.value)}
               style={{ padding: '6px 10px', borderRadius: '6px', border: `1px solid ${colors.highlight}`, backgroundColor: colors.background, color: colors.textLight, fontSize: '13px', cursor: 'pointer', outline: 'none' }}
             >
               {Object.entries(THEMES).map(([key, t]) => (
@@ -226,7 +245,7 @@ export default function App() {
 
           {/* Light/Dark Mode Toggle */}
           <button 
-            onClick={() => setIsDarkMode(!isDarkMode)} 
+            onClick={handleDarkModeToggle} 
             style={{ padding: '6px', borderRadius: '6px', border: `1px solid ${colors.highlight}`, backgroundColor: 'transparent', color: colors.textLight, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             title="Toggle Dark/Light Mode"
           >
@@ -254,7 +273,7 @@ export default function App() {
         {activeTab === 'admin' && <AdminTab profile={profile} campData={campData} colors={colors} fonts={fonts} />}
         {activeTab === 'staff-manager' && <StaffManager supabase={supabase} selectedPropertyName={campData?.name || 'Whispering Pines Youth Camp'} colors={colors} fonts={fonts} isDarkMode={isDarkMode} />}
         {activeTab === 'customer-db' && <CustomerDatabase colors={colors} fonts={fonts} isDarkMode={isDarkMode} />}
-        {activeTab === 'settings' && <SettingsTab colors={colors} fonts={fonts} isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} themeKey={themeKey} setThemeKey={setThemeKey} selectedPropertyName={campData?.name || 'Trailhead Admin Console'} />}
+        {activeTab === 'settings' && <SettingsTab colors={colors} fonts={fonts} isDarkMode={isDarkMode} setIsDarkMode={handleDarkModeToggle} themeKey={themeKey} setThemeKey={handleThemeChange} selectedPropertyName={campData?.name || 'Trailhead Admin Console'} />}
         {activeTab === 'challenges' && <ChallengesTab activeCamp={campData} colors={colors} fonts={fonts} />}
         {activeTab === 'requests' && <RequestsTab activeCamp={campData} colors={colors} fonts={fonts} />}
         
