@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
-import { Tent, Users, CheckSquare, MessageSquare, LogOut, Search, MapPin, ClipboardList, ThumbsUp, MessageCircle, BarChart2, Edit2, Plus, LayoutDashboard, Menu, X, Settings, Trash2, AlertTriangle, Moon, Sun, Lock, ShieldAlert, Database } from 'lucide-react'
+import { Tent, Users, CheckSquare, MessageSquare, LogOut, Search, MapPin, ClipboardList, ThumbsUp, MessageCircle, BarChart2, Edit2, Plus, LayoutDashboard, Menu, X, Settings, Trash2, AlertTriangle, Moon, Sun, Lock, ShieldAlert, Database, Megaphone, Save } from 'lucide-react'
 import StaffManager from './StaffManager'
 import CustomerDatabase from './CustomerDatabase'
 import SettingsTab from './SettingsTab'
+import ReactQuill from 'react-quill-new'
+import 'react-quill-new/dist/quill.snow.css'
 
 export default function Lobby({ profile, setCampData, setActiveTab, colors, fonts, isDarkMode, setIsDarkMode, themeKey, setThemeKey }) {
   const [lobbyTab, setLobbyTab] = useState('dashboard')
@@ -19,6 +21,11 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
   const [isEditingCamp, setIsEditingCamp] = useState(false)
   const [isDeletingCamp, setIsDeletingCamp] = useState(false)
   const [deletePassword, setDeletePassword] = useState('')
+
+  // Admin Announcements State
+  const [adminAnnouncement, setAdminAnnouncement] = useState('<h3>Welcome to the Trailhead Admin Console</h3><p>Use this space to post global updates, maintenance schedules, or urgent notices for your administrative team.</p>')
+  const [isEditingAnnouncement, setIsEditingAnnouncement] = useState(false)
+  const [tempAnnouncement, setTempAnnouncement] = useState('')
 
   const defaultCampForm = {
     name: '', type: 'Campground', contact_name: '', contact_number: '', 
@@ -198,6 +205,40 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
                     <h3 style={{ margin: 0, fontFamily: fonts.header, fontSize: '20px', color: '#ef4444' }}>SYSTEM ALERTS</h3>
                   </div>
                   <p style={{ color: colors.textDark, margin: 0, fontSize: '14px' }}>All deployment nodes operating nominally. Database sync complete.</p>
+                </div>
+
+                {/* Admin Announcements Section */}
+                <div style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '8px', border: `1px solid ${colors.border}`, gridColumn: '1 / -1' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${colors.border}`, paddingBottom: '10px', marginBottom: '15px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: colors.primary }}>
+                      <Megaphone size={20} />
+                      <h3 style={{ margin: 0, fontFamily: fonts.header, fontSize: '20px', color: colors.textDark, letterSpacing: '0.5px' }}>ADMIN ANNOUNCEMENTS</h3>
+                    </div>
+                    {!isEditingAnnouncement && (
+                      <button 
+                        onClick={() => { setTempAnnouncement(adminAnnouncement); setIsEditingAnnouncement(true); }} 
+                        style={{ background: 'none', border: 'none', color: colors.primary, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px', fontWeight: 'bold' }}
+                      >
+                        <Edit2 size={14} /> Edit
+                      </button>
+                    )}
+                  </div>
+
+                  {isEditingAnnouncement ? (
+                    <div>
+                      <div style={{ backgroundColor: isDarkMode ? '#111' : '#FFF', color: colors.textDark, marginBottom: '15px' }}>
+                        <ReactQuill theme="snow" value={tempAnnouncement} onChange={setTempAnnouncement} style={{ height: '180px', marginBottom: '40px' }} />
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                        <button onClick={() => setIsEditingAnnouncement(false)} style={{ padding: '6px 14px', background: 'transparent', border: `1px solid ${colors.muted}`, borderRadius: '4px', cursor: 'pointer', color: colors.textDark, fontFamily: fonts.utility, fontSize: '12px' }}>Cancel</button>
+                        <button onClick={() => { setAdminAnnouncement(tempAnnouncement); setIsEditingAnnouncement(false); }} style={{ padding: '6px 14px', backgroundColor: colors.primary, color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontFamily: fonts.utility, fontSize: '12px', fontWeight: 'bold' }}><Save size={14} /> Save</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="ql-snow" style={{ textAlign: 'left' }}>
+                      <div className="ql-editor" style={{ padding: 0, color: colors.textDark, lineHeight: '1.6' }} dangerouslySetInnerHTML={{ __html: adminAnnouncement }} />
+                    </div>
+                  )}
                 </div>
 
                 {/* Properties Widget */}
