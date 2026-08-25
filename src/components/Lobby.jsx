@@ -150,18 +150,19 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
         ::-webkit-scrollbar-track { background: ${colors.background}; } 
         ::-webkit-scrollbar-thumb { background: ${colors.highlight}; border-radius: 4px; }
         
-        /* High Specificity Typography Fixes for React Quill - Targeting all child tags */
+        /* High Specificity Typography Fixes for React Quill */
         .ql-snow .ql-editor.announcement-scroll-box,
         .ql-snow .ql-editor.announcement-scroll-box * {
           word-break: normal !important;
-          word-wrap: break-word !important;
           overflow-wrap: break-word !important;
           white-space: pre-wrap !important;
-          hyphens: none !important;
+          box-sizing: border-box !important;
         }
 
         .ql-snow .ql-editor.announcement-scroll-box {
           padding: 20px !important;
+          width: 100% !important;
+          max-width: 100% !important;
           overflow-x: hidden !important;
         }
         
@@ -296,7 +297,7 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
                 
                 {/* System Alerts */}
-                <div style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '8px', border: '2px solid #ef4444', gridColumn: '1 / -1', textAlign: 'center' }}>
+                <div style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '8px', border: '2px solid #ef4444', gridColumn: '1 / -1', textAlign: 'center', minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', color: '#ef4444', marginBottom: '10px' }}>
                     <ShieldAlert size={24} />
                     <h3 style={{ margin: 0, fontFamily: fonts.header, fontSize: '20px', color: '#ef4444' }}>SYSTEM ALERTS</h3>
@@ -305,7 +306,7 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
                 </div>
 
                 {/* Admin Announcements Section */}
-                <div style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '8px', border: `1px solid ${colors.border}`, gridColumn: '1 / -1' }}>
+                <div style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '8px', border: `1px solid ${colors.border}`, gridColumn: '1 / -1', minWidth: 0 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${colors.border}`, paddingBottom: '10px', marginBottom: isAnnouncementCollapsed ? '0' : '15px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: colors.primary }}>
                       <Megaphone size={20} />
