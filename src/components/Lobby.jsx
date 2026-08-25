@@ -22,23 +22,11 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
   const [isDeletingCamp, setIsDeletingCamp] = useState(false)
   const [deletePassword, setDeletePassword] = useState('')
 
-  // Admin Announcements State loaded from Database
-  const [adminAnnouncement, setAdminAnnouncement] = useState('<h3>Welcome to the Admin Console</h3><p>Thanks for agreeing to be our test pilots for this phase. Your feedback is what will iron out the bugs before we open this up to a larger public test group.</p>')
+  const [adminAnnouncement, setAdminAnnouncement] = useState('<h3>Welcome to the Project Trailhead Admin Console</h3><p>Thanks for agreeing to be our test pilots for this phase. Your feedback is what will iron out the bugs before we open this up to a larger public test group.</p>')
   const [isEditingAnnouncement, setIsEditingAnnouncement] = useState(false)
   const [tempAnnouncement, setTempAnnouncement] = useState('')
   const [isAnnouncementCollapsed, setIsAnnouncementCollapsed] = useState(false)
   const [hasBeenUpdated, setHasBeenUpdated] = useState(false)
-
-  // ReactQuill Toolbar Configuration
-  const quillModules = {
-    toolbar: [
-      [{ 'header': [1, 2, 3, false] }],
-      ['bold', 'italic', 'underline', 'strike'],
-      [{ 'color': [] }, { 'background': [] }],
-      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-      ['link', 'clean']
-    ]
-  };
 
   useEffect(() => {
     fetchAnnouncement()
@@ -156,6 +144,58 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: colors.background, color: colors.textDark, fontFamily: fonts.body, overflow: 'hidden' }}>
+      <style>{`
+        ::-webkit-scrollbar { width: 8px; } 
+        ::-webkit-scrollbar-track { background: ${colors.background}; } 
+        ::-webkit-scrollbar-thumb { background: ${colors.highlight}; border-radius: 4px; }
+        
+        /* Locked Scrollable Height & Typography Fixes for Announcements */
+        .announcement-scroll-box {
+          max-height: 250px;
+          overflow-y: auto;
+          padding-right: 15px !important;
+          word-break: normal !important;
+          overflow-wrap: break-word !important;
+          white-space: normal !important;
+        }
+        
+        .announcement-scroll-box p {
+          margin-bottom: 12px;
+        }
+        
+        .announcement-scroll-box h1, 
+        .announcement-scroll-box h2, 
+        .announcement-scroll-box h3 {
+          margin-top: 15px;
+          margin-bottom: 10px;
+          color: ${colors.primary};
+        }
+        
+        .announcement-scroll-box ul, 
+        .announcement-scroll-box ol {
+          padding-left: 20px;
+          margin-bottom: 12px;
+        }
+        
+        .announcement-scroll-box li {
+          margin-bottom: 6px;
+        }
+
+        .quill .ql-container.ql-snow {
+          height: 150px !important;
+          overflow-y: auto !important;
+          border-bottom-left-radius: 6px;
+          border-bottom-right-radius: 6px;
+        }
+        .quill .ql-toolbar.ql-snow {
+          border-top-left-radius: 6px;
+          border-top-right-radius: 6px;
+        }
+        .quill .ql-editor {
+          height: 150px !important;
+          overflow-y: auto !important;
+        }
+      `}</style>
 
       {/* TOP HEADER */}
       <div style={{ backgroundColor: colors.sidebar, padding: '15px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `2px solid ${colors.highlight}`, zIndex: 10 }}>
@@ -166,7 +206,7 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
         >
           <Tent size={36} color={colors.primary} />
           <h1 style={{ margin: 0, fontSize: '28px', fontFamily: fonts.header, color: colors.primary, letterSpacing: '2px', lineHeight: 1 }}>
-            ADMIN CONSOLE
+            TRAILHEAD ADMIN CONSOLE
           </h1>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
@@ -216,7 +256,7 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
             </div>
             <p style={{ color: colors.textDark, fontSize: '15px', marginBottom: '20px', lineHeight: 1.5 }}>Are you absolutely sure you want to delete <strong>{selectedCamp?.name}</strong>? This action cannot be undone and will erase all associated data.</p>
             <label style={{ display: 'block', color: colors.textDark, fontWeight: 'bold', marginBottom: '8px', fontSize: '13px' }}>ENTER PASSWORD TO CONFIRM:</label>
-            <input type="password" value={deletePassword} onChange={(e) => setDeletePassword(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', padding: '12px', borderRadius: '4px', border: `1px solid ${colors.error}`, backgroundColor: '#FFFFFF', color: '#000000', fontFamily: fonts.body, marginBottom: '25px' }} />
+            <input type="password" value={deletePassword} onChange={(e) => setDeletePassword(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', padding: '12px', borderRadius: '4px', border: `1px solid ${colors.error}`, backgroundColor: isDarkMode ? '#111' : '#fff', color: colors.textDark, fontFamily: fonts.body, marginBottom: '25px' }} />
             <div style={{ display: 'flex', gap: '10px' }}>
               <button onClick={() => { setIsDeletingCamp(false); setDeletePassword(''); }} style={{ flex: 1, backgroundColor: 'transparent', color: colors.textDark, border: `1px solid ${colors.muted}`, padding: '12px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.header, fontSize: '16px' }}>CANCEL</button>
               <button onClick={handleDeleteCamp} disabled={!deletePassword} style={{ flex: 1, backgroundColor: colors.error, color: 'white', border: 'none', padding: '12px', borderRadius: '4px', cursor: deletePassword ? 'pointer' : 'not-allowed', opacity: deletePassword ? 1 : 0.5, fontFamily: fonts.header, fontSize: '16px' }}>DELETE PROPERTY</button>
@@ -282,8 +322,8 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
                   {!isAnnouncementCollapsed && (
                     isEditingAnnouncement ? (
                       <div>
-                        <div style={{ backgroundColor: '#FFFFFF', color: '#000000', marginBottom: '20px', borderRadius: '4px', display: 'flex', flexDirection: 'column' }}>
-                          <ReactQuill theme="snow" value={tempAnnouncement} onChange={setTempAnnouncement} modules={quillModules} />
+                        <div style={{ backgroundColor: isDarkMode ? '#111' : '#FFF', color: colors.textDark, marginBottom: '20px' }}>
+                          <ReactQuill theme="snow" value={tempAnnouncement} onChange={setTempAnnouncement} />
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
                           <button onClick={() => setIsEditingAnnouncement(false)} style={{ padding: '6px 14px', background: 'transparent', border: `1px solid ${colors.muted}`, borderRadius: '4px', cursor: 'pointer', color: colors.textDark, fontFamily: fonts.utility, fontSize: '12px' }}>Cancel</button>
@@ -292,7 +332,7 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
                       </div>
                     ) : (
                       <div className="ql-snow" style={{ textAlign: 'left' }}>
-                        <div className="ql-editor" style={{ padding: 0, color: colors.textDark, lineHeight: '1.6' }} dangerouslySetInnerHTML={{ __html: adminAnnouncement }} />
+                        <div className="ql-editor announcement-scroll-box" style={{ padding: '10px 0', color: colors.textDark, lineHeight: '1.6' }} dangerouslySetInnerHTML={{ __html: adminAnnouncement }} />
                       </div>
                     )
                   )}
@@ -413,18 +453,18 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
                   </div>
                   
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginBottom: '20px' }}>
-                    <input type="text" placeholder="Property Name *" value={campForm.name} onChange={(e) => setCampForm({...campForm, name: e.target.value})} style={{ boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: '#FFFFFF', color: '#000000', fontFamily: fonts.body }} />
-                    <select value={campForm.type} onChange={(e) => setCampForm({...campForm, type: e.target.value})} style={{ padding: '10px', boxSizing: 'border-box', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: '#FFFFFF', color: '#000000', fontFamily: fonts.body }}>
+                    <input type="text" placeholder="Property Name *" value={campForm.name} onChange={(e) => setCampForm({...campForm, name: e.target.value})} style={{ boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: 'transparent', color: colors.textDark, fontFamily: fonts.body }} />
+                    <select value={campForm.type} onChange={(e) => setCampForm({...campForm, type: e.target.value})} style={{ padding: '10px', boxSizing: 'border-box', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: 'transparent', color: colors.textDark, fontFamily: fonts.body }}>
                       <option value="Campground">Campground</option>
                       <option value="Youth Camp">Youth Camp</option>
                       <option value="Standard Property">Standard Property</option>
                     </select>
-                    <input type="text" placeholder="Contact Name" value={campForm.contact_name} onChange={(e) => setCampForm({...campForm, contact_name: e.target.value})} style={{ boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: '#FFFFFF', color: '#000000', fontFamily: fonts.body }} />
-                    <input type="text" placeholder="Contact Number" value={campForm.contact_number} onChange={(e) => setCampForm({...campForm, contact_number: e.target.value})} style={{ boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: '#FFFFFF', color: '#000000', fontFamily: fonts.body }} />
-                    <input type="email" placeholder="Contact Email" value={campForm.contact_email} onChange={(e) => setCampForm({...campForm, contact_email: e.target.value})} style={{ boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: '#FFFFFF', color: '#000000', fontFamily: fonts.body }} />
-                    <input type="url" placeholder="Existing Website URL" value={campForm.website_url} onChange={(e) => setCampForm({...campForm, website_url: e.target.value})} style={{ boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: '#FFFFFF', color: '#000000', fontFamily: fonts.body }} />
-                    <input type="text" placeholder="Property Address" value={campForm.property_address} onChange={(e) => setCampForm({...campForm, property_address: e.target.value})} style={{ gridColumn: '1 / -1', boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: '#FFFFFF', color: '#000000', fontFamily: fonts.body }} />
-                    <input type="text" placeholder="Mailing Address" value={campForm.mailing_address} onChange={(e) => setCampForm({...campForm, mailing_address: e.target.value})} style={{ gridColumn: '1 / -1', boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: '#FFFFFF', color: '#000000', fontFamily: fonts.body }} />
+                    <input type="text" placeholder="Contact Name" value={campForm.contact_name} onChange={(e) => setCampForm({...campForm, contact_name: e.target.value})} style={{ boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: 'transparent', color: colors.textDark, fontFamily: fonts.body }} />
+                    <input type="text" placeholder="Contact Number" value={campForm.contact_number} onChange={(e) => setCampForm({...campForm, contact_number: e.target.value})} style={{ boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: 'transparent', color: colors.textDark, fontFamily: fonts.body }} />
+                    <input type="email" placeholder="Contact Email" value={campForm.contact_email} onChange={(e) => setCampForm({...campForm, contact_email: e.target.value})} style={{ boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: 'transparent', color: colors.textDark, fontFamily: fonts.body }} />
+                    <input type="url" placeholder="Existing Website URL" value={campForm.website_url} onChange={(e) => setCampForm({...campForm, website_url: e.target.value})} style={{ boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: 'transparent', color: colors.textDark, fontFamily: fonts.body }} />
+                    <input type="text" placeholder="Property Address" value={campForm.property_address} onChange={(e) => setCampForm({...campForm, property_address: e.target.value})} style={{ gridColumn: '1 / -1', boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: 'transparent', color: colors.textDark, fontFamily: fonts.body }} />
+                    <input type="text" placeholder="Mailing Address" value={campForm.mailing_address} onChange={(e) => setCampForm({...campForm, mailing_address: e.target.value})} style={{ gridColumn: '1 / -1', boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: 'transparent', color: colors.textDark, fontFamily: fonts.body }} />
                     
                     {profile?.access_tier === 'global_superadmin' && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', gridColumn: '1 / -1', padding: '10px', backgroundColor: isDarkMode ? '#1A1A1A' : '#F8F8F8', borderRadius: '4px', border: `1px solid ${colors.muted}` }}>
@@ -442,7 +482,7 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
 
               <div style={{ position: 'relative', marginBottom: '20px' }}>
                 <Search size={18} color={colors.muted} style={{ position: 'absolute', left: '12px', top: '12px' }} />
-                <input type="text" placeholder="Search properties..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', padding: '10px 10px 10px 40px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: '#FFFFFF', color: '#000000', fontSize: '15px', outline: 'none', fontFamily: fonts.body }} />
+                <input type="text" placeholder="Search properties..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', padding: '10px 10px 10px 40px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: isDarkMode ? '#111' : 'white', color: colors.textDark, fontSize: '15px', outline: 'none', fontFamily: fonts.body }} />
               </div>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '500px', overflowY: 'auto' }}>
@@ -510,7 +550,7 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
               <p style={{ color: colors.muted, margin: '0 0 20px 0', fontSize: '14px' }}>Communicate with your team and track project updates.</p>
               <div style={{ marginBottom: '20px' }}>
                 <label style={{ display: 'block', color: colors.textDark, fontWeight: 'bold', marginBottom: '8px', fontSize: '14px' }}>Select Project or Campground:</label>
-                <select value={selectedProject} onChange={(e) => setSelectedProject(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', padding: '12px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: '#FFFFFF', color: '#000000', fontFamily: fonts.body }}>
+                <select value={selectedProject} onChange={(e) => setSelectedProject(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', padding: '12px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: isDarkMode ? '#111' : 'white', color: colors.textDark, fontFamily: fonts.body }}>
                   <option value="Camp Whispering Pines">Camp Whispering Pines</option>
                   <option value="Squirrel Hill Campground">Squirrel Hill Campground</option>
                   <option value="new_project">+ New Project</option>
@@ -519,7 +559,7 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
               {selectedProject === 'new_project' && (
                 <div style={{ marginBottom: '20px', padding: '20px', backgroundColor: 'rgba(193, 83, 27, 0.1)', borderLeft: `4px solid ${colors.primary}`, borderRadius: '0 4px 4px 0' }}>
                   <label style={{ display: 'block', color: colors.textDark, fontWeight: 'bold', marginBottom: '8px', fontSize: '14px' }}>Enter New Project Name:</label>
-                  <input type="text" value={newProjectName} onChange={handleProjectTextChange} placeholder="Project Name..." style={{ width: '100%', boxSizing: 'border-box', padding: '12px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: '#FFFFFF', color: '#000000', fontFamily: fonts.body }} />
+                  <input type="text" value={newProjectName} onChange={handleProjectTextChange} placeholder="Project Name..." style={{ width: '100%', boxSizing: 'border-box', padding: '12px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: 'transparent', color: colors.textDark, fontFamily: fonts.body }} />
                 </div>
               )}
               <div style={{ backgroundColor: isDarkMode ? '#111' : 'white', padding: '20px', borderRadius: '4px', border: `1px solid ${colors.muted}`, marginBottom: '15px' }}>
@@ -541,7 +581,7 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
             <div style={{ backgroundColor: colors.panel, padding: '30px', borderRadius: '8px', border: `2px solid ${colors.highlight}` }}>
               <h2 style={{ fontFamily: fonts.header, fontSize: '28px', color: colors.textDark, margin: '0 0 5px 0' }}>TESTER NOTES & FEEDBACK</h2>
               <p style={{ color: colors.muted, margin: '0 0 20px 0', fontSize: '14px' }}>Log system bugs, drop testing notes, and edit your previous feedback.</p>
-              <textarea placeholder="Enter your QA notes or system feedback here..." style={{ width: '100%', boxSizing: 'border-box', height: '120px', padding: '15px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: '#FFFFFF', color: '#000000', fontFamily: fonts.body, resize: 'vertical', marginBottom: '15px' }} />
+              <textarea placeholder="Enter your QA notes or system feedback here..." style={{ width: '100%', boxSizing: 'border-box', height: '120px', padding: '15px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: isDarkMode ? '#111' : 'white', color: colors.textDark, fontFamily: fonts.body, resize: 'vertical', marginBottom: '15px' }} />
               <button style={{ backgroundColor: colors.primary, color: '#FFF', border: 'none', padding: '12px 24px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.header, fontSize: '16px', marginBottom: '30px' }}>SUBMIT NOTE</button>
               <h3 style={{ fontFamily: fonts.header, fontSize: '20px', color: colors.textDark, margin: '0 0 15px 0', borderBottom: `2px solid ${colors.border}`, paddingBottom: '8px' }}>YOUR PREVIOUS NOTES</h3>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '20px', backgroundColor: isDarkMode ? '#111' : 'white', border: `1px solid ${colors.muted}`, borderRadius: '4px' }}>
