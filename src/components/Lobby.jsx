@@ -150,47 +150,48 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
         ::-webkit-scrollbar-track { background: ${colors.background}; } 
         ::-webkit-scrollbar-thumb { background: ${colors.highlight}; border-radius: 4px; }
         
-        /* Typography Fixes for Announcements */
-        .announcement-scroll-box {
-          padding-right: 15px !important;
+        /* High Specificity Typography Fixes for React Quill */
+        .ql-snow .ql-editor.announcement-scroll-box {
+          padding: 20px !important;
           word-break: normal !important;
+          word-wrap: normal !important;
           overflow-wrap: break-word !important;
-          white-space: normal !important;
+          white-space: pre-wrap !important;
         }
         
-        /* Forced Overrides Against React Quill Defaults */
-        .announcement-scroll-box.preview {
+        .ql-snow .ql-editor.announcement-scroll-box.preview {
           max-height: 180px !important;
           height: auto !important;
           overflow: hidden !important;
         }
         
-        .announcement-scroll-box.expanded {
+        .ql-snow .ql-editor.announcement-scroll-box.expanded {
           max-height: 500px !important;
           height: auto !important;
           overflow-y: auto !important;
         }
         
-        .announcement-scroll-box p {
-          margin-bottom: 12px;
+        .ql-snow .ql-editor.announcement-scroll-box p {
+          margin-bottom: 16px !important;
+          line-height: 1.6 !important;
         }
         
-        .announcement-scroll-box h1, 
-        .announcement-scroll-box h2, 
-        .announcement-scroll-box h3 {
-          margin-top: 15px;
-          margin-bottom: 10px;
-          color: ${colors.primary};
+        .ql-snow .ql-editor.announcement-scroll-box h1, 
+        .ql-snow .ql-editor.announcement-scroll-box h2, 
+        .ql-snow .ql-editor.announcement-scroll-box h3 {
+          margin-top: 20px !important;
+          margin-bottom: 12px !important;
+          color: ${colors.primary} !important;
         }
         
-        .announcement-scroll-box ul, 
-        .announcement-scroll-box ol {
-          padding-left: 20px;
-          margin-bottom: 12px;
+        .ql-snow .ql-editor.announcement-scroll-box ul, 
+        .ql-snow .ql-editor.announcement-scroll-box ol {
+          padding-left: 24px !important;
+          margin-bottom: 16px !important;
         }
         
-        .announcement-scroll-box li {
-          margin-bottom: 6px;
+        .ql-snow .ql-editor.announcement-scroll-box li {
+          margin-bottom: 8px !important;
         }
 
         .quill .ql-container.ql-snow {
@@ -346,7 +347,7 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
                       <div>
                         <div style={{ position: 'relative' }}>
                           <div className="ql-snow" style={{ textAlign: 'left' }}>
-                            <div className={`ql-editor announcement-scroll-box ${isAnnouncementExpanded ? 'expanded' : 'preview'}`} style={{ padding: '10px 0', color: colors.textDark, lineHeight: '1.6' }} dangerouslySetInnerHTML={{ __html: adminAnnouncement }} />
+                            <div className={`ql-editor announcement-scroll-box ${isAnnouncementExpanded ? 'expanded' : 'preview'}`} style={{ color: colors.textDark }} dangerouslySetInnerHTML={{ __html: adminAnnouncement }} />
                           </div>
                           {!isAnnouncementExpanded && (
                             <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '80px', background: `linear-gradient(transparent, ${colors.panel})`, pointerEvents: 'none' }} />
