@@ -158,14 +158,17 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
           white-space: normal !important;
         }
         
+        /* Forced Overrides Against React Quill Defaults */
         .announcement-scroll-box.preview {
-          max-height: 180px;
-          overflow: hidden;
+          max-height: 180px !important;
+          height: auto !important;
+          overflow: hidden !important;
         }
         
         .announcement-scroll-box.expanded {
-          max-height: 500px;
-          overflow-y: auto;
+          max-height: 500px !important;
+          height: auto !important;
+          overflow-y: auto !important;
         }
         
         .announcement-scroll-box p {
