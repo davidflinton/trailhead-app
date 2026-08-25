@@ -150,13 +150,18 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
         ::-webkit-scrollbar-track { background: ${colors.background}; } 
         ::-webkit-scrollbar-thumb { background: ${colors.highlight}; border-radius: 4px; }
         
-        /* High Specificity Typography Fixes for React Quill */
-        .ql-snow .ql-editor.announcement-scroll-box {
-          padding: 20px !important;
+        /* Nuclear Typography Fixes for React Quill - Targeting all child tags */
+        .ql-snow .ql-editor.announcement-scroll-box,
+        .ql-snow .ql-editor.announcement-scroll-box * {
           word-break: normal !important;
           word-wrap: normal !important;
-          overflow-wrap: break-word !important;
-          white-space: pre-wrap !important;
+          overflow-wrap: normal !important;
+          white-space: normal !important;
+          hyphens: none !important;
+        }
+
+        .ql-snow .ql-editor.announcement-scroll-box {
+          padding: 20px !important;
         }
         
         .ql-snow .ql-editor.announcement-scroll-box.preview {
