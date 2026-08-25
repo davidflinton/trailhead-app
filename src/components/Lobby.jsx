@@ -26,6 +26,7 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
   const [isEditingAnnouncement, setIsEditingAnnouncement] = useState(false)
   const [tempAnnouncement, setTempAnnouncement] = useState('')
   const [isAnnouncementCollapsed, setIsAnnouncementCollapsed] = useState(false)
+  const [isAnnouncementExpanded, setIsAnnouncementExpanded] = useState(false)
   const [hasBeenUpdated, setHasBeenUpdated] = useState(false)
 
   useEffect(() => {
@@ -149,14 +150,22 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
         ::-webkit-scrollbar-track { background: ${colors.background}; } 
         ::-webkit-scrollbar-thumb { background: ${colors.highlight}; border-radius: 4px; }
         
-        /* Locked Scrollable Height & Typography Fixes for Announcements */
+        /* Typography Fixes for Announcements */
         .announcement-scroll-box {
-          max-height: 250px;
-          overflow-y: auto;
           padding-right: 15px !important;
           word-break: normal !important;
           overflow-wrap: break-word !important;
           white-space: normal !important;
+        }
+        
+        .announcement-scroll-box.preview {
+          max-height: 180px;
+          overflow: hidden;
+        }
+        
+        .announcement-scroll-box.expanded {
+          max-height: 500px;
+          overflow-y: auto;
         }
         
         .announcement-scroll-box p {
@@ -303,7 +312,7 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
                     <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                       {!isEditingAnnouncement && !isAnnouncementCollapsed && (
                         <button 
-                          onClick={() => { setTempAnnouncement(adminAnnouncement); setIsEditingAnnouncement(true); }} 
+                          onClick={() => { setTempAnnouncement(adminAnnouncement); setIsEditingAnnouncement(true); setIsAnnouncementExpanded(true); }} 
                           style={{ background: 'none', border: 'none', color: colors.primary, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px', fontWeight: 'bold' }}
                         >
                           <Edit2 size={14} /> Edit
@@ -331,8 +340,23 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
                         </div>
                       </div>
                     ) : (
-                      <div className="ql-snow" style={{ textAlign: 'left' }}>
-                        <div className="ql-editor announcement-scroll-box" style={{ padding: '10px 0', color: colors.textDark, lineHeight: '1.6' }} dangerouslySetInnerHTML={{ __html: adminAnnouncement }} />
+                      <div>
+                        <div style={{ position: 'relative' }}>
+                          <div className="ql-snow" style={{ textAlign: 'left' }}>
+                            <div className={`ql-editor announcement-scroll-box ${isAnnouncementExpanded ? 'expanded' : 'preview'}`} style={{ padding: '10px 0', color: colors.textDark, lineHeight: '1.6' }} dangerouslySetInnerHTML={{ __html: adminAnnouncement }} />
+                          </div>
+                          {!isAnnouncementExpanded && (
+                            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '80px', background: `linear-gradient(transparent, ${colors.panel})`, pointerEvents: 'none' }} />
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '10px', paddingTop: '10px' }}>
+                          <button 
+                            onClick={() => setIsAnnouncementExpanded(!isAnnouncementExpanded)}
+                            style={{ background: colors.highlight, border: `1px solid ${colors.border}`, color: colors.textLight, cursor: 'pointer', fontFamily: fonts.utility, fontSize: '12px', fontWeight: 'bold', padding: '6px 16px', borderRadius: '4px', letterSpacing: '1px' }}
+                          >
+                            {isAnnouncementExpanded ? 'SHOW LESS' : 'READ MORE'}
+                          </button>
+                        </div>
                       </div>
                     )
                   )}
