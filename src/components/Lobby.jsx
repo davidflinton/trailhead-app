@@ -196,6 +196,9 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
 
         /* Editor Constraints */
         .quill .ql-container.ql-snow {
+          width: 100%;
+          max-width: 100%;
+          box-sizing: border-box;
           height: 150px !important;
           overflow-y: auto !important;
           border-bottom-left-radius: 6px;
@@ -206,8 +209,15 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
           border-top-right-radius: 6px;
         }
         .quill .ql-editor {
+          width: 100%;
+          min-width: 0;
+          box-sizing: border-box;
           height: 150px !important;
           overflow-y: auto !important;
+          white-space: pre-wrap !important;
+          word-break: normal !important;
+          overflow-wrap: normal !important;
+          hyphens: none;
         }
       `}</style>
 
