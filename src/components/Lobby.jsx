@@ -150,33 +150,30 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
         ::-webkit-scrollbar-track { background: ${colors.background}; } 
         ::-webkit-scrollbar-thumb { background: ${colors.highlight}; border-radius: 4px; }
         
-        /* High Specificity Typography Fixes for React Quill */
+        /* The definitive fix for React Quill typography */
         .ql-snow .ql-editor.announcement-scroll-box,
         .ql-snow .ql-editor.announcement-scroll-box * {
-          word-break: normal !important;
-          overflow-wrap: normal !important;
-          word-wrap: normal !important;
-          white-space: normal !important;
+          word-break: keep-all !important;
+          overflow-wrap: break-word !important;
+          white-space: pre-wrap !important;
           box-sizing: border-box !important;
         }
 
         .ql-snow .ql-editor.announcement-scroll-box {
           padding: 20px !important;
           width: 100% !important;
-          max-width: 100% !important;
           overflow-x: hidden !important;
+          overflow-y: scroll !important; /* Force scrollbar track to stay visible so width doesn't jump */
         }
         
         .ql-snow .ql-editor.announcement-scroll-box.preview {
           max-height: 180px !important;
           height: auto !important;
-          overflow-y: hidden !important;
         }
         
         .ql-snow .ql-editor.announcement-scroll-box.expanded {
           max-height: 500px !important;
           height: auto !important;
-          overflow-y: auto !important;
         }
         
         .ql-snow .ql-editor.announcement-scroll-box p {
