@@ -150,20 +150,24 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
         ::-webkit-scrollbar-track { background: ${colors.background}; } 
         ::-webkit-scrollbar-thumb { background: ${colors.highlight}; border-radius: 4px; }
         
-        /* The definitive fix for React Quill typography */
-        .ql-snow .ql-editor.announcement-scroll-box,
-        .ql-snow .ql-editor.announcement-scroll-box * {
-          word-break: keep-all !important;
+        /* The correct fix for text wrapping */
+        .ql-snow .ql-editor.announcement-scroll-box {
+          word-break: normal !important;
           overflow-wrap: break-word !important;
           white-space: pre-wrap !important;
           box-sizing: border-box !important;
-        }
-
-        .ql-snow .ql-editor.announcement-scroll-box {
           padding: 20px !important;
           width: 100% !important;
           overflow-x: hidden !important;
-          overflow-y: scroll !important; /* Force scrollbar track to stay visible so width doesn't jump */
+          overflow-y: scroll !important;
+        }
+
+        /* Ensure paragraphs and spans inside inherit the strict wrap rules */
+        .ql-snow .ql-editor.announcement-scroll-box p,
+        .ql-snow .ql-editor.announcement-scroll-box span {
+          word-break: normal !important;
+          overflow-wrap: break-word !important;
+          white-space: pre-wrap !important;
         }
         
         .ql-snow .ql-editor.announcement-scroll-box.preview {
