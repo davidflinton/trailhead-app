@@ -154,7 +154,8 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
           width: 100%;
           box-sizing: border-box;
           word-break: normal;
-          overflow-wrap: normal;
+          overflow-wrap: break-word;
+          white-space: normal;
           hyphens: none;
         }
         
