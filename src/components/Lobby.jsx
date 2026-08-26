@@ -151,6 +151,7 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
         ::-webkit-scrollbar-thumb { background: ${colors.highlight}; border-radius: 4px; }
         
         .trailhead-announcement-content {
+          display: block;
           width: 100%;
           max-width: 100%;
           min-width: 0;
@@ -159,15 +160,17 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
           word-wrap: normal;
           overflow-wrap: normal;
           white-space: normal;
+          text-wrap: wrap;
           hyphens: none;
         }
 
-        .trailhead-announcement-content > * {
+        .trailhead-announcement-content * {
           max-width: 100%;
-          word-break: normal;
-          word-wrap: normal;
-          overflow-wrap: normal;
-          white-space: normal;
+          word-break: normal !important;
+          word-wrap: normal !important;
+          overflow-wrap: normal !important;
+          white-space: normal !important;
+          text-wrap: wrap !important;
         }
         
         .trailhead-announcement-content.preview {
@@ -179,6 +182,8 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
           max-height: 500px;
           overflow-y: auto;
           overflow-x: hidden;
+          display: block;
+          width: 100%;
         }
         
         /* Clean typography for raw HTML */
@@ -227,8 +232,16 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
           overflow-y: auto !important;
           white-space: pre-wrap !important;
           word-break: normal !important;
-          word-wrap: normal !important;
-          overflow-wrap: normal !important;
+          word-wrap: break-word !important;
+          overflow-wrap: break-word !important;
+          hyphens: none;
+        }
+
+        .quill .ql-editor * {
+          word-break: normal !important;
+          word-wrap: break-word !important;
+          overflow-wrap: break-word !important;
+          white-space: inherit !important;
           hyphens: none;
         }
       `}</style>
