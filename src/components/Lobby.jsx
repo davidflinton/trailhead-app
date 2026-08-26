@@ -152,11 +152,22 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
         
         .trailhead-announcement-content {
           width: 100%;
+          max-width: 100%;
+          min-width: 0;
           box-sizing: border-box;
           word-break: normal;
+          word-wrap: normal;
           overflow-wrap: normal;
-          white-space: pre-wrap;
+          white-space: normal;
           hyphens: none;
+        }
+
+        .trailhead-announcement-content > * {
+          max-width: 100%;
+          word-break: normal;
+          word-wrap: normal;
+          overflow-wrap: normal;
+          white-space: normal;
         }
         
         .trailhead-announcement-content.preview {
@@ -216,6 +227,7 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
           overflow-y: auto !important;
           white-space: pre-wrap !important;
           word-break: normal !important;
+          word-wrap: normal !important;
           overflow-wrap: normal !important;
           hyphens: none;
         }
