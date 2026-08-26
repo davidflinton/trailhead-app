@@ -150,53 +150,59 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
         ::-webkit-scrollbar-track { background: ${colors.background}; } 
         ::-webkit-scrollbar-thumb { background: ${colors.highlight}; border-radius: 4px; }
         
-        .announcement-scroll-box {
-          padding: 20px !important;
+        /* Isolated custom class to perfectly constrain text output */
+        .trailhead-announcement-content {
           width: 100% !important;
-          overflow-x: hidden !important;
-          overflow-y: auto !important;
-        }
-
-        /* Absolute enforcement of standard text rendering */
-        .announcement-scroll-box,
-        .announcement-scroll-box * {
+          box-sizing: border-box !important;
+          overflow-wrap: break-word !important; /* Breaks giant URLs, keeps normal words safe */
           word-break: normal !important;
-          overflow-wrap: normal !important;
           white-space: normal !important;
         }
         
-        .announcement-scroll-box.preview {
+        /* Force child tags to inherit constraints so they do not bleed */
+        .trailhead-announcement-content * {
+          overflow-wrap: break-word !important;
+          word-break: normal !important;
+          white-space: normal !important;
+          max-width: 100% !important;
+        }
+        
+        .trailhead-announcement-content.preview {
           max-height: 180px !important;
           overflow: hidden !important;
         }
         
-        .announcement-scroll-box.expanded {
+        .trailhead-announcement-content.expanded {
           max-height: 500px !important;
+          overflow-y: auto !important;
+          overflow-x: hidden !important;
         }
         
-        .announcement-scroll-box p {
-          margin-bottom: 16px !important;
+        /* Typography spacing for raw HTML */
+        .trailhead-announcement-content p {
+          margin: 0 0 16px 0 !important;
           line-height: 1.6 !important;
         }
         
-        .announcement-scroll-box h1, 
-        .announcement-scroll-box h2, 
-        .announcement-scroll-box h3 {
-          margin-top: 20px !important;
-          margin-bottom: 12px !important;
+        .trailhead-announcement-content h1, 
+        .trailhead-announcement-content h2, 
+        .trailhead-announcement-content h3 {
+          margin: 20px 0 12px 0 !important;
           color: ${colors.primary} !important;
+          line-height: 1.3 !important;
         }
         
-        .announcement-scroll-box ul, 
-        .announcement-scroll-box ol {
+        .trailhead-announcement-content ul, 
+        .trailhead-announcement-content ol {
           padding-left: 24px !important;
-          margin-bottom: 16px !important;
+          margin: 0 0 16px 0 !important;
         }
         
-        .announcement-scroll-box li {
+        .trailhead-announcement-content li {
           margin-bottom: 8px !important;
         }
 
+        /* React Quill Input Editor Styles */
         .quill .ql-container.ql-snow {
           height: 150px !important;
           overflow-y: auto !important;
@@ -349,7 +355,7 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
                     ) : (
                       <div>
                         <div style={{ position: 'relative' }}>
-                          <div className={`announcement-scroll-box ${isAnnouncementExpanded ? 'expanded' : 'preview'}`} style={{ color: colors.textDark }} dangerouslySetInnerHTML={{ __html: adminAnnouncement }} />
+                          <div className={`trailhead-announcement-content ${isAnnouncementExpanded ? 'expanded' : 'preview'}`} style={{ color: colors.textDark }} dangerouslySetInnerHTML={{ __html: adminAnnouncement }} />
                           {!isAnnouncementExpanded && (
                             <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '80px', background: `linear-gradient(transparent, ${colors.panel})`, pointerEvents: 'none' }} />
                           )}
