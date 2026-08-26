@@ -150,59 +150,49 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
         ::-webkit-scrollbar-track { background: ${colors.background}; } 
         ::-webkit-scrollbar-thumb { background: ${colors.highlight}; border-radius: 4px; }
         
-        /* Isolated custom class to perfectly constrain text output */
         .trailhead-announcement-content {
-          width: 100% !important;
-          box-sizing: border-box !important;
-          overflow-wrap: break-word !important; /* Breaks giant URLs, keeps normal words safe */
-          word-break: normal !important;
-          white-space: normal !important;
-        }
-        
-        /* Force child tags to inherit constraints so they do not bleed */
-        .trailhead-announcement-content * {
-          overflow-wrap: break-word !important;
-          word-break: normal !important;
-          white-space: normal !important;
-          max-width: 100% !important;
+          width: 100%;
+          box-sizing: border-box;
+          word-break: normal;
+          overflow-wrap: break-word;
         }
         
         .trailhead-announcement-content.preview {
-          max-height: 180px !important;
-          overflow: hidden !important;
+          max-height: 180px;
+          overflow: hidden;
         }
         
         .trailhead-announcement-content.expanded {
-          max-height: 500px !important;
-          overflow-y: auto !important;
-          overflow-x: hidden !important;
+          max-height: 500px;
+          overflow-y: auto;
+          overflow-x: hidden;
         }
         
-        /* Typography spacing for raw HTML */
+        /* Clean typography for raw HTML */
         .trailhead-announcement-content p {
-          margin: 0 0 16px 0 !important;
-          line-height: 1.6 !important;
+          margin: 0 0 16px 0;
+          line-height: 1.6;
         }
         
         .trailhead-announcement-content h1, 
         .trailhead-announcement-content h2, 
         .trailhead-announcement-content h3 {
-          margin: 20px 0 12px 0 !important;
-          color: ${colors.primary} !important;
-          line-height: 1.3 !important;
+          margin: 20px 0 12px 0;
+          color: ${colors.primary};
+          line-height: 1.3;
         }
         
         .trailhead-announcement-content ul, 
         .trailhead-announcement-content ol {
-          padding-left: 24px !important;
-          margin: 0 0 16px 0 !important;
+          padding-left: 24px;
+          margin: 0 0 16px 0;
         }
         
         .trailhead-announcement-content li {
-          margin-bottom: 8px !important;
+          margin-bottom: 8px;
         }
 
-        /* React Quill Input Editor Styles */
+        /* Editor Constraints */
         .quill .ql-container.ql-snow {
           height: 150px !important;
           overflow-y: auto !important;
