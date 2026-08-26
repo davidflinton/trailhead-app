@@ -156,9 +156,9 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
           max-width: 100%;
           min-width: 0;
           box-sizing: border-box;
-          word-break: normal;
-          word-wrap: normal;
-          overflow-wrap: normal;
+          word-break: keep-all;
+          word-wrap: break-word;
+          overflow-wrap: break-word;
           white-space: normal;
           text-wrap: wrap;
           hyphens: none;
@@ -166,9 +166,10 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
 
         .trailhead-announcement-content * {
           max-width: 100%;
-          word-break: normal !important;
-          word-wrap: normal !important;
-          overflow-wrap: normal !important;
+          min-width: 0;
+          word-break: keep-all !important;
+          word-wrap: break-word !important;
+          overflow-wrap: break-word !important;
           white-space: normal !important;
           text-wrap: wrap !important;
         }
@@ -184,6 +185,24 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
           overflow-x: hidden;
           display: block;
           width: 100%;
+          min-width: 0;
+          word-break: keep-all !important;
+          word-wrap: break-word !important;
+          overflow-wrap: break-word !important;
+          white-space: normal !important;
+          text-wrap: wrap !important;
+        }
+
+        .trailhead-announcement-content.expanded > * {
+          display: block;
+          width: 100%;
+          max-width: 100%;
+          min-width: 0;
+          word-break: keep-all !important;
+          word-wrap: break-word !important;
+          overflow-wrap: break-word !important;
+          white-space: normal !important;
+          text-wrap: wrap !important;
         }
         
         /* Clean typography for raw HTML */
@@ -231,7 +250,7 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
           height: 150px !important;
           overflow-y: auto !important;
           white-space: pre-wrap !important;
-          word-break: normal !important;
+          word-break: keep-all !important;
           word-wrap: break-word !important;
           overflow-wrap: break-word !important;
           hyphens: none;
