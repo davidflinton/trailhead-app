@@ -154,8 +154,9 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
         .ql-snow .ql-editor.announcement-scroll-box,
         .ql-snow .ql-editor.announcement-scroll-box * {
           word-break: normal !important;
-          overflow-wrap: break-word !important;
-          white-space: pre-wrap !important;
+          overflow-wrap: normal !important;
+          word-wrap: normal !important;
+          white-space: normal !important;
           box-sizing: border-box !important;
         }
 
