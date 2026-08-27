@@ -7,6 +7,10 @@ import SettingsTab from './SettingsTab'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
 
+function normalizeAnnouncementHtml(html) {
+  return (html || '').replace(/(?:&nbsp;|&#160;|&#xA0;|\u00a0)/gi, ' ')
+}
+
 export default function Lobby({ profile, setCampData, setActiveTab, colors, fonts, isDarkMode, setIsDarkMode, themeKey, setThemeKey }) {
   const [lobbyTab, setLobbyTab] = useState('dashboard')
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -41,18 +45,19 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
       .single()
 
     if (data && data.value) {
-      setAdminAnnouncement(data.value)
+      setAdminAnnouncement(normalizeAnnouncementHtml(data.value))
     }
   }
 
   async function saveAnnouncement() {
-    setAdminAnnouncement(tempAnnouncement)
+    const normalizedAnnouncement = normalizeAnnouncementHtml(tempAnnouncement)
+    setAdminAnnouncement(normalizedAnnouncement)
     setIsEditingAnnouncement(false)
     setHasBeenUpdated(true)
 
     await supabase
       .from('global_settings')
-      .upsert({ key: 'admin_announcement', value: tempAnnouncement })
+      .upsert({ key: 'admin_announcement', value: normalizedAnnouncement })
   }
 
   const defaultCampForm = {
@@ -156,9 +161,9 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
           max-width: 100%;
           min-width: 0;
           box-sizing: border-box;
-          word-break: keep-all;
-          word-wrap: break-word;
-          overflow-wrap: break-word;
+          word-break: normal;
+          word-wrap: normal;
+          overflow-wrap: normal;
           white-space: normal;
           text-wrap: wrap;
           hyphens: none;
@@ -167,9 +172,9 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
         .trailhead-announcement-content * {
           max-width: 100%;
           min-width: 0;
-          word-break: keep-all !important;
-          word-wrap: break-word !important;
-          overflow-wrap: break-word !important;
+          word-break: normal !important;
+          word-wrap: normal !important;
+          overflow-wrap: normal !important;
           white-space: normal !important;
           text-wrap: wrap !important;
         }
@@ -186,9 +191,9 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
           display: block;
           width: 100%;
           min-width: 0;
-          word-break: keep-all !important;
-          word-wrap: break-word !important;
-          overflow-wrap: break-word !important;
+          word-break: normal !important;
+          word-wrap: normal !important;
+          overflow-wrap: normal !important;
           white-space: normal !important;
           text-wrap: wrap !important;
         }
@@ -198,9 +203,9 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
           width: 100%;
           max-width: 100%;
           min-width: 0;
-          word-break: keep-all !important;
-          word-wrap: break-word !important;
-          overflow-wrap: break-word !important;
+          word-break: normal !important;
+          word-wrap: normal !important;
+          overflow-wrap: normal !important;
           white-space: normal !important;
           text-wrap: wrap !important;
         }
@@ -250,16 +255,16 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
           height: 150px !important;
           overflow-y: auto !important;
           white-space: pre-wrap !important;
-          word-break: keep-all !important;
-          word-wrap: break-word !important;
-          overflow-wrap: break-word !important;
+          word-break: normal !important;
+          word-wrap: normal !important;
+          overflow-wrap: normal !important;
           hyphens: none;
         }
 
         .quill .ql-editor * {
           word-break: normal !important;
-          word-wrap: break-word !important;
-          overflow-wrap: break-word !important;
+          word-wrap: normal !important;
+          overflow-wrap: normal !important;
           white-space: inherit !important;
           hyphens: none;
         }
@@ -334,15 +339,15 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
       )}
 
       {/* MAIN CONTENT AREA */}
-      <div style={{ flexGrow: 1, padding: '30px 20px', overflowY: 'auto', boxSizing: 'border-box' }}>
-        <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+      <div style={{ flexGrow: 1, minWidth: 0, width: '100%', padding: '30px 20px', overflowY: 'auto', boxSizing: 'border-box' }}>
+        <div style={{ maxWidth: '1000px', width: '100%', minWidth: 0, margin: '0 auto' }}>
 
           {/* DASHBOARD TAB */}
           {lobbyTab === 'dashboard' && (
             <div>
               <h2 style={{ fontFamily: fonts.header, fontSize: '32px', color: colors.textDark, margin: '0 0 20px 0', letterSpacing: '1px' }}>SYSTEM DASHBOARD</h2>
               
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: '20px', minWidth: 0 }}>
                 
                 {/* System Alerts */}
                 <div style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '8px', border: '2px solid #ef4444', gridColumn: '1 / -1', textAlign: 'center', minWidth: 0 }}>
@@ -401,7 +406,7 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
                     ) : (
                       <div>
                         <div style={{ position: 'relative' }}>
-                          <div className={`trailhead-announcement-content ${isAnnouncementExpanded ? 'expanded' : 'preview'}`} style={{ color: colors.textDark }} dangerouslySetInnerHTML={{ __html: adminAnnouncement }} />
+                          <div className={`trailhead-announcement-content ${isAnnouncementExpanded ? 'expanded' : 'preview'}`} style={{ color: colors.textDark }} dangerouslySetInnerHTML={{ __html: normalizeAnnouncementHtml(adminAnnouncement) }} />
                           {!isAnnouncementExpanded && (
                             <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '80px', background: `linear-gradient(transparent, ${colors.panel})`, pointerEvents: 'none' }} />
                           )}
