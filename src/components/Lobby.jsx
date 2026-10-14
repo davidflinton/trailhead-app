@@ -310,4 +310,61 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
         </div>
 
         <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <SideNavButton 
+            icon={<LayoutDashboard size={20} />} 
+            label="Dashboard" 
+            active={lobbyTab === 'dashboard'} 
+            onClick={() => { setLobbyTab('dashboard'); setIsMenuOpen(false); }} 
+            colors={colors} 
+            fonts={fonts} 
+          />
+          <SideNavButton 
+            icon={<Tent size={20} />} 
+            label="Properties" 
+            active={lobbyTab === 'camps'} 
+            onClick={() => { setLobbyTab('camps'); setIsMenuOpen(false); }} 
+            colors={colors} 
+            fonts={fonts} 
+          />
+          <SideNavButton 
+            icon={<Users size={20} />} 
+            label="Staff Directory" 
+            active={lobbyTab === 'staff'} 
+            onClick={() => { setLobbyTab('staff'); setIsMenuOpen(false); }} 
+            colors={colors} 
+            fonts={fonts} 
+          />
+          <SideNavButton 
+            icon={<Database size={20} />} 
+            label="Customer Directory" 
+            active={lobbyTab === 'database'} 
+            onClick={() => { setLobbyTab('database'); setIsMenuOpen(false); }} 
+            colors={colors} 
+            fonts={fonts} 
+          />
+          <SideNavButton 
+            icon={<CheckSquare size={20} />} 
+            label="Approvals" 
+            active={lobbyTab === 'approvals'} 
+            onClick={() => { setLobbyTab('approvals'); setIsMenuOpen(false); }} 
+            colors={colors} 
+            fonts={fonts} 
+          />
+          <SideNavButton 
+            icon={<MessageSquare size={20} />} 
+            label="Town Hall" 
+            active={lobbyTab === 'townhall'} 
+            onClick={() => { setLobbyTab('townhall'); setIsMenuOpen(false); }} 
+            colors={colors} 
+            fonts={fonts} 
+          />
+          <SideNavButton 
+            icon={<Settings size={20} />} 
+            label="Settings" 
+            active={lobbyTab === 'settings'} 
+            onClick={() => { setLobbyTab('settings'); setIsMenuOpen(false); }} 
+            colors={colors} 
+            fonts={fonts} 
+          />
+        </div>
           <SideNavButton icon={<LayoutDashboard size
