@@ -13,6 +13,7 @@ function normalizeAnnouncementHtml(html) {
 
 export default function Lobby({ profile, setCampData, setActiveTab, colors, fonts, isDarkMode, setIsDarkMode, themeKey, setThemeKey }) {
   const [lobbyTab, setLobbyTab] = useState('dashboard')
+  const [townHallView, setTownHallView] = useState('discussions')
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   
   const [camps, setCamps] = useState([])
@@ -311,11 +312,10 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
         <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <SideNavButton icon={<LayoutDashboard size={20} />} label="Dashboard" active={lobbyTab === 'dashboard'} onClick={() => { setLobbyTab('dashboard'); setIsMenuOpen(false); }} colors={colors} fonts={fonts} />
           <SideNavButton icon={<Tent size={20} />} label="Properties" active={lobbyTab === 'camps'} onClick={() => { setLobbyTab('camps'); setIsMenuOpen(false); }} colors={colors} fonts={fonts} />
-          <SideNavButton icon={<Users size={20} />} label="Staff" active={lobbyTab === 'staff'} onClick={() => { setLobbyTab('staff'); setIsMenuOpen(false); }} colors={colors} fonts={fonts} />
-          <SideNavButton icon={<Database size={20} />} label="Customer DB" active={lobbyTab === 'database'} onClick={() => { setLobbyTab('database'); setIsMenuOpen(false); }} colors={colors} fonts={fonts} />
+          <SideNavButton icon={<Users size={20} />} label="Staff Directory" active={lobbyTab === 'staff'} onClick={() => { setLobbyTab('staff'); setIsMenuOpen(false); }} colors={colors} fonts={fonts} />
+          <SideNavButton icon={<Database size={20} />} label="Customer Directory" active={lobbyTab === 'database'} onClick={() => { setLobbyTab('database'); setIsMenuOpen(false); }} colors={colors} fonts={fonts} />
           <SideNavButton icon={<CheckSquare size={20} />} label="Approvals" active={lobbyTab === 'approvals'} onClick={() => { setLobbyTab('approvals'); setIsMenuOpen(false); }} colors={colors} fonts={fonts} />
-          <SideNavButton icon={<MessageSquare size={20} />} label="Discuss" active={lobbyTab === 'discussions'} onClick={() => { setLobbyTab('discussions'); setIsMenuOpen(false); }} colors={colors} fonts={fonts} />
-          <SideNavButton icon={<ClipboardList size={20} />} label="Notes" active={lobbyTab === 'feedback'} onClick={() => { setLobbyTab('feedback'); setIsMenuOpen(false); }} colors={colors} fonts={fonts} />
+          <SideNavButton icon={<MessageSquare size={20} />} label="Town Hall" active={lobbyTab === 'townhall'} onClick={() => { setLobbyTab('townhall'); setIsMenuOpen(false); }} colors={colors} fonts={fonts} />
           <SideNavButton icon={<Settings size={20} />} label="Settings" active={lobbyTab === 'settings'} onClick={() => { setLobbyTab('settings'); setIsMenuOpen(false); }} colors={colors} fonts={fonts} />
         </div>
       </div>
@@ -440,7 +440,7 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
                 {/* Staff Widget */}
                 <div onClick={() => setLobbyTab('staff')} style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '8px', border: `2px solid ${colors.highlight}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h3 style={{ margin: 0, fontFamily: fonts.header, fontSize: '24px', color: colors.textDark }}>Staff Accounts</h3>
+                    <h3 style={{ margin: 0, fontFamily: fonts.header, fontSize: '24px', color: colors.textDark }}>Staff Directory</h3>
                     <Users color={colors.primary} size={24} />
                   </div>
                   <div style={{ fontSize: '14px', color: colors.muted }}>Active Personnel: 14</div>
@@ -450,10 +450,10 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
                   <div style={{ marginTop: '10px', fontSize: '12px', fontFamily: fonts.utility, color: colors.primary, fontWeight: 'bold' }}>MANAGE STAFF &rarr;</div>
                 </div>
 
-                {/* Customer DB Widget */}
+                {/* Customer Directory Widget */}
                 <div onClick={() => setLobbyTab('database')} style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '8px', border: `2px solid ${colors.highlight}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h3 style={{ margin: 0, fontFamily: fonts.header, fontSize: '24px', color: colors.textDark }}>Customer DB</h3>
+                    <h3 style={{ margin: 0, fontFamily: fonts.header, fontSize: '24px', color: colors.textDark }}>Customer Directory</h3>
                     <Database color={colors.primary} size={24} />
                   </div>
                   <div style={{ fontSize: '14px', color: colors.muted }}>Master Repository</div>
@@ -476,25 +476,19 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
                   <div style={{ marginTop: '10px', fontSize: '12px', fontFamily: fonts.utility, color: colors.primary, fontWeight: 'bold' }}>REVIEW QUEUE &rarr;</div>
                 </div>
 
-                {/* Discussions Widget */}
-                <div onClick={() => setLobbyTab('discussions')} style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '8px', border: `2px solid ${colors.highlight}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {/* Consolidated Town Hall Widget */}
+                <div onClick={() => setLobbyTab('townhall')} style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '8px', border: `2px solid ${colors.highlight}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h3 style={{ margin: 0, fontFamily: fonts.header, fontSize: '24px', color: colors.textDark }}>Discussions</h3>
+                    <h3 style={{ margin: 0, fontFamily: fonts.header, fontSize: '24px', color: colors.textDark }}>Town Hall</h3>
                     <MessageSquare color={colors.primary} size={24} />
                   </div>
-                  <div style={{ fontSize: '14px', color: colors.muted }}>1 New Mention</div>
-                  <div style={{ marginTop: '21px', fontSize: '12px', fontFamily: fonts.utility, color: colors.primary, fontWeight: 'bold' }}>JOIN CONVERSATION &rarr;</div>
+                  <div style={{ fontSize: '14px', color: colors.muted }}>Team Chat & QA Notes</div>
+                  <div style={{ width: '100%', backgroundColor: colors.border, height: '6px', borderRadius: '3px', marginTop: '5px' }}>
+                    <div style={{ width: '50%', backgroundColor: colors.primary, height: '100%', borderRadius: '3px' }}></div>
+                  </div>
+                  <div style={{ marginTop: '10px', fontSize: '12px', fontFamily: fonts.utility, color: colors.primary, fontWeight: 'bold' }}>ENTER TOWN HALL &rarr;</div>
                 </div>
 
-                {/* Feedback Widget */}
-                <div onClick={() => setLobbyTab('feedback')} style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '8px', border: `2px solid ${colors.highlight}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h3 style={{ margin: 0, fontFamily: fonts.header, fontSize: '24px', color: colors.textDark }}>Tester Notes</h3>
-                    <ClipboardList color={colors.primary} size={24} />
-                  </div>
-                  <div style={{ fontSize: '14px', color: colors.muted }}>3 Open Tickets</div>
-                  <div style={{ marginTop: '21px', fontSize: '12px', fontFamily: fonts.utility, color: colors.primary, fontWeight: 'bold' }}>SUBMIT NOTES &rarr;</div>
-                </div>
               </div>
             </div>
           )}
@@ -630,8 +624,95 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
             </div>
           )}
 
-          {lobbyTab === 'discussions' && (
+          {/* UNIFIED TOWN HALL MODULE */}
+          {lobbyTab === 'townhall' && (
             <div style={{ backgroundColor: colors.panel, padding: '30px', borderRadius: '8px', border: `2px solid ${colors.highlight}` }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
+                <div>
+                  <h2 style={{ fontFamily: fonts.header, fontSize: '28px', color: colors.textDark, margin: '0 0 5px 0' }}>TOWN HALL</h2>
+                  <p style={{ color: colors.muted, margin: 0, fontSize: '14px' }}>Central hub for team communication and system feedback.</p>
+                </div>
+              </div>
+              
+              {/* Town Hall Sub-navigation Tabs */}
+              <div style={{ display: 'flex', borderBottom: `2px solid ${colors.border}`, marginBottom: '25px' }}>
+                <button 
+                  onClick={() => setTownHallView('discussions')} 
+                  style={{ padding: '10px 20px', background: 'none', border: 'none', borderBottom: townHallView === 'discussions' ? `3px solid ${colors.primary}` : '3px solid transparent', color: townHallView === 'discussions' ? colors.primary : colors.muted, cursor: 'pointer', fontFamily: fonts.header, fontSize: '16px', fontWeight: 'bold' }}
+                >
+                  Team Discussions
+                </button>
+                <button 
+                  onClick={() => setTownHallView('notes')} 
+                  style={{ padding: '10px 20px', background: 'none', border: 'none', borderBottom: townHallView === 'notes' ? `3px solid ${colors.primary}` : '3px solid transparent', color: townHallView === 'notes' ? colors.primary : colors.muted, cursor: 'pointer', fontFamily: fonts.header, fontSize: '16px', fontWeight: 'bold' }}
+                >
+                  QA & Tester Notes
+                </button>
+              </div>
+
+              {/* Sub-tab 1: Team Discussions */}
+              {townHallView === 'discussions' && (
+                <div>
+                  <div style={{ marginBottom: '20px' }}>
+                    <label style={{ display: 'block', color: colors.textDark, fontWeight: 'bold', marginBottom: '8px', fontSize: '14px' }}>Select Project or Campground:</label>
+                    <select value={selectedProject} onChange={(e) => setSelectedProject(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', padding: '12px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: isDarkMode ? '#111' : 'white', color: colors.textDark, fontFamily: fonts.body }}>
+                      <option value="Camp Whispering Pines">Camp Whispering Pines</option>
+                      <option value="Squirrel Hill Campground">Squirrel Hill Campground</option>
+                      <option value="new_project">+ New Project</option>
+                    </select>
+                  </div>
+                  {selectedProject === 'new_project' && (
+                    <div style={{ marginBottom: '20px', padding: '20px', backgroundColor: 'rgba(193, 83, 27, 0.1)', borderLeft: `4px solid ${colors.primary}`, borderRadius: '0 4px 4px 0' }}>
+                      <label style={{ display: 'block', color: colors.textDark, fontWeight: 'bold', marginBottom: '8px', fontSize: '14px' }}>Enter New Project Name:</label>
+                      <input type="text" value={newProjectName} onChange={handleProjectTextChange} placeholder="Project Name..." style={{ width: '100%', boxSizing: 'border-box', padding: '12px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: 'transparent', color: colors.textDark, fontFamily: fonts.body }} />
+                    </div>
+                  )}
+                  <div style={{ backgroundColor: isDarkMode ? '#111' : 'white', padding: '20px', borderRadius: '4px', border: `1px solid ${colors.muted}`, marginBottom: '15px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                      <span style={{ fontWeight: 'bold', color: colors.textDark }}>System Update: App Testing Phase 2</span>
+                      <span style={{ fontSize: '12px', color: colors.muted }}>10:42 AM</span>
+                    </div>
+                    <p style={{ color: colors.textDark, fontSize: '15px', margin: '0 0 20px 0', lineHeight: 1.5 }}>Please make sure all QA Testers have logged their initial findings in the QA & Tester Notes tab before the end of the day.</p>
+                    <div style={{ display: 'flex', gap: '20px', borderTop: `1px solid ${colors.border}`, paddingTop: '15px' }}>
+                      <button style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', color: colors.muted, cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}><ThumbsUp size={18} /> Like</button>
+                      <button style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', color: colors.muted, cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}><MessageCircle size={18} /> Reply</button>
+                      <button style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', color: colors.muted, cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}><BarChart2 size={18} /> Create Poll</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Sub-tab 2: QA & Tester Notes */}
+              {townHallView === 'notes' && (
+                <div>
+                  <textarea placeholder="Enter your QA notes or system feedback here..." style={{ width: '100%', boxSizing: 'border-box', height: '120px', padding: '15px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: isDarkMode ? '#111' : 'white', color: colors.textDark, fontFamily: fonts.body, resize: 'vertical', marginBottom: '15px' }} />
+                  <button style={{ backgroundColor: colors.primary, color: '#FFF', border: 'none', padding: '12px 24px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.header, fontSize: '16px', marginBottom: '30px' }}>SUBMIT NOTE</button>
+                  <h3 style={{ fontFamily: fonts.header, fontSize: '20px', color: colors.textDark, margin: '0 0 15px 0', borderBottom: `2px solid ${colors.border}`, paddingBottom: '8px' }}>YOUR PREVIOUS NOTES</h3>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '20px', backgroundColor: isDarkMode ? '#111' : 'white', border: `1px solid ${colors.muted}`, borderRadius: '4px' }}>
+                    <div>
+                      <div style={{ fontSize: '12px', color: colors.muted, marginBottom: '8px', fontFamily: fonts.utility }}>Logged: Aug 5, 2026</div>
+                      <div style={{ color: colors.textDark, fontSize: '15px', lineHeight: 1.5 }}>The camp selection dropdown on mobile devices occasionally overlaps with the navigation bar.</div>
+                    </div>
+                    <button style={{ background: 'none', border: 'none', color: colors.primary, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontFamily: fonts.utility, fontWeight: 'bold' }}><Edit2 size={16} /> EDIT</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function SideNavButton({ icon, label, active, onClick, colors, fonts }) {
+  return (
+    <button onClick={onClick} style={{ display: 'flex', alignItems: 'center', gap: '15px', width: '100%', background: active ? colors.highlight : 'none', border: 'none', color: active ? '#FFF' : colors.textLight, cursor: 'pointer', padding: '15px 20px', borderRadius: '4px', transition: 'background 0.2s', fontFamily: fonts.header, fontSize: '18px', letterSpacing: '1px' }}>
+      {icon}<span>{label}</span>
+    </button>
+  )
+}           <div style={{ backgroundColor: colors.panel, padding: '30px', borderRadius: '8px', border: `2px solid ${colors.highlight}` }}>
               <h2 style={{ fontFamily: fonts.header, fontSize: '28px', color: colors.textDark, margin: '0 0 5px 0' }}>TEAM DISCUSSIONS</h2>
               <p style={{ color: colors.muted, margin: '0 0 20px 0', fontSize: '14px' }}>Communicate with your team and track project updates.</p>
               <div style={{ marginBottom: '20px' }}>
