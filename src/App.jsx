@@ -60,6 +60,10 @@ export default function App() {
     return <ResetPassword />
   }
 
+  return <AuthenticatedApp />
+}
+
+function AuthenticatedApp() {
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)
   const [campData, setCampData] = useState(null)
@@ -110,12 +114,6 @@ export default function App() {
     return () => subscription.unsubscribe()
   }, [])
 
-  useEffect(() => {
-    if (session) {
-      fetchUserData()
-    }
-  }, [session])
-
   async function fetchUserData() {
     try {
       const { data: profileData, error: profileError } = await supabase
@@ -160,6 +158,12 @@ export default function App() {
       setIsLoading(false)
     }
   }
+
+  useEffect(() => {
+    if (session) {
+      fetchUserData()
+    }
+  }, [session])
 
   if (isLoading) {
     return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: colors.background, color: colors.primary, fontFamily: fonts.header, fontSize: '24px', letterSpacing: '2px' }}>LOADING TRAILHEAD...</div>
