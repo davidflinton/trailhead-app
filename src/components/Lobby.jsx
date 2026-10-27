@@ -37,7 +37,7 @@ async function loadProperties(profile) {
   return { camps: data, assignedCamps }
 }
 
-export default function Lobby({ profile, colors, fonts, isDarkMode, setIsDarkMode, themeKey, setThemeKey }) {
+export default function Lobby({ profile, currentUserEmail, colors, fonts, isDarkMode, setIsDarkMode, themeKey, setThemeKey }) {
   const [lobbyTab, setLobbyTab] = useState('dashboard')
   const [townHallView, setTownHallView] = useState('discussions')
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -61,6 +61,7 @@ export default function Lobby({ profile, colors, fonts, isDarkMode, setIsDarkMod
   const [tempAnnouncement, setTempAnnouncement] = useState('')
   const [isAnnouncementCollapsed, setIsAnnouncementCollapsed] = useState(false)
   const [hasBeenUpdated, setHasBeenUpdated] = useState(false)
+  const canEditAnnouncements = currentUserEmail?.trim().toLowerCase() === 'david.flinton@gmail.com'
 
   useEffect(() => {
     let isCurrent = true
@@ -81,6 +82,10 @@ export default function Lobby({ profile, colors, fonts, isDarkMode, setIsDarkMod
   }, [])
 
   async function saveAnnouncement() {
+    if (!canEditAnnouncements) {
+      setAnnouncementSaveError('You are not authorized to edit admin announcements.')
+      return
+    }
     if (isSavingAnnouncement) return
 
     const normalizedAnnouncement = normalizeAnnouncementHtml(tempAnnouncement)
@@ -180,15 +185,17 @@ export default function Lobby({ profile, colors, fonts, isDarkMode, setIsDarkMod
     setCampForm(defaultCampForm)
   }
 
-  const openEditForm = () => {
+  const openEditForm = (camp = selectedCamp) => {
+    if (!camp) return
+    setSelectedCampId(camp.id)
     setIsAddingCamp(false)
     setIsEditingCamp(true)
     setCampForm({
-      name: selectedCamp?.name || '', type: selectedCamp?.type || 'Standard Property',
-      contact_name: selectedCamp?.contact_name || '', contact_number: selectedCamp?.contact_number || '',
-      contact_email: selectedCamp?.contact_email || '', mailing_address: selectedCamp?.mailing_address || '',
-      property_address: selectedCamp?.property_address || '', website_url: selectedCamp?.website_url || '',
-      gs_restricted: selectedCamp?.gs_restricted || false
+      name: camp.name || '', type: camp.type || 'Standard Property',
+      contact_name: camp.contact_name || '', contact_number: camp.contact_number || '',
+      contact_email: camp.contact_email || '', mailing_address: camp.mailing_address || '',
+      property_address: camp.property_address || '', website_url: camp.website_url || '',
+      gs_restricted: camp.gs_restricted || false
     })
   }
 
@@ -253,8 +260,8 @@ export default function Lobby({ profile, colors, fonts, isDarkMode, setIsDarkMod
         }
 
         .announcement-modal-content {
-          color: #111;
-          background: #fff;
+          color: ${colors.textDark};
+          background: ${colors.panel};
           max-height: none;
           overflow: visible;
         }
@@ -262,14 +269,14 @@ export default function Lobby({ profile, colors, fonts, isDarkMode, setIsDarkMod
         .announcement-modal-content h1,
         .announcement-modal-content h2,
         .announcement-modal-content h3 {
-          color: #111;
+          color: ${colors.textDark};
         }
 
         .announcement-modal-editor .ql-toolbar.ql-snow,
         .announcement-modal-editor .ql-container.ql-snow,
         .announcement-modal-editor .ql-editor {
-          background: #fff;
-          color: #111;
+          background: ${colors.panel};
+          color: ${colors.textDark};
         }
 
         .announcement-modal-editor .ql-container.ql-snow {
@@ -432,10 +439,10 @@ export default function Lobby({ profile, colors, fonts, isDarkMode, setIsDarkMod
             </div>
             <p style={{ color: colors.textDark, fontSize: '15px', marginBottom: '20px', lineHeight: 1.5 }}>Are you absolutely sure you want to delete <strong>{selectedCamp?.name}</strong>? This action cannot be undone and will erase all associated data.</p>
             <label style={{ display: 'block', color: colors.textDark, fontWeight: 'bold', marginBottom: '8px', fontSize: '13px' }}>ENTER PASSWORD TO CONFIRM:</label>
-            <input type="password" value={deletePassword} onChange={(e) => setDeletePassword(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', padding: '12px', borderRadius: '4px', border: `1px solid ${colors.error}`, backgroundColor: isDarkMode ? '#111' : '#fff', color: colors.textDark, fontFamily: fonts.body, marginBottom: '25px' }} />
+            <input type="password" value={deletePassword} onChange={(e) => setDeletePassword(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', padding: '12px', borderRadius: '4px', border: `1px solid ${colors.error}`, backgroundColor: colors.panel, color: colors.textDark, fontFamily: fonts.body, marginBottom: '25px' }} />
             <div style={{ display: 'flex', gap: '10px' }}>
               <button onClick={() => { setIsDeletingCamp(false); setDeletePassword(''); }} style={{ flex: 1, backgroundColor: 'transparent', color: colors.textDark, border: `1px solid ${colors.muted}`, padding: '12px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.header, fontSize: '16px' }}>CANCEL</button>
-              <button onClick={handleDeleteCamp} disabled={!deletePassword} style={{ flex: 1, backgroundColor: colors.error, color: 'white', border: 'none', padding: '12px', borderRadius: '4px', cursor: deletePassword ? 'pointer' : 'not-allowed', opacity: deletePassword ? 1 : 0.5, fontFamily: fonts.header, fontSize: '16px' }}>DELETE PROPERTY</button>
+              <button onClick={handleDeleteCamp} disabled={!deletePassword} style={{ flex: 1, backgroundColor: colors.error, color: colors.textDark, border: 'none', padding: '12px', borderRadius: '4px', cursor: deletePassword ? 'pointer' : 'not-allowed', opacity: deletePassword ? 1 : 0.5, fontFamily: fonts.header, fontSize: '16px' }}>DELETE PROPERTY</button>
             </div>
           </div>
         </div>
@@ -453,10 +460,10 @@ export default function Lobby({ profile, colors, fonts, isDarkMode, setIsDarkMod
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', minWidth: 0 }}>
                 
                 {/* System Alerts */}
-                <div style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '8px', border: '2px solid #ef4444', gridColumn: '1 / -1', textAlign: 'center', minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', color: '#ef4444', marginBottom: '10px' }}>
+                <div style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '8px', border: `2px solid ${colors.error}`, gridColumn: '1 / -1', textAlign: 'center', minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', color: colors.error, marginBottom: '10px' }}>
                     <ShieldAlert size={24} />
-                    <h3 style={{ margin: 0, fontFamily: fonts.header, fontSize: '20px', color: '#ef4444' }}>SYSTEM ALERTS</h3>
+                    <h3 style={{ margin: 0, fontFamily: fonts.header, fontSize: '20px', color: colors.error }}>SYSTEM ALERTS</h3>
                   </div>
                   <p style={{ color: colors.textDark, margin: 0, fontSize: '14px' }}>All deployment nodes operating nominally. Database sync complete.</p>
                 </div>
@@ -469,7 +476,7 @@ export default function Lobby({ profile, colors, fonts, isDarkMode, setIsDarkMod
                       <h3 style={{ margin: 0, fontFamily: fonts.header, fontSize: '20px', color: colors.textDark, letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                         ADMIN ANNOUNCEMENTS
                         {hasBeenUpdated && (
-                          <span style={{ backgroundColor: colors.primary, color: '#FFF', fontSize: '10px', fontFamily: fonts.utility, padding: '2px 6px', borderRadius: '4px', letterSpacing: '1px', textTransform: 'uppercase' }}>
+                          <span style={{ backgroundColor: colors.primary, color: colors.textOnPrimary, fontSize: '10px', fontFamily: fonts.utility, padding: '2px 6px', borderRadius: '4px', letterSpacing: '1px', textTransform: 'uppercase' }}>
                             UPDATED
                           </span>
                         )}
@@ -477,7 +484,7 @@ export default function Lobby({ profile, colors, fonts, isDarkMode, setIsDarkMod
                     </div>
                     
                     <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                      {!isAnnouncementCollapsed && (
+                      {!isAnnouncementCollapsed && canEditAnnouncements && (
                         <button 
                           onClick={() => {
                             setTempAnnouncement(adminAnnouncement)
@@ -612,28 +619,17 @@ export default function Lobby({ profile, colors, fonts, isDarkMode, setIsDarkMod
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '20px', padding: '15px', backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: '4px', border: `1px solid ${colors.muted}` }}>
                 {profile?.access_tier === 'global_superadmin' && (
                   <>
-                    <button onClick={() => { resetPropertyForms(); setIsAddingCamp(true); setSelectedCampId(null); }} style={{ backgroundColor: colors.highlight, color: '#FFF', border: 'none', padding: '10px 15px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.utility, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}><Plus size={16} /> ADD NEW</button>
+                    <button onClick={() => { resetPropertyForms(); setIsAddingCamp(true); setSelectedCampId(null); }} style={{ backgroundColor: colors.highlight, color: colors.textDark, border: 'none', padding: '10px 15px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.utility, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}><Plus size={16} /> ADD NEW</button>
                     <div style={{ width: '1px', backgroundColor: colors.muted, margin: '0 5px' }}></div>
                   </>
                 )}
-                <button disabled={!selectedCampId} onClick={openEditForm} style={{ backgroundColor: selectedCampId ? colors.primary : 'transparent', color: selectedCampId ? '#FFF' : colors.muted, border: selectedCampId ? 'none' : `1px solid ${colors.muted}`, padding: '10px 15px', borderRadius: '4px', cursor: selectedCampId ? 'pointer' : 'not-allowed', fontFamily: fonts.utility, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}><Edit2 size={16} /> EDIT</button>
-                <button 
-                  disabled={!selectedCampId} 
-                  onClick={() => { 
-                    const newTabUrl = `${window.location.origin}/?campId=${selectedCampId}`;
-                    window.open(newTabUrl, '_blank', 'noopener,noreferrer');
-                  }} 
-                  style={{ backgroundColor: selectedCampId ? colors.primary : 'transparent', color: selectedCampId ? '#FFF' : colors.muted, border: selectedCampId ? 'none' : `1px solid ${colors.muted}`, padding: '10px 15px', borderRadius: '4px', cursor: selectedCampId ? 'pointer' : 'not-allowed', fontFamily: fonts.utility, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
-                >
-                  <Settings size={16} /> MANAGE
-                </button>
                 {profile?.access_tier === 'global_superadmin' && (
                   <button disabled={!selectedCampId} onClick={() => setIsDeletingCamp(true)} style={{ backgroundColor: selectedCampId ? colors.error : 'transparent', color: selectedCampId ? 'white' : colors.muted, border: selectedCampId ? 'none' : `1px solid ${colors.muted}`, padding: '10px 15px', borderRadius: '4px', cursor: selectedCampId ? 'pointer' : 'not-allowed', fontFamily: fonts.utility, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px', marginLeft: 'auto' }}><Trash2 size={16} /> DELETE</button>
                 )}
               </div>
 
               {(isAddingCamp || isEditingCamp) && (
-                <div style={{ backgroundColor: isDarkMode ? '#111' : 'white', padding: '25px', borderRadius: '4px', border: `2px solid ${colors.primary}`, marginBottom: '20px' }}>
+                <div style={{ backgroundColor: colors.panel, padding: '25px', borderRadius: '4px', border: `2px solid ${colors.primary}`, marginBottom: '20px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                     <h3 style={{ fontFamily: fonts.header, fontSize: '20px', color: colors.textDark, margin: 0 }}>{isEditingCamp ? 'EDIT PROPERTY DETAILS' : 'CREATE NEW PROPERTY'}</h3>
                     <button onClick={resetPropertyForms} style={{ background: 'none', border: 'none', color: colors.muted, cursor: 'pointer' }}><X size={20}/></button>
@@ -654,14 +650,14 @@ export default function Lobby({ profile, colors, fonts, isDarkMode, setIsDarkMod
                     <input type="text" placeholder="Mailing Address" value={campForm.mailing_address} onChange={(e) => setCampForm({...campForm, mailing_address: e.target.value})} style={{ gridColumn: '1 / -1', boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: 'transparent', color: colors.textDark, fontFamily: fonts.body }} />
                     
                     {profile?.access_tier === 'global_superadmin' && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', gridColumn: '1 / -1', padding: '10px', backgroundColor: isDarkMode ? '#1A1A1A' : '#F8F8F8', borderRadius: '4px', border: `1px solid ${colors.muted}` }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', gridColumn: '1 / -1', padding: '10px', backgroundColor: colors.background, borderRadius: '4px', border: `1px solid ${colors.border}` }}>
                         <input type="checkbox" id="gsRestricted" checked={campForm.gs_restricted} onChange={(e) => setCampForm({...campForm, gs_restricted: e.target.checked})} style={{ width: '18px', height: '18px', cursor: 'pointer' }} />
                         <label htmlFor="gsRestricted" style={{ color: colors.textDark, fontFamily: fonts.body, fontSize: '14px', fontWeight: 'bold', cursor: 'pointer' }}>GS Restricted (Lock out Global Admins)</label>
                       </div>
                     )}
                   </div>
                   
-                  <button onClick={isEditingCamp ? handleUpdateCamp : handleAddCamp} style={{ backgroundColor: colors.primary, color: '#FFF', border: 'none', padding: '12px 24px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.header, fontSize: '14px' }}>
+                  <button onClick={isEditingCamp ? handleUpdateCamp : handleAddCamp} style={{ backgroundColor: colors.primary, color: colors.textOnPrimary, border: 'none', padding: '12px 24px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.header, fontSize: '14px' }}>
                     {isEditingCamp ? 'SAVE CHANGES' : 'SAVE PROPERTY'}
                   </button>
                 </div>
@@ -669,7 +665,7 @@ export default function Lobby({ profile, colors, fonts, isDarkMode, setIsDarkMod
 
               <div style={{ position: 'relative', marginBottom: '20px' }}>
                 <Search size={18} color={colors.muted} style={{ position: 'absolute', left: '12px', top: '12px' }} />
-                <input type="text" placeholder="Search properties..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', padding: '10px 10px 10px 40px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: isDarkMode ? '#111' : 'white', color: colors.textDark, fontSize: '15px', outline: 'none', fontFamily: fonts.body }} />
+                <input type="text" placeholder="Search properties..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', padding: '10px 10px 10px 40px', borderRadius: '4px', border: `1px solid ${colors.border}`, backgroundColor: colors.panel, color: colors.textDark, fontSize: '15px', outline: 'none', fontFamily: fonts.body }} />
               </div>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '500px', overflowY: 'auto' }}>
@@ -678,13 +674,15 @@ export default function Lobby({ profile, colors, fonts, isDarkMode, setIsDarkMod
                  visibleCamps.map(camp => (
                   <div 
                     key={camp.id} 
-                    onClick={() => { 
-                      const newTabUrl = `${window.location.origin}/?campId=${camp.id}`;
-                      window.open(newTabUrl, '_blank', 'noopener,noreferrer');
-                    }} 
-                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px', backgroundColor: selectedCampId === camp.id ? (isDarkMode ? '#2A4731' : '#E5DCC0') : (isDarkMode ? '#16281D' : 'white'), border: selectedCampId === camp.id ? `2px solid ${colors.primary}` : `1px solid ${colors.border}`, borderRadius: '4px', cursor: 'pointer', transition: 'all 0.1s' }}
+                    style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '12px', padding: '10px 12px', backgroundColor: selectedCampId === camp.id ? colors.highlight : colors.panel, border: selectedCampId === camp.id ? `2px solid ${colors.primary}` : `1px solid ${colors.border}`, borderRadius: '4px', transition: 'all 0.1s' }}
                   >
-                    <div>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCampId(camp.id)}
+                      aria-pressed={selectedCampId === camp.id}
+                      style={{ flex: '1 1 240px', minWidth: 0, padding: '5px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', border: 'none', background: 'transparent', color: colors.textDark, textAlign: 'left', cursor: 'pointer', fontFamily: fonts.body }}
+                    >
+                      <span style={{ display: 'block' }}>
                       <div style={{ fontFamily: fonts.header, fontSize: '20px', color: colors.textDark, letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                         {camp.name}
                         {camp.gs_restricted && <Lock size={14} color={colors.error} title="Restricted Access" />}
@@ -693,8 +691,28 @@ export default function Lobby({ profile, colors, fonts, isDarkMode, setIsDarkMod
                         <MapPin size={12} /> {camp.type ? camp.type.replace('_', ' ') : 'Standard Property'}
                         {camp.contact_name && <span style={{ marginLeft: '10px' }}>| Contact: {camp.contact_name}</span>}
                       </div>
+                      </span>
+                      {selectedCampId === camp.id && <span style={{ color: colors.primary, fontFamily: fonts.utility, fontSize: '12px', fontWeight: 'bold' }}>SELECTED</span>}
+                    </button>
+                    <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto' }}>
+                      <button
+                        type="button"
+                        onClick={() => openEditForm(camp)}
+                        style={{ backgroundColor: colors.primary, color: colors.textOnPrimary, border: 'none', padding: '9px 12px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.utility, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                      >
+                        <Edit2 size={15} /> EDIT
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newTabUrl = `${window.location.origin}/?campId=${camp.id}`
+                          window.open(newTabUrl, '_blank', 'noopener,noreferrer')
+                        }}
+                        style={{ backgroundColor: colors.highlight, color: colors.textLight, border: `1px solid ${colors.border}`, padding: '9px 12px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.utility, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                      >
+                        <Settings size={15} /> MANAGE
+                      </button>
                     </div>
-                    {selectedCampId === camp.id && <div style={{ color: colors.primary, fontFamily: fonts.utility, fontSize: '12px', fontWeight: 'bold' }}>SELECTED</div>}
                   </div>
                 ))}
               </div>
@@ -727,7 +745,7 @@ export default function Lobby({ profile, colors, fonts, isDarkMode, setIsDarkMod
             <div style={{ backgroundColor: colors.panel, padding: '30px', borderRadius: '8px', border: `2px solid ${colors.highlight}` }}>
               <h2 style={{ fontFamily: fonts.header, fontSize: '28px', color: colors.textDark, margin: '0 0 5px 0' }}>PENDING APPROVALS</h2>
               <p style={{ color: colors.muted, margin: '0 0 20px 0', fontSize: '14px' }}>Review and approve recently registered camps.</p>
-              <div style={{ padding: '30px', backgroundColor: isDarkMode ? '#111' : 'white', border: `1px solid ${colors.muted}`, borderRadius: '4px', textAlign: 'center', color: colors.muted, fontFamily: fonts.utility }}>No pending camp registrations at this time.</div>
+              <div style={{ padding: '30px', backgroundColor: colors.panel, border: `1px solid ${colors.border}`, borderRadius: '4px', textAlign: 'center', color: colors.muted, fontFamily: fonts.utility }}>No pending camp registrations at this time.</div>
             </div>
           )}
 
@@ -762,19 +780,19 @@ export default function Lobby({ profile, colors, fonts, isDarkMode, setIsDarkMod
                 <div>
                   <div style={{ marginBottom: '20px' }}>
                     <label style={{ display: 'block', color: colors.textDark, fontWeight: 'bold', marginBottom: '8px', fontSize: '14px' }}>Select Project or Campground:</label>
-                    <select value={selectedProject} onChange={(e) => setSelectedProject(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', padding: '12px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: isDarkMode ? '#111' : 'white', color: colors.textDark, fontFamily: fonts.body }}>
+                    <select value={selectedProject} onChange={(e) => setSelectedProject(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', padding: '12px', borderRadius: '4px', border: `1px solid ${colors.border}`, backgroundColor: colors.panel, color: colors.textDark, fontFamily: fonts.body }}>
                       <option value="Camp Whispering Pines">Camp Whispering Pines</option>
                       <option value="Squirrel Hill Campground">Squirrel Hill Campground</option>
                       <option value="new_project">+ New Project</option>
                     </select>
                   </div>
                   {selectedProject === 'new_project' && (
-                    <div style={{ marginBottom: '20px', padding: '20px', backgroundColor: 'rgba(193, 83, 27, 0.1)', borderLeft: `4px solid ${colors.primary}`, borderRadius: '0 4px 4px 0' }}>
+                    <div style={{ marginBottom: '20px', padding: '20px', backgroundColor: colors.highlight, borderLeft: `4px solid ${colors.primary}`, borderRadius: '0 4px 4px 0' }}>
                       <label style={{ display: 'block', color: colors.textDark, fontWeight: 'bold', marginBottom: '8px', fontSize: '14px' }}>Enter New Project Name:</label>
                       <input type="text" value={newProjectName} onChange={handleProjectTextChange} placeholder="Project Name..." style={{ width: '100%', boxSizing: 'border-box', padding: '12px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: 'transparent', color: colors.textDark, fontFamily: fonts.body }} />
                     </div>
                   )}
-                  <div style={{ backgroundColor: isDarkMode ? '#111' : 'white', padding: '20px', borderRadius: '4px', border: `1px solid ${colors.muted}`, marginBottom: '15px' }}>
+                  <div style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '4px', border: `1px solid ${colors.border}`, marginBottom: '15px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
                       <span style={{ fontWeight: 'bold', color: colors.textDark }}>System Update: App Testing Phase 2</span>
                       <span style={{ fontSize: '12px', color: colors.muted }}>10:42 AM</span>
@@ -792,10 +810,10 @@ export default function Lobby({ profile, colors, fonts, isDarkMode, setIsDarkMod
               {/* Sub-tab 2: QA & Tester Notes */}
               {townHallView === 'notes' && (
                 <div>
-                  <textarea placeholder="Enter your QA notes or system feedback here..." style={{ width: '100%', boxSizing: 'border-box', height: '120px', padding: '15px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: isDarkMode ? '#111' : 'white', color: colors.textDark, fontFamily: fonts.body, resize: 'vertical', marginBottom: '15px' }} />
-                  <button style={{ backgroundColor: colors.primary, color: '#FFF', border: 'none', padding: '12px 24px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.header, fontSize: '16px', marginBottom: '30px' }}>SUBMIT NOTE</button>
+                  <textarea placeholder="Enter your QA notes or system feedback here..." style={{ width: '100%', boxSizing: 'border-box', height: '120px', padding: '15px', borderRadius: '4px', border: `1px solid ${colors.border}`, backgroundColor: colors.panel, color: colors.textDark, fontFamily: fonts.body, resize: 'vertical', marginBottom: '15px' }} />
+                  <button style={{ backgroundColor: colors.primary, color: colors.textOnPrimary, border: 'none', padding: '12px 24px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.header, fontSize: '16px', marginBottom: '30px' }}>SUBMIT NOTE</button>
                   <h3 style={{ fontFamily: fonts.header, fontSize: '20px', color: colors.textDark, margin: '0 0 15px 0', borderBottom: `2px solid ${colors.border}`, paddingBottom: '8px' }}>YOUR PREVIOUS NOTES</h3>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '20px', backgroundColor: isDarkMode ? '#111' : 'white', border: `1px solid ${colors.muted}`, borderRadius: '4px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '20px', backgroundColor: colors.panel, border: `1px solid ${colors.border}`, borderRadius: '4px' }}>
                     <div>
                       <div style={{ fontSize: '12px', color: colors.muted, marginBottom: '8px', fontFamily: fonts.utility }}>Logged: Aug 5, 2026</div>
                       <div style={{ color: colors.textDark, fontSize: '15px', lineHeight: 1.5 }}>The camp selection dropdown on mobile devices occasionally overlaps with the navigation bar.</div>
@@ -824,11 +842,11 @@ export default function Lobby({ profile, colors, fonts, isDarkMode, setIsDarkMod
             role="dialog"
             aria-modal="true"
             aria-labelledby="announcement-modal-title"
-            style={{ display: 'flex', flexDirection: 'column', width: 'min(100%, 960px)', maxHeight: '92vh', backgroundColor: '#fff', color: '#111', borderRadius: '8px', boxShadow: '0 20px 60px rgba(0, 0, 0, 0.35)', overflow: 'hidden' }}
+            style={{ display: 'flex', flexDirection: 'column', width: 'min(100%, 960px)', maxHeight: '92vh', backgroundColor: colors.panel, color: colors.textDark, border: `1px solid ${colors.border}`, borderRadius: '8px', boxShadow: '0 20px 60px rgba(0, 0, 0, 0.35)', overflow: 'hidden' }}
           >
-            <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', padding: '16px 20px', borderBottom: '1px solid #ddd' }}>
-              <h2 id="announcement-modal-title" style={{ margin: 0, color: '#111', fontFamily: fonts.header, fontSize: '24px' }}>
-                {isEditingAnnouncement ? 'EDIT ANNOUNCEMENT' : 'ADMIN ANNOUNCEMENT'}
+            <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', padding: '16px 20px', borderBottom: `1px solid ${colors.border}` }}>
+              <h2 id="announcement-modal-title" style={{ margin: 0, color: colors.textDark, fontFamily: fonts.header, fontSize: '24px' }}>
+                {isEditingAnnouncement && canEditAnnouncements ? 'EDIT ANNOUNCEMENT' : 'ADMIN ANNOUNCEMENT'}
               </h2>
               <button
                 type="button"
@@ -838,14 +856,14 @@ export default function Lobby({ profile, colors, fonts, isDarkMode, setIsDarkMod
                 }}
                 disabled={isSavingAnnouncement}
                 aria-label="Close announcement"
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px', border: 'none', background: 'transparent', color: '#333', cursor: 'pointer' }}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px', border: 'none', background: 'transparent', color: colors.textDark, cursor: 'pointer' }}
               >
                 <X size={22} />
               </button>
             </header>
 
             <div style={{ minHeight: 0, overflowY: 'auto', padding: '20px' }}>
-              {isEditingAnnouncement ? (
+              {isEditingAnnouncement && canEditAnnouncements ? (
                 <div className="announcement-modal-editor">
                   <ReactQuill
                     theme="snow"
@@ -861,14 +879,14 @@ export default function Lobby({ profile, colors, fonts, isDarkMode, setIsDarkMod
                 />
               )}
               {announcementSaveError && (
-                <p role="alert" style={{ margin: '12px 0 0', color: '#b42318', fontSize: '14px' }}>
+                <p role="alert" style={{ margin: '12px 0 0', color: colors.error, fontSize: '14px' }}>
                   {announcementSaveError}
                 </p>
               )}
             </div>
 
-            <footer style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', padding: '14px 20px', borderTop: '1px solid #ddd' }}>
-              {isEditingAnnouncement ? (
+            <footer style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', padding: '14px 20px', borderTop: `1px solid ${colors.border}` }}>
+              {isEditingAnnouncement && canEditAnnouncements ? (
                 <>
                   <button
                     type="button"
@@ -877,7 +895,7 @@ export default function Lobby({ profile, colors, fonts, isDarkMode, setIsDarkMod
                       setIsEditingAnnouncement(false)
                     }}
                     disabled={isSavingAnnouncement}
-                    style={{ padding: '8px 14px', background: '#fff', border: '1px solid #888', borderRadius: '4px', cursor: 'pointer', color: '#222', fontFamily: fonts.utility, fontSize: '12px' }}
+                    style={{ padding: '8px 14px', background: colors.highlight, border: `1px solid ${colors.border}`, borderRadius: '4px', cursor: 'pointer', color: colors.textDark, fontFamily: fonts.utility, fontSize: '12px' }}
                   >
                     Cancel
                   </button>
@@ -885,7 +903,7 @@ export default function Lobby({ profile, colors, fonts, isDarkMode, setIsDarkMod
                     type="button"
                     onClick={saveAnnouncement}
                     disabled={isSavingAnnouncement}
-                    style={{ padding: '8px 14px', backgroundColor: colors.primary, color: '#fff', border: 'none', borderRadius: '4px', cursor: isSavingAnnouncement ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontFamily: fonts.utility, fontSize: '12px', fontWeight: 'bold', opacity: isSavingAnnouncement ? 0.7 : 1 }}
+                    style={{ padding: '8px 14px', backgroundColor: colors.primary, color: colors.textOnPrimary, border: 'none', borderRadius: '4px', cursor: isSavingAnnouncement ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontFamily: fonts.utility, fontSize: '12px', fontWeight: 'bold', opacity: isSavingAnnouncement ? 0.7 : 1 }}
                   >
                     <Save size={14} /> {isSavingAnnouncement ? 'Saving...' : 'Save'}
                   </button>
@@ -895,7 +913,7 @@ export default function Lobby({ profile, colors, fonts, isDarkMode, setIsDarkMod
                   <button
                     type="button"
                     onClick={() => setIsAnnouncementModalOpen(false)}
-                    style={{ padding: '8px 14px', background: '#fff', border: '1px solid #888', borderRadius: '4px', cursor: 'pointer', color: '#222', fontFamily: fonts.utility, fontSize: '12px' }}
+                    style={{ padding: '8px 14px', background: colors.highlight, border: `1px solid ${colors.border}`, borderRadius: '4px', cursor: 'pointer', color: colors.textDark, fontFamily: fonts.utility, fontSize: '12px' }}
                   >
                     Close
                   </button>
@@ -906,7 +924,7 @@ export default function Lobby({ profile, colors, fonts, isDarkMode, setIsDarkMod
                       setAnnouncementSaveError('')
                       setIsEditingAnnouncement(true)
                     }}
-                    style={{ padding: '8px 14px', backgroundColor: colors.primary, color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontFamily: fonts.utility, fontSize: '12px', fontWeight: 'bold' }}
+                    style={{ padding: '8px 14px', backgroundColor: colors.primary, color: colors.textOnPrimary, border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontFamily: fonts.utility, fontSize: '12px', fontWeight: 'bold' }}
                   >
                     <Edit2 size={14} /> Edit
                   </button>
@@ -922,8 +940,8 @@ export default function Lobby({ profile, colors, fonts, isDarkMode, setIsDarkMod
 
 function SideNavButton({ icon, label, active, onClick, colors, fonts }) {
   return (
-    <button onClick={onClick} style={{ display: 'flex', alignItems: 'center', gap: '15px', width: '100%', background: active ? colors.highlight : 'none', border: 'none', color: active ? '#FFF' : colors.textLight, cursor: 'pointer', padding: '15px 20px', borderRadius: '4px', transition: 'background 0.2s', fontFamily: fonts.header, fontSize: '18px', letterSpacing: '1px' }}>
-      {icon}<span>{label}</span>
+    <button onClick={onClick} style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%', boxSizing: 'border-box', background: active ? colors.highlight : 'none', border: 'none', color: colors.textLight, cursor: 'pointer', padding: '15px 12px', borderRadius: '4px', transition: 'background 0.2s', fontFamily: fonts.header, fontSize: '16px', letterSpacing: '1px' }}>
+      <span style={{ display: 'flex', flex: '0 0 20px' }}>{icon}</span><span style={{ whiteSpace: 'nowrap' }}>{label}</span>
     </button>
   )
 }

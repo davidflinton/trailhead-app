@@ -25,7 +25,7 @@ export default function SettingsTab({ colors, fonts, isDarkMode, setIsDarkMode, 
       </div>
 
       {successMessage && (
-        <div style={{ marginBottom: '20px', padding: '12px 16px', borderRadius: '8px', backgroundColor: 'rgba(20, 83, 45, 0.4)', border: '1px solid #14532d', color: '#F1E8D0', fontFamily: fonts.utility, fontSize: '14px' }}>
+        <div style={{ marginBottom: '20px', padding: '12px 16px', borderRadius: '8px', backgroundColor: colors.highlight, border: `1px solid ${colors.border}`, color: colors.textDark, fontFamily: fonts.utility, fontSize: '14px' }}>
           {successMessage}
         </div>
       )}
@@ -39,10 +39,10 @@ export default function SettingsTab({ colors, fonts, isDarkMode, setIsDarkMode, 
             <Palette size={20} color={colors.primary} /> Interface Theme
           </h3>
           <p style={{ fontSize: '13px', color: colors.muted, margin: '0 0 20px 0' }}>
-            Choose a visual color palette inspired by professional service desks. Changes apply instantly across the entire console.
+            Pick a palette with its own character. Changes apply instantly across the entire console.
           </p>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '10px' }}>
             {Object.entries(THEMES).map(([key, t]) => {
               const isSelected = themeKey === key;
               return (
@@ -56,7 +56,7 @@ export default function SettingsTab({ colors, fonts, isDarkMode, setIsDarkMode, 
                     padding: '12px 16px',
                     borderRadius: '8px',
                     border: `2px solid ${isSelected ? colors.primary : colors.border}`,
-                    backgroundColor: isSelected ? (isDarkMode ? '#16281D' : '#EAF2ED') : 'transparent',
+                    backgroundColor: isSelected ? colors.highlight : 'transparent',
                     color: colors.textDark,
                     cursor: 'pointer',
                     fontWeight: isSelected ? 'bold' : 'normal',
@@ -65,7 +65,14 @@ export default function SettingsTab({ colors, fonts, isDarkMode, setIsDarkMode, 
                   }}
                 >
                   <span>{t.name}</span>
-                  {isSelected && <span style={{ fontSize: '12px', color: colors.primary, fontFamily: fonts.utility }}>Active</span>}
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span aria-hidden="true" style={{ display: 'flex', gap: '4px' }}>
+                      {[t[isDarkMode ? 'dark' : 'light'].background, t[isDarkMode ? 'dark' : 'light'].primary, t[isDarkMode ? 'dark' : 'light'].accent].map((swatch, index) => (
+                        <span key={index} style={{ width: '14px', height: '14px', borderRadius: '50%', backgroundColor: swatch, border: `1px solid ${colors.border}` }} />
+                      ))}
+                    </span>
+                    {isSelected && <span style={{ fontSize: '12px', color: colors.primary, fontFamily: fonts.utility }}>Active</span>}
+                  </span>
                 </button>
               );
             })}
@@ -91,7 +98,7 @@ export default function SettingsTab({ colors, fonts, isDarkMode, setIsDarkMode, 
                 borderRadius: '8px',
                 border: `1px solid ${colors.border}`,
                 backgroundColor: colors.primary,
-                color: '#FFF',
+                color: colors.textOnPrimary,
                 fontFamily: fonts.header,
                 fontSize: '15px',
                 cursor: 'pointer',
@@ -103,7 +110,7 @@ export default function SettingsTab({ colors, fonts, isDarkMode, setIsDarkMode, 
               }}
             >
               {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
-              Switch to {isDarkMode ? 'Light Mode' : 'Light Mode'}
+              Switch to {isDarkMode ? 'Light Mode' : 'Dark Mode'}
             </button>
           </div>
 

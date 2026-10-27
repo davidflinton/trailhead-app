@@ -45,13 +45,14 @@ function AuthenticatedApp() {
   const [isLoading, setIsLoading] = useState(true)
 
   // Theme state controls
-  const [themeKey, setThemeKey] = useState('forest')
+  const [themeKey, setThemeKey] = useState('midnight')
   const [isDarkMode, setIsDarkMode] = useState(true)
 
   async function handleThemeChange(newKey) {
     setThemeKey(newKey)
     if (session?.user?.id) {
-      await supabase.from('profiles').update({ theme_key: newKey }).eq('id', session.user.id)
+      const { error } = await supabase.from('profiles').update({ theme_key: newKey }).eq('id', session.user.id)
+      if (error) console.error('Error saving theme preference:', error.message)
     }
   }
 
@@ -59,11 +60,12 @@ function AuthenticatedApp() {
     const nextMode = !isDarkMode
     setIsDarkMode(nextMode)
     if (session?.user?.id) {
-      await supabase.from('profiles').update({ is_dark_mode: nextMode }).eq('id', session.user.id)
+      const { error } = await supabase.from('profiles').update({ is_dark_mode: nextMode }).eq('id', session.user.id)
+      if (error) console.error('Error saving display mode preference:', error.message)
     }
   }
 
-  const activeThemePalette = THEMES[themeKey] || THEMES.forest
+  const activeThemePalette = THEMES[themeKey] || THEMES.midnight
   const colors = isDarkMode ? activeThemePalette.dark : activeThemePalette.light
 
   const fonts = {
@@ -102,7 +104,17 @@ function AuthenticatedApp() {
         if (!isCurrent) return
 
         setProfile(profileData)
-        if (profileData?.theme_key) setThemeKey(profileData.theme_key)
+        const savedThemeKey = ['forest', 'slate'].includes(profileData?.theme_key) ? 'midnight' : profileData?.theme_key
+        if (savedThemeKey && THEMES[savedThemeKey]) {
+          setThemeKey(savedThemeKey)
+          if (profileData.theme_key !== savedThemeKey) {
+            const { error: themeMigrationError } = await supabase
+              .from('profiles')
+              .update({ theme_key: savedThemeKey })
+              .eq('id', session.user.id)
+            if (themeMigrationError) console.error('Error updating default theme preference:', themeMigrationError.message)
+          }
+        }
         if (profileData?.is_dark_mode !== undefined && profileData?.is_dark_mode !== null) {
           setIsDarkMode(profileData.is_dark_mode)
         }
@@ -134,7 +146,7 @@ function AuthenticatedApp() {
   }, [session])
 
   if (isLoading) {
-    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: colors.background, color: colors.primary, fontFamily: fonts.header, fontSize: '24px', letterSpacing: '2px' }}>LOADING TRAILHEAD...</div>
+    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: THEMES.classic.dark.background, color: THEMES.classic.dark.primary, fontFamily: fonts.header, fontSize: '24px', letterSpacing: '2px' }}>LOADING TRAILHEAD...</div>
   }
 
   if (!session) {
@@ -146,6 +158,7 @@ function AuthenticatedApp() {
     return (
       <Lobby 
         profile={profile} 
+        currentUserEmail={session.user.email}
         colors={colors} 
         fonts={fonts} 
         isDarkMode={isDarkMode} 
@@ -218,12 +231,12 @@ function AuthenticatedApp() {
         {activeTab === 'news' && <NewsTab activeCamp={campData} colors={colors} fonts={fonts} />}
         {activeTab === 'events' && <EventsTab activeCamp={campData} colors={colors} fonts={fonts} />}
         {activeTab === 'social' && <SocialTab session={session} activeCamp={campData} colors={colors} fonts={fonts} />}
-        {activeTab === 'profile' && <ProfileTab session={session} profile={profile} colors={colors} fonts={fonts} />}
+        {activeTab === 'profile' && <ProfileTab session={session} setSession={setSession} profile={profile} colors={colors} fonts={fonts} />}
         
         {/* Admin & Utility Tabs */}
         {activeTab === 'admin' && <AdminTab profile={profile} campData={campData} colors={colors} fonts={fonts} />}
         {activeTab === 'staff-manager' && <StaffManager supabase={supabase} selectedPropertyName={campData?.name || 'Whispering Pines Youth Camp'} colors={colors} fonts={fonts} isDarkMode={isDarkMode} />}
-        {activeTab === 'customer-db' && <CustomerDatabase colors={colors} fonts={fonts} isDarkMode={isDarkMode} />}
+        {activeTab === 'customer-db' && <CustomerDatabase colors={colors} fonts={fonts} />}
         {activeTab === 'settings' && <SettingsTab colors={colors} fonts={fonts} isDarkMode={isDarkMode} setIsDarkMode={handleDarkModeToggle} themeKey={themeKey} setThemeKey={handleThemeChange} selectedPropertyName={campData?.name || 'Trailhead Admin Console'} />}
         {activeTab === 'challenges' && <ChallengesTab activeCamp={campData} colors={colors} fonts={fonts} />}
         {activeTab === 'requests' && <RequestsTab activeCamp={campData} colors={colors} fonts={fonts} />}
@@ -317,7 +330,7 @@ function AuthenticatedApp() {
       <Navigation 
         activeTab={activeTab} 
         setActiveTab={setActiveTab} 
-        campBranding={{ primaryColor: colors.sidebar, secondaryColor: colors.primary }} 
+        colors={colors}
         session={profile} 
         campType={campData?.type}
         setIsMoreOpen={setIsMoreOpen} 

@@ -40,7 +40,7 @@ export default function CampManager({ setCampData, setActiveTab, colors, fonts }
           </div>
         ) : (
           campsList.map((camp) => (
-            <div key={camp.id} style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '4px', border: `2px solid #0B140E`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div key={camp.id} style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '4px', border: `2px solid ${colors.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <div style={{ fontFamily: fonts.header, fontSize: '24px', color: colors.textDark, letterSpacing: '1px' }}>{camp.name}</div>
                 <div style={{ fontFamily: fonts.utility, fontSize: '12px', color: colors.muted, textTransform: 'uppercase', marginTop: '4px' }}>
@@ -52,7 +52,7 @@ export default function CampManager({ setCampData, setActiveTab, colors, fonts }
                   setCampData(camp)
                   setActiveTab('news')
                 }} 
-                style={{ padding: '10px 20px', backgroundColor: colors.primary, color: colors.textLight, border: 'none', borderRadius: '4px', fontFamily: fonts.header, fontSize: '18px', letterSpacing: '1px', cursor: 'pointer' }}
+                style={{ padding: '10px 20px', backgroundColor: colors.primary, color: colors.textOnPrimary, border: 'none', borderRadius: '4px', fontFamily: fonts.header, fontSize: '18px', letterSpacing: '1px', cursor: 'pointer' }}
               >
                 ENTER CAMP
               </button>

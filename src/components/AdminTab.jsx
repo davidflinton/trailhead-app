@@ -57,9 +57,9 @@ export default function AdminTab({ campData, colors, fonts }) {
       </div>
       
       <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-        <button onClick={() => setFilter('all')} style={{ ...btnStyle, backgroundColor: filter === 'all' ? colors.primary : colors.highlight, color: colors.textLight }}>ALL</button>
-        <button onClick={() => setFilter('staff')} style={{ ...btnStyle, backgroundColor: filter === 'staff' ? colors.primary : colors.highlight, color: colors.textLight }}>STAFF</button>
-        <button onClick={() => setFilter('campers')} style={{ ...btnStyle, backgroundColor: filter === 'campers' ? colors.primary : colors.highlight, color: colors.textLight }}>CAMPERS</button>
+        <button onClick={() => setFilter('all')} style={{ ...btnStyle, backgroundColor: filter === 'all' ? colors.primary : colors.highlight, color: filter === 'all' ? colors.textOnPrimary : colors.textDark }}>ALL</button>
+        <button onClick={() => setFilter('staff')} style={{ ...btnStyle, backgroundColor: filter === 'staff' ? colors.primary : colors.highlight, color: filter === 'staff' ? colors.textOnPrimary : colors.textDark }}>STAFF</button>
+        <button onClick={() => setFilter('campers')} style={{ ...btnStyle, backgroundColor: filter === 'campers' ? colors.primary : colors.highlight, color: filter === 'campers' ? colors.textOnPrimary : colors.textDark }}>CAMPERS</button>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -74,7 +74,7 @@ export default function AdminTab({ campData, colors, fonts }) {
             const Icon = user.entityType === 'hq_staff' ? Star : (isStaff ? Shield : User)
             
             return (
-              <div key={user.id} style={{ backgroundColor: colors.panel, padding: '15px', borderRadius: '4px', border: `2px solid #0B140E`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div key={user.id} style={{ backgroundColor: colors.panel, padding: '15px', borderRadius: '4px', border: `2px solid ${colors.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <Icon size={20} color={isStaff ? colors.primary : colors.muted} />
                   <div>
@@ -82,7 +82,7 @@ export default function AdminTab({ campData, colors, fonts }) {
                     <div style={{ fontFamily: fonts.utility, fontSize: '11px', color: colors.muted, textTransform: 'uppercase', marginTop: '2px' }}>ID: {user.trailhead_id || 'PENDING'}</div>
                   </div>
                 </div>
-                <div style={{ backgroundColor: isStaff ? colors.primary : colors.highlight, color: colors.textLight, padding: '4px 8px', borderRadius: '2px', fontFamily: fonts.utility, fontSize: '10px', textTransform: 'uppercase', textAlign: 'center' }}>{user.displayRole}</div>
+                <div style={{ backgroundColor: isStaff ? colors.primary : colors.highlight, color: isStaff ? colors.textOnPrimary : colors.textDark, padding: '4px 8px', borderRadius: '2px', fontFamily: fonts.utility, fontSize: '10px', textTransform: 'uppercase', textAlign: 'center' }}>{user.displayRole}</div>
               </div>
             )
           })

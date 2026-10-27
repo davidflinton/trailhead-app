@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 import { Database, Users, User, Search, MoreVertical, FileText, Upload, X, Save, Phone, Mail, MapPin, Briefcase } from 'lucide-react'
 
-export default function CustomerDatabase({ colors, fonts, isDarkMode }) {
+export default function CustomerDatabase({ colors, fonts }) {
   const [activeTab, setActiveTab] = useState('personnel')
   const [personnel, setPersonnel] = useState([])
   const [campers, setCampers] = useState([])
@@ -95,8 +95,8 @@ export default function CustomerDatabase({ colors, fonts, isDarkMode }) {
   const tabButtonStyle = (isActive) => ({
     flex: 1,
     padding: '12px',
-    backgroundColor: isActive ? colors.primary : (isDarkMode ? '#0F1D14' : '#F8F8F8'),
-    color: isActive ? '#FFF' : colors.textDark,
+    backgroundColor: isActive ? colors.primary : colors.highlight,
+    color: isActive ? colors.textOnPrimary : colors.textDark,
     border: `1px solid ${colors.border}`,
     borderRadius: '8px',
     fontFamily: fonts.header,
@@ -113,7 +113,7 @@ export default function CustomerDatabase({ colors, fonts, isDarkMode }) {
   // Reusable Form Field Style Helpers
   const fieldContainerStyle = { display: 'flex', flexDirection: 'column', gap: '6px' }
   const labelStyle = { display: 'block', fontSize: '11px', fontFamily: fonts.utility, color: colors.muted, fontWeight: 'bold', letterSpacing: '0.5px' }
-  const inputStyle = { width: '100%', height: '40px', boxSizing: 'border-box', padding: '0 12px', borderRadius: '6px', border: `1px solid ${colors.muted}`, backgroundColor: isDarkMode ? '#111' : '#FFF', color: colors.textDark, fontFamily: fonts.body, fontSize: '14px', outline: 'none' }
+  const inputStyle = { width: '100%', height: '40px', boxSizing: 'border-box', padding: '0 12px', borderRadius: '6px', border: `1px solid ${colors.border}`, backgroundColor: colors.panel, color: colors.textDark, fontFamily: fonts.body, fontSize: '14px', outline: 'none' }
   const sectionHeaderStyle = { fontFamily: fonts.header, fontSize: '18px', color: colors.primary, margin: '0 0 15px 0', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: `1px solid ${colors.border}`, paddingBottom: '8px', letterSpacing: '0.5px' }
 
   return (
@@ -136,15 +136,15 @@ export default function CustomerDatabase({ colors, fonts, isDarkMode }) {
             placeholder="Search records..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ width: '100%', boxSizing: 'border-box', padding: '10px 10px 10px 40px', borderRadius: '8px', border: `1px solid ${colors.muted}`, backgroundColor: isDarkMode ? '#111' : 'white', color: colors.textDark, fontSize: '14px', outline: 'none' }}
+            style={{ width: '100%', boxSizing: 'border-box', padding: '10px 10px 10px 40px', borderRadius: '8px', border: `1px solid ${colors.border}`, backgroundColor: colors.panel, color: colors.textDark, fontSize: '14px', outline: 'none' }}
           />
         </div>
       </div>
 
       {actionMessage && (
-        <div style={{ marginBottom: '16px', padding: '12px 16px', borderRadius: '8px', fontSize: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: actionMessage.type === 'success' ? 'rgba(20, 83, 45, 0.4)' : 'rgba(220, 38, 38, 0.4)', border: `1px solid ${actionMessage.type === 'success' ? '#14532d' : '#dc2626'}`, color: '#F1E8D0' }}>
+        <div style={{ marginBottom: '16px', padding: '12px 16px', borderRadius: '8px', fontSize: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: actionMessage.type === 'success' ? colors.highlight : 'rgba(220, 38, 38, 0.15)', border: `1px solid ${actionMessage.type === 'success' ? colors.primary : colors.error}`, color: colors.textDark }}>
           <span>{actionMessage.text}</span>
-          <button onClick={() => setActionMessage(null)} style={{ background: 'none', border: 'none', color: '#8A9A8F', cursor: 'pointer', fontSize: '16px' }}>&times;</button>
+          <button onClick={() => setActionMessage(null)} style={{ background: 'none', border: 'none', color: colors.muted, cursor: 'pointer', fontSize: '16px' }}>&times;</button>
         </div>
       )}
 
@@ -157,11 +157,11 @@ export default function CustomerDatabase({ colors, fonts, isDarkMode }) {
         </button>
       </div>
 
-      <div style={{ backgroundColor: isDarkMode ? '#070C08' : 'white', border: `1px solid ${colors.border}`, borderRadius: '12px', overflow: 'hidden' }}>
+      <div style={{ backgroundColor: colors.sidebar, border: `1px solid ${colors.border}`, borderRadius: '12px', overflow: 'hidden' }}>
         <div style={{ overflowX: 'auto', minHeight: '350px' }}>
           <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ borderBottom: `2px solid ${colors.border}`, color: colors.muted, fontSize: '12px', textTransform: 'uppercase', fontFamily: fonts.utility, backgroundColor: isDarkMode ? '#0F1D14' : '#F2F2F2' }}>
+              <tr style={{ borderBottom: `2px solid ${colors.border}`, color: colors.muted, fontSize: '12px', textTransform: 'uppercase', fontFamily: fonts.utility, backgroundColor: colors.highlight }}>
                 <th style={{ padding: '14px 16px' }}>Display Name / Identity</th>
                 <th style={{ padding: '14px 16px' }}>Property Assignment</th>
                 <th style={{ padding: '14px 16px' }}>Contact / Emails</th>
@@ -207,7 +207,7 @@ export default function CustomerDatabase({ colors, fonts, isDarkMode }) {
                           </button>
 
                           {activeMenuId === user.id && (
-                            <div style={{ position: 'absolute', right: '24px', top: '48px', width: '160px', backgroundColor: isDarkMode ? '#070C08' : '#FFF', border: `1px solid ${colors.border}`, borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.5)', padding: '6px 0', zIndex: 50, textAlign: 'left' }}>
+                            <div style={{ position: 'absolute', right: '24px', top: '48px', width: '160px', backgroundColor: colors.sidebar, border: `1px solid ${colors.border}`, borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.5)', padding: '6px 0', zIndex: 50, textAlign: 'left' }}>
                               <button
                                 onClick={() => handleOpenDetails(user)}
                                 style={{ width: '100%', padding: '8px 16px', fontSize: '13px', color: colors.textDark, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold' }}
@@ -251,7 +251,7 @@ export default function CustomerDatabase({ colors, fonts, isDarkMode }) {
                           </button>
 
                           {activeMenuId === camper.id && (
-                            <div style={{ position: 'absolute', right: '24px', top: '48px', width: '160px', backgroundColor: isDarkMode ? '#070C08' : '#FFF', border: `1px solid ${colors.border}`, borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.5)', padding: '6px 0', zIndex: 50, textAlign: 'left' }}>
+                            <div style={{ position: 'absolute', right: '24px', top: '48px', width: '160px', backgroundColor: colors.sidebar, border: `1px solid ${colors.border}`, borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.5)', padding: '6px 0', zIndex: 50, textAlign: 'left' }}>
                               <button
                                 onClick={() => handleOpenDetails(camper)}
                                 style={{ width: '100%', padding: '8px 16px', fontSize: '13px', color: colors.textDark, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold' }}
@@ -274,7 +274,7 @@ export default function CustomerDatabase({ colors, fonts, isDarkMode }) {
       {/* FULL RECORD DETAILS & DOCUMENTS MODAL */}
       {selectedUser && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '20px' }}>
-          <div style={{ backgroundColor: isDarkMode ? '#070C08' : '#FFF', border: `2px solid ${colors.primary}`, borderRadius: '16px', maxWidth: '900px', width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: '30px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)', color: colors.textDark, boxSizing: 'border-box' }}>
+          <div style={{ backgroundColor: colors.sidebar, border: `2px solid ${colors.primary}`, borderRadius: '16px', maxWidth: '900px', width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: '30px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)', color: colors.textDark, boxSizing: 'border-box' }}>
             
             {/* Modal Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${colors.border}`, paddingBottom: '15px', marginBottom: '25px' }}>
@@ -500,7 +500,7 @@ export default function CustomerDatabase({ colors, fonts, isDarkMode }) {
                 <h4 style={{ fontFamily: fonts.header, fontSize: '18px', margin: 0, color: colors.textDark, display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <Upload size={18} color={colors.primary} /> User Documents & Repository
                 </h4>
-                <label style={{ backgroundColor: colors.highlight, color: '#FFF', padding: '8px 14px', borderRadius: '6px', fontFamily: fonts.utility, fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <label style={{ backgroundColor: colors.highlight, color: colors.textDark, padding: '8px 14px', borderRadius: '6px', fontFamily: fonts.utility, fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Upload size={14} /> Upload Document
                   <input type="file" style={{ display: 'none' }} onChange={(e) => {
                     if (e.target.files[0]) {
@@ -511,13 +511,13 @@ export default function CustomerDatabase({ colors, fonts, isDarkMode }) {
                 </label>
               </div>
 
-              <div style={{ backgroundColor: isDarkMode ? '#111' : '#F9F9F9', border: `1px solid ${colors.border}`, borderRadius: '8px', padding: '12px', minHeight: '100px' }}>
+              <div style={{ backgroundColor: colors.background, border: `1px solid ${colors.border}`, borderRadius: '8px', padding: '12px', minHeight: '100px' }}>
                 {userDocuments.length === 0 ? (
                   <div style={{ textAlign: 'center', color: colors.muted, fontSize: '13px', padding: '20px', fontFamily: fonts.utility }}>No documents uploaded for this entry yet.</div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {userDocuments.map(doc => (
-                      <div key={doc.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', backgroundColor: isDarkMode ? '#16281D' : '#FFF', border: `1px solid ${colors.border}`, borderRadius: '6px' }}>
+                      <div key={doc.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', backgroundColor: colors.panel, border: `1px solid ${colors.border}`, borderRadius: '6px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                           <FileText size={16} color={colors.primary} />
                           <div>
@@ -538,7 +538,7 @@ export default function CustomerDatabase({ colors, fonts, isDarkMode }) {
               <button onClick={() => setSelectedUser(null)} style={{ padding: '10px 20px', backgroundColor: 'transparent', color: colors.textDark, border: `1px solid ${colors.muted}`, borderRadius: '6px', fontFamily: fonts.header, fontSize: '14px', cursor: 'pointer' }}>
                 Cancel
               </button>
-              <button onClick={handleSaveUser} style={{ padding: '10px 24px', backgroundColor: colors.primary, color: '#FFF', border: 'none', borderRadius: '6px', fontFamily: fonts.header, fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <button onClick={handleSaveUser} style={{ padding: '10px 24px', backgroundColor: colors.primary, color: colors.textOnPrimary, border: 'none', borderRadius: '6px', fontFamily: fonts.header, fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <Save size={16} /> Save Changes
               </button>
             </div>

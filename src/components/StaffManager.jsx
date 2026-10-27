@@ -1,13 +1,16 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   MoreVertical, Mail, MessageSquare, Key, RefreshCw, 
-  QrCode, UserX, UserCheck, Trash2, Search, Shield, FileText, Upload, X, Save, Phone, MapPin, Briefcase, User
+  QrCode, UserX, UserCheck, Trash2, Search, Shield, FileText, Upload, X, Save, Phone, MapPin, Briefcase, User, ChevronDown, ChevronUp
 } from 'lucide-react';
 
-export default function StaffManager({ supabase, selectedPropertyName }) {
+export default function StaffManager({ supabase, selectedPropertyName, colors, fonts }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
   const [activeMenuId, setActiveMenuId] = useState(null);
   const [modalData, setModalData] = useState(null);
   const [modalType, setModalType] = useState(null);
@@ -200,91 +203,217 @@ export default function StaffManager({ supabase, selectedPropertyName }) {
     }
   }
 
-  const filteredUsers = users.filter(u => {
-    const fullName = getDisplayName(u);
-    const tId = u.trailhead_id || '';
-    const userEmail = u.work_email || u.personal_email || u.email || '';
-    const term = searchTerm.toLowerCase();
-    return fullName.toLowerCase().includes(term) || tId.toLowerCase().includes(term) || userEmail.toLowerCase().includes(term);
-  });
+  const getDisplayRole = (user) => (user.system_role || user.job_title || user.access_tier || 'Staff').replaceAll('_', ' ')
+  const normalizedSearch = searchTerm.trim().toLowerCase()
+  const roleOptions = [...new Set(users.map(getDisplayRole))].sort((a, b) => a.localeCompare(b))
+  const activeUsers = users.filter(user => user.active !== false).length
+  const filteredUsers = users
+    .filter(user => {
+      const fullName = getDisplayName(user)
+      const displayId = user.trailhead_id || ''
+      const userEmail = user.work_email || user.personal_email || user.email || ''
+      const role = getDisplayRole(user)
+      const matchesSearch = !normalizedSearch || [fullName, displayId, userEmail, role]
+        .some(value => value.toLowerCase().includes(normalizedSearch))
+      const matchesStatus = statusFilter === 'all' || (statusFilter === 'active' ? user.active !== false : user.active === false)
+      const matchesRole = roleFilter === 'all' || role === roleFilter
+      return matchesSearch && matchesStatus && matchesRole
+    })
+    .sort((a, b) => {
+      const valueFor = (user) => {
+        if (sortConfig.key === 'name') return getDisplayName(user)
+        if (sortConfig.key === 'role') return getDisplayRole(user)
+        if (sortConfig.key === 'status') return user.active === false ? 'Disabled' : 'Active'
+        return user.trailhead_id || user.id || ''
+      }
+      const result = valueFor(a).localeCompare(valueFor(b), undefined, { numeric: true, sensitivity: 'base' })
+      return sortConfig.direction === 'asc' ? result : -result
+    })
+
+  function toggleSort(key) {
+    setSortConfig(current => ({
+      key,
+      direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc'
+    }))
+  }
 
   // Reusable Styling Helpers for StaffManager
   const fieldContainerStyle = { display: 'flex', flexDirection: 'column', gap: '6px' };
-  const labelStyle = { display: 'block', fontSize: '11px', fontFamily: 'monospace', color: '#8A9A8F', fontWeight: 'bold', letterSpacing: '0.5px' };
-  const inputStyle = { width: '100%', height: '40px', boxSizing: 'border-box', padding: '0 12px', borderRadius: '6px', border: '1px solid #2A4731', backgroundColor: '#0F1D14', color: '#F1E8D0', fontFamily: 'sans-serif', fontSize: '14px', outline: 'none' };
-  const sectionHeaderStyle = { fontSize: '16px', fontWeight: 'bold', color: '#C1531B', margin: '0 0 15px 0', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #2A4731', paddingBottom: '8px', letterSpacing: '0.5px' };
+  const labelStyle = { display: 'block', fontSize: '11px', fontFamily: 'monospace', color: 'var(--staff-muted)', fontWeight: 'bold', letterSpacing: '0.5px' };
+  const inputStyle = { width: '100%', height: '40px', boxSizing: 'border-box', padding: '0 12px', borderRadius: '6px', border: '1px solid var(--staff-border)', backgroundColor: 'var(--staff-panel)', color: 'var(--staff-text)', fontFamily: 'sans-serif', fontSize: '14px', outline: 'none' };
+  const sectionHeaderStyle = { fontSize: '16px', fontWeight: 'bold', color: 'var(--staff-primary)', margin: '0 0 15px 0', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--staff-border)', paddingBottom: '8px', letterSpacing: '0.5px' };
+  const filterButtonStyle = (active) => ({
+    display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 13px',
+    backgroundColor: active ? 'var(--staff-highlight)' : 'transparent',
+    color: active ? 'var(--staff-text)' : 'var(--staff-muted)',
+    border: `1px solid ${active ? 'var(--staff-primary)' : 'var(--staff-border)'}`,
+    borderRadius: '6px', cursor: 'pointer', fontFamily: fonts?.utility || 'monospace',
+    fontSize: '12px', fontWeight: active ? 'bold' : 'normal', whiteSpace: 'nowrap'
+  });
+  const sortButton = (label, key) => (
+    <button
+      type="button"
+      onClick={() => toggleSort(key)}
+      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: 0, border: 'none', background: 'none', color: 'var(--staff-muted)', font: 'inherit', textTransform: 'inherit', letterSpacing: 'inherit', cursor: 'pointer' }}
+    >
+      {label}
+      {sortConfig.key === key && (sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}
+    </button>
+  );
 
   return (
-    <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto', color: '#F1E8D0', fontFamily: 'sans-serif' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', mdFlexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', gap: '16px' }}>
+    <div style={{
+      padding: '24px',
+      maxWidth: '1200px',
+      margin: '0 auto',
+      color: 'var(--staff-text)',
+      fontFamily: fonts?.body || 'sans-serif',
+      '--staff-background': colors?.background || '#171D29',
+      '--staff-sidebar': colors?.sidebar || '#1D2533',
+      '--staff-panel': colors?.panel || '#222C3C',
+      '--staff-border': colors?.border || '#39465C',
+      '--staff-highlight': colors?.highlight || '#303B50',
+      '--staff-primary': colors?.primary || '#8E9BF0',
+      '--staff-error': colors?.error || '#F17878',
+      '--staff-text': colors?.textDark || '#E8EDF5',
+      '--staff-muted': colors?.muted || '#A5B0C0'
+    }}>
+      <div style={{ marginBottom: '20px', color: 'var(--staff-muted)', fontSize: '12px', fontFamily: fonts?.utility || 'monospace', letterSpacing: '0.04em' }}>
+        IDENTITY <span style={{ padding: '0 7px', color: 'var(--staff-muted)' }}>/</span> PERSONNEL DIRECTORY
+      </div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '24px', gap: '16px' }}>
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 4px 0', color: '#F1E8D0' }}>
-            <Shield style={{ color: '#C1531B' }} /> Trailhead Personnel Management
+          <h1 style={{ fontSize: '28px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '10px', margin: '0 0 6px 0', color: 'var(--staff-text)', letterSpacing: '-0.02em' }}>
+            <Shield size={25} style={{ color: colors?.primary || '#8E9BF0' }} /> Personnel
           </h1>
-          <p style={{ color: '#8A9A8F', fontSize: '14px', margin: 0 }}>
-            Managing administrative and staff personnel accounts with uniform directory fields
+          <p style={{ color: 'var(--staff-muted)', fontSize: '14px', margin: 0 }}>
+            Manage identities{selectedPropertyName ? ` for ${selectedPropertyName}` : ' across your organization'}
           </p>
         </div>
-        <div style={{ position: 'relative', width: '100%', maxWidth: '288px' }}>
-          <Search style={{ position: 'absolute', left: '12px', top: '10px', color: '#8A9A8F' }} size={18} />
-          <input
-            id="staff-search-input"
-            name="staffSearch"
-            type="text"
-            placeholder="Search staff..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ width: '100%', backgroundColor: '#0F1D14', border: '1px solid #2A4731', borderRadius: '12px', padding: '8px 16px 8px 36px', fontSize: '14px', color: '#F1E8D0', outline: 'none', boxSizing: 'border-box' }}
-          />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--staff-muted)', fontSize: '13px' }}>
+          <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#4ADE80' }} />
+          Directory synced
         </div>
       </div>
 
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px', marginBottom: '20px' }}>
+        {[
+          { label: 'Total accounts', value: users.length, detail: 'Directory identities' },
+          { label: 'Active', value: activeUsers, detail: 'Can access Trailhead' },
+          { label: 'Disabled', value: users.length - activeUsers, detail: 'Access suspended' }
+        ].map((stat) => (
+          <div key={stat.label} style={{ padding: '16px 18px', backgroundColor: 'var(--staff-panel)', border: '1px solid var(--staff-border)', borderRadius: '8px' }}>
+            <div style={{ color: 'var(--staff-muted)', fontSize: '12px', marginBottom: '7px' }}>{stat.label}</div>
+            <div style={{ fontSize: '24px', lineHeight: 1.1, fontWeight: '600', color: 'var(--staff-text)' }}>{loading ? '—' : stat.value}</div>
+            <div style={{ color: 'var(--staff-muted)', fontSize: '11px', marginTop: '5px' }}>{stat.detail}</div>
+          </div>
+        ))}
+      </div>
+
       {actionMessage && (
-        <div style={{ marginBottom: '16px', padding: '12px 16px', borderRadius: '12px', fontSize: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: actionMessage.type === 'success' ? 'rgba(20, 83, 45, 0.4)' : 'rgba(220, 38, 38, 0.4)', border: `1px solid ${actionMessage.type === 'success' ? '#14532d' : '#dc2626'}`, color: '#F1E8D0' }}>
+        <div style={{ marginBottom: '16px', padding: '12px 16px', borderRadius: '12px', fontSize: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: actionMessage.type === 'success' ? 'var(--staff-highlight)' : 'rgba(220, 38, 38, 0.15)', border: `1px solid ${actionMessage.type === 'success' ? 'var(--staff-primary)' : 'var(--staff-error)'}`, color: 'var(--staff-text)' }}>
           <span>{actionMessage.text}</span>
-          <button onClick={() => setActionMessage(null)} style={{ background: 'none', border: 'none', color: '#8A9A8F', cursor: 'pointer', fontSize: '16px' }}>&times;</button>
+          <button onClick={() => setActionMessage(null)} style={{ background: 'none', border: 'none', color: 'var(--staff-muted)', cursor: 'pointer', fontSize: '16px' }}>&times;</button>
         </div>
       )}
 
-      <div style={{ backgroundColor: '#0F1D14', border: '1px solid #2A4731', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)' }}>
+      <div style={{ backgroundColor: 'var(--staff-panel)', border: '1px solid var(--staff-border)', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 8px 20px rgba(0, 0, 0, 0.22)' }}>
+        <div style={{ padding: '16px', borderBottom: '1px solid var(--staff-border)', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }} role="group" aria-label="Filter by account status">
+              {[
+                { key: 'all', label: 'All accounts', count: users.length },
+                { key: 'active', label: 'Active', count: activeUsers },
+                { key: 'disabled', label: 'Disabled', count: users.length - activeUsers }
+              ].map(filter => (
+                <button key={filter.key} type="button" aria-pressed={statusFilter === filter.key} onClick={() => setStatusFilter(filter.key)} style={filterButtonStyle(statusFilter === filter.key)}>
+                  {filter.label}<span style={{ color: statusFilter === filter.key ? 'var(--staff-highlight)' : 'var(--staff-muted)' }}>{filter.count}</span>
+                </button>
+              ))}
+            </div>
+            <span style={{ color: 'var(--staff-muted)', fontSize: '12px' }}>
+              {loading ? 'Loading directory…' : `${filteredUsers.length} of ${users.length} accounts`}
+            </span>
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+            <div style={{ position: 'relative', flex: '1 1 280px', minWidth: '220px' }}>
+              <Search style={{ position: 'absolute', left: '12px', top: '11px', color: 'var(--staff-muted)' }} size={17} />
+              <input
+                id="staff-search-input"
+                name="staffSearch"
+                type="search"
+                placeholder="Search name, email, ID, or role"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{ ...inputStyle, paddingLeft: '38px', borderRadius: '6px' }}
+              />
+            </div>
+            <select
+              aria-label="Filter by role"
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+              style={{ ...inputStyle, width: 'auto', minWidth: '180px', cursor: 'pointer' }}
+            >
+              <option value="all">All roles</option>
+              {roleOptions.map(role => <option key={role} value={role}>{role}</option>)}
+            </select>
+          </div>
+        </div>
         <div style={{ overflowX: 'auto', minHeight: '300px' }}>
           <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid #2A4731', color: '#8A9A8F', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em', backgroundColor: '#070C08' }}>
-                <th style={{ padding: '14px 16px' }}>User / Identity</th>
-                <th style={{ padding: '14px 16px' }}>Trailhead ID</th>
-                <th style={{ padding: '14px 16px' }}>Role / Tier</th>
-                <th style={{ padding: '14px 16px' }}>Status</th>
-                <th style={{ padding: '14px 16px', textAlign: 'right' }}>Actions</th>
+              <tr style={{ borderBottom: '1px solid var(--staff-border)', color: 'var(--staff-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.06em', backgroundColor: 'var(--staff-background)' }}>
+                <th style={{ padding: '13px 16px' }}>{sortButton('Name', 'name')}</th>
+                <th style={{ padding: '13px 16px' }}>{sortButton('Trailhead ID', 'id')}</th>
+                <th style={{ padding: '13px 16px' }}>{sortButton('Role', 'role')}</th>
+                <th style={{ padding: '13px 16px' }}>{sortButton('Status', 'status')}</th>
+                <th style={{ padding: '13px 16px', textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
-            <tbody style={{ borderTop: '1px solid #2A4731' }}>
+            <tbody style={{ borderTop: '1px solid var(--staff-border)' }}>
               {loading ? (
                 <tr>
-                  <td colSpan="5" style={{ textAlign: 'center', padding: '48px', color: '#8A9A8F' }}>Loading accounts...</td>
+                  <td colSpan="5" style={{ textAlign: 'center', padding: '48px', color: 'var(--staff-muted)' }}>Loading accounts...</td>
                 </tr>
               ) : filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan="5" style={{ textAlign: 'center', padding: '48px', color: '#8A9A8F' }}>No personnel records found.</td>
+                  <td colSpan="5" style={{ textAlign: 'center', padding: '48px', color: 'var(--staff-muted)' }}>
+                    <div style={{ fontSize: '15px', fontWeight: 'bold', marginBottom: '6px' }}>No accounts match these filters</div>
+                    <div style={{ fontSize: '13px' }}>Try another search term or clear a filter.</div>
+                    <button
+                      type="button"
+                      onClick={() => { setSearchTerm(''); setStatusFilter('all'); setRoleFilter('all'); }}
+                      style={{ marginTop: '14px', padding: '8px 12px', border: '1px solid var(--staff-primary)', borderRadius: '6px', background: 'transparent', color: 'var(--staff-highlight)', cursor: 'pointer', fontFamily: fonts?.utility || 'monospace', fontSize: '12px' }}
+                    >
+                      Clear filters
+                    </button>
+                  </td>
                 </tr>
               ) : (
                 filteredUsers.map((user) => {
                   const displayName = getDisplayName(user);
                   const displayEmail = user.work_email || user.personal_email || user.email || 'No email provided';
                   const displayId = user.trailhead_id || user.id?.substring(0, 8) || 'N/A';
-                  const displayRole = user.system_role || user.job_title || user.access_tier || 'Staff';
+                  const displayRole = getDisplayRole(user);
                   const isActive = user.active !== false;
+                  const initials = displayName.split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join('').toUpperCase() || '?';
 
                   return (
-                    <tr key={user.id} style={{ borderBottom: '1px solid rgba(42, 71, 49, 0.4)' }}>
+                    <tr key={user.id} style={{ borderBottom: '1px solid var(--staff-border)', transition: 'background-color 0.15s' }}>
                       <td style={{ padding: '12px 16px' }}>
-                        <div style={{ fontWeight: '500', color: '#F1E8D0' }}>{displayName}</div>
-                        <div style={{ fontSize: '12px', color: '#8A9A8F', marginTop: '2px' }}>{displayEmail}</div>
+                        <button type="button" onClick={() => handleOpenDetails(user)} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: 0, border: 'none', background: 'none', color: 'inherit', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit' }}>
+                          <span aria-hidden="true" style={{ width: '38px', height: '38px', flex: '0 0 38px', display: 'grid', placeItems: 'center', borderRadius: '50%', backgroundColor: 'var(--staff-highlight)', color: 'var(--staff-text)', fontSize: '13px', fontWeight: 'bold' }}>{initials}</span>
+                          <span style={{ minWidth: 0 }}>
+                            <span style={{ display: 'block', fontWeight: '600', color: 'var(--staff-text)' }}>{displayName}</span>
+                            <span style={{ display: 'block', fontSize: '12px', color: 'var(--staff-muted)', marginTop: '2px' }}>{displayEmail}</span>
+                          </span>
+                        </button>
                       </td>
-                      <td style={{ padding: '12px 16px', color: '#8A9A8F', fontFamily: 'monospace', fontSize: '14px' }}>{displayId}</td>
-                      <td style={{ padding: '12px 16px', color: '#F1E8D0', textTransform: 'capitalize' }}>{displayRole.replace('_', ' ')}</td>
+                      <td style={{ padding: '12px 16px', color: 'var(--staff-muted)', fontFamily: 'monospace', fontSize: '14px' }}>{displayId}</td>
+                      <td style={{ padding: '12px 16px', color: 'var(--staff-text)', textTransform: 'capitalize' }}>{displayRole}</td>
                       <td style={{ padding: '12px 16px' }}>
-                        <span style={{ padding: '4px 10px', fontSize: '12px', borderRadius: '9999px', fontWeight: '500', backgroundColor: isActive ? 'rgba(20, 83, 45, 0.4)' : 'rgba(220, 38, 38, 0.4)', color: isActive ? '#86efac' : '#fca5a5', border: `1px solid ${isActive ? '#14532d' : '#dc2626'}` }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '5px 9px', fontSize: '11px', borderRadius: '9999px', fontWeight: '600', backgroundColor: isActive ? 'var(--staff-highlight)' : 'rgba(220, 38, 38, 0.15)', color: isActive ? 'var(--staff-primary)' : 'var(--staff-error)', border: `1px solid ${isActive ? 'var(--staff-primary)' : 'var(--staff-error)'}` }}>
+                          <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: isActive ? 'var(--staff-primary)' : 'var(--staff-error)' }} />
                           {isActive ? 'Active' : 'Disabled'}
                         </span>
                       </td>
@@ -292,8 +421,10 @@ export default function StaffManager({ supabase, selectedPropertyName }) {
                       <td style={{ padding: '12px 16px', textAlign: 'right', position: 'relative' }}>
                         <button
                           onClick={() => setActiveMenuId(activeMenuId === user.id ? null : user.id)}
-                          style={{ padding: '6px', background: 'none', border: 'none', borderRadius: '8px', color: '#8A9A8F', cursor: 'pointer' }}
-                          aria-label="Account Actions"
+                          style={{ padding: '6px', background: 'none', border: 'none', borderRadius: '8px', color: 'var(--staff-muted)', cursor: 'pointer' }}
+                          aria-label={`Actions for ${displayName}`}
+                          aria-haspopup="menu"
+                          aria-expanded={activeMenuId === user.id}
                         >
                           <MoreVertical size={18} />
                         </button>
@@ -301,56 +432,56 @@ export default function StaffManager({ supabase, selectedPropertyName }) {
                         {activeMenuId === user.id && (
                           <div 
                             ref={menuRef}
-                            style={{ position: 'absolute', right: '24px', top: '48px', width: '220px', backgroundColor: '#070C08', border: '1px solid #2A4731', borderRadius: '12px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.7)', padding: '6px 0', zIndex: 50, textAlign: 'left' }}
+                            style={{ position: 'absolute', right: '24px', top: '48px', width: '220px', backgroundColor: 'var(--staff-sidebar)', border: '1px solid var(--staff-border)', borderRadius: '12px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.7)', padding: '6px 0', zIndex: 50, textAlign: 'left' }}
                           >
                             <button
                               onClick={() => handleOpenDetails(user)}
-                              style={{ width: '100%', padding: '8px 16px', fontSize: '14px', color: '#86efac', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', fontWeight: 'bold' }}
+                              style={{ width: '100%', padding: '8px 16px', fontSize: '14px', color: 'var(--staff-primary)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', fontWeight: 'bold' }}
                             >
-                              <FileText size={15} style={{ color: '#86efac' }} /> View Details & Edit
+                              <FileText size={15} style={{ color: 'var(--staff-primary)' }} /> View Details & Edit
                             </button>
-                            <div style={{ height: '1px', backgroundColor: '#2A4731', margin: '4px 0' }}></div>
+                            <div style={{ height: '1px', backgroundColor: 'var(--staff-border)', margin: '4px 0' }}></div>
                             <button
                               onClick={() => handleAction('email', user)}
-                              style={{ width: '100%', padding: '8px 16px', fontSize: '14px', color: '#F1E8D0', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}
+                              style={{ width: '100%', padding: '8px 16px', fontSize: '14px', color: 'var(--staff-text)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}
                             >
-                              <Mail size={15} style={{ color: '#8A9A8F' }} /> Send Email
+                              <Mail size={15} style={{ color: 'var(--staff-muted)' }} /> Send Email
                             </button>
                             <button
                               onClick={() => handleAction('text', user)}
-                              style={{ width: '100%', padding: '8px 16px', fontSize: '14px', color: '#F1E8D0', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}
+                              style={{ width: '100%', padding: '8px 16px', fontSize: '14px', color: 'var(--staff-text)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}
                             >
-                              <MessageSquare size={15} style={{ color: '#8A9A8F' }} /> Send Text
+                              <MessageSquare size={15} style={{ color: 'var(--staff-muted)' }} /> Send Text
                             </button>
                             <button
                               onClick={() => handleAction('view_passphrase', user)}
-                              style={{ width: '100%', padding: '8px 16px', fontSize: '14px', color: '#F1E8D0', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}
+                              style={{ width: '100%', padding: '8px 16px', fontSize: '14px', color: 'var(--staff-text)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}
                             >
-                              <Key size={15} style={{ color: '#8A9A8F' }} /> View Passphrase
+                              <Key size={15} style={{ color: 'var(--staff-muted)' }} /> View Passphrase
                             </button>
                             <button
                               onClick={() => handleAction('reset_passphrase', user)}
-                              style={{ width: '100%', padding: '8px 16px', fontSize: '14px', color: '#F1E8D0', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}
+                              style={{ width: '100%', padding: '8px 16px', fontSize: '14px', color: 'var(--staff-text)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}
                             >
-                              <RefreshCw size={15} style={{ color: '#8A9A8F' }} /> Reset Passphrase
+                              <RefreshCw size={15} style={{ color: 'var(--staff-muted)' }} /> Reset Passphrase
                             </button>
                             <button
                               onClick={() => handleAction('qr', user)}
-                              style={{ width: '100%', padding: '8px 16px', fontSize: '14px', color: '#F1E8D0', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}
+                              style={{ width: '100%', padding: '8px 16px', fontSize: '14px', color: 'var(--staff-text)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}
                             >
-                              <QrCode size={15} style={{ color: '#8A9A8F' }} /> Generate QR
+                              <QrCode size={15} style={{ color: 'var(--staff-muted)' }} /> Generate QR
                             </button>
-                            <div style={{ height: '1px', backgroundColor: '#2A4731', margin: '4px 0' }}></div>
+                            <div style={{ height: '1px', backgroundColor: 'var(--staff-border)', margin: '4px 0' }}></div>
                             <button
                               onClick={() => handleAction('toggle_disable', user)}
-                              style={{ width: '100%', padding: '8px 16px', fontSize: '14px', color: '#facc15', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}
+                              style={{ width: '100%', padding: '8px 16px', fontSize: '14px', color: 'var(--staff-primary)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}
                             >
                               {isActive ? <UserX size={15} /> : <UserCheck size={15} />} 
                               {isActive ? 'Disable User' : 'Enable User'}
                             </button>
                             <button
                               onClick={() => handleAction('delete', user)}
-                              style={{ width: '100%', padding: '8px 16px', fontSize: '14px', color: '#f87171', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}
+                              style={{ width: '100%', padding: '8px 16px', fontSize: '14px', color: 'var(--staff-error)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}
                             >
                               <Trash2 size={15} /> Delete User
                             </button>
@@ -364,20 +495,46 @@ export default function StaffManager({ supabase, selectedPropertyName }) {
             </tbody>
           </table>
         </div>
+        {!loading && users.length > 0 && (
+          <div style={{ padding: '12px 16px', borderTop: '1px solid var(--staff-border)', color: 'var(--staff-muted)', fontSize: '12px' }}>
+            Showing {filteredUsers.length} {filteredUsers.length === 1 ? 'account' : 'accounts'}
+          </div>
+        )}
       </div>
 
       {/* FULL USER DETAILS & SHAREPOINT-STYLE DOCUMENTS MODAL */}
       {selectedUser && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '20px' }}>
-          <div style={{ backgroundColor: '#070C08', border: '1px solid #2A4731', borderRadius: '16px', maxWidth: '900px', width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: '30px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)', color: '#F1E8D0', boxSizing: 'border-box' }}>
+        <div role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedUser(null); }} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0, 0, 0, 0.75)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '20px' }}>
+          <div role="dialog" aria-modal="true" aria-labelledby="personnel-profile-title" style={{ backgroundColor: 'var(--staff-sidebar)', border: '1px solid var(--staff-border)', borderRadius: '12px', maxWidth: '960px', width: '100%', maxHeight: '92vh', overflowY: 'auto', padding: '24px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)', color: 'var(--staff-text)', boxSizing: 'border-box' }}>
             
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #2A4731', paddingBottom: '15px', marginBottom: '25px' }}>
-              <h3 style={{ fontSize: '22px', fontWeight: 'bold', margin: 0, color: '#F1E8D0', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <FileText style={{ color: '#C1531B' }} /> Personnel Profile & Directory Details
-              </h3>
-              <button onClick={() => setSelectedUser(null)} style={{ background: 'none', border: 'none', color: '#8A9A8F', cursor: 'pointer' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--staff-border)', paddingBottom: '14px', marginBottom: '20px' }}>
+              <div>
+                <div style={{ color: 'var(--staff-muted)', fontSize: '11px', fontFamily: fonts?.utility || 'monospace', letterSpacing: '0.06em', marginBottom: '5px' }}>IDENTITY <span style={{ color: 'var(--staff-muted)' }}>/</span> USER PROFILE</div>
+                <h3 id="personnel-profile-title" style={{ fontSize: '20px', fontWeight: '600', margin: 0, color: 'var(--staff-text)' }}>
+                  Personnel details
+                </h3>
+              </div>
+              <button type="button" onClick={() => setSelectedUser(null)} aria-label="Close personnel profile" style={{ display: 'grid', placeItems: 'center', width: '36px', height: '36px', background: 'transparent', border: '1px solid var(--staff-border)', borderRadius: '6px', color: 'var(--staff-muted)', cursor: 'pointer' }}>
                 <X size={24} />
               </button>
+            </div>
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '16px', padding: '18px', marginBottom: '24px', backgroundColor: 'var(--staff-panel)', border: '1px solid var(--staff-border)', borderRadius: '8px' }}>
+              <span aria-hidden="true" style={{ width: '58px', height: '58px', flex: '0 0 58px', display: 'grid', placeItems: 'center', borderRadius: '50%', backgroundColor: 'var(--staff-highlight)', color: 'var(--staff-highlight)', fontSize: '18px', fontWeight: 'bold' }}>
+                {getDisplayName(selectedUser).split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join('').toUpperCase() || '?'}
+              </span>
+              <div style={{ flex: '1 1 240px', minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginBottom: '5px' }}>
+                  <strong style={{ fontSize: '20px', color: 'var(--staff-text)' }}>{getDisplayName(selectedUser)}</strong>
+                  <span style={{ padding: '4px 8px', borderRadius: '9999px', backgroundColor: selectedUser.active === false ? 'rgba(220, 38, 38, 0.15)' : 'var(--staff-highlight)', border: `1px solid ${selectedUser.active === false ? 'var(--staff-error)' : 'var(--staff-primary)'}`, color: selectedUser.active === false ? 'var(--staff-error)' : 'var(--staff-primary)', fontSize: '11px', fontWeight: '600' }}>
+                    {selectedUser.active === false ? 'Disabled' : 'Active'}
+                  </span>
+                </div>
+                <div style={{ color: 'var(--staff-muted)', fontSize: '13px', overflowWrap: 'anywhere' }}>{selectedUser.work_email || selectedUser.personal_email || selectedUser.email || 'No email provided'}</div>
+                <div style={{ color: 'var(--staff-muted)', fontSize: '12px', marginTop: '5px', textTransform: 'capitalize' }}>
+                  {getDisplayRole(selectedUser)} <span style={{ padding: '0 5px' }}>·</span> ID: {selectedUser.trailhead_id || selectedUser.id?.substring(0, 8) || 'N/A'}
+                </div>
+              </div>
             </div>
 
             {/* ORGANIZED FORM SECTIONS */}
@@ -589,12 +746,12 @@ export default function StaffManager({ supabase, selectedPropertyName }) {
             </div>
 
             {/* SHAREPOINT-STYLE USER DOCUMENTS REPOSITORY */}
-            <div style={{ borderTop: '2px solid #2A4731', paddingTop: '20px', marginTop: '30px' }}>
+            <div style={{ borderTop: '2px solid var(--staff-border)', paddingTop: '20px', marginTop: '30px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                <h4 style={{ fontSize: '16px', fontWeight: 'bold', margin: 0, color: '#F1E8D0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Upload size={16} style={{ color: '#C1531B' }} /> User Documents & Repository
+                <h4 style={{ fontSize: '16px', fontWeight: 'bold', margin: 0, color: 'var(--staff-text)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Upload size={16} style={{ color: 'var(--staff-primary)' }} /> User Documents & Repository
                 </h4>
-                <label style={{ backgroundColor: '#1E3524', color: '#FFF', padding: '8px 14px', borderRadius: '6px', fontFamily: 'monospace', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #2A4731' }}>
+                <label style={{ backgroundColor: 'var(--staff-highlight)', color: 'var(--staff-text)', padding: '8px 14px', borderRadius: '6px', fontFamily: 'monospace', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid var(--staff-border)' }}>
                   <Upload size={14} /> Upload Document
                   <input type="file" style={{ display: 'none' }} onChange={(e) => {
                     if (e.target.files[0]) {
@@ -605,21 +762,21 @@ export default function StaffManager({ supabase, selectedPropertyName }) {
                 </label>
               </div>
 
-              <div style={{ backgroundColor: '#050A07', border: '1px solid #2A4731', borderRadius: '8px', padding: '12px', minHeight: '100px' }}>
+              <div style={{ backgroundColor: 'var(--staff-background)', border: '1px solid var(--staff-border)', borderRadius: '8px', padding: '12px', minHeight: '100px' }}>
                 {userDocuments.length === 0 ? (
-                  <div style={{ textAlign: 'center', color: '#8A9A8F', fontSize: '13px', padding: '20px', fontFamily: 'monospace' }}>No documents uploaded for this personnel account yet.</div>
+                  <div style={{ textAlign: 'center', color: 'var(--staff-muted)', fontSize: '13px', padding: '20px', fontFamily: 'monospace' }}>No documents uploaded for this personnel account yet.</div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {userDocuments.map(doc => (
-                      <div key={doc.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', backgroundColor: '#0F1D14', border: '1px solid #2A4731', borderRadius: '6px' }}>
+                      <div key={doc.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', backgroundColor: 'var(--staff-panel)', border: '1px solid var(--staff-border)', borderRadius: '6px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <FileText size={16} style={{ color: '#C1531B' }} />
+                          <FileText size={16} style={{ color: 'var(--staff-primary)' }} />
                           <div>
-                            <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#F1E8D0' }}>{doc.name}</div>
-                            <div style={{ fontSize: '11px', color: '#8A9A8F', fontFamily: 'monospace' }}>Size: {doc.size} | Uploaded: {doc.date}</div>
+                            <div style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--staff-text)' }}>{doc.name}</div>
+                            <div style={{ fontSize: '11px', color: 'var(--staff-muted)', fontFamily: 'monospace' }}>Size: {doc.size} | Uploaded: {doc.date}</div>
                           </div>
                         </div>
-                        <button onClick={() => setUserDocuments(userDocuments.filter(d => d.id !== doc.id))} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '12px', fontFamily: 'monospace' }}>Delete</button>
+                        <button onClick={() => setUserDocuments(userDocuments.filter(d => d.id !== doc.id))} style={{ background: 'none', border: 'none', color: 'var(--staff-error)', cursor: 'pointer', fontSize: '12px', fontFamily: 'monospace' }}>Delete</button>
                       </div>
                     ))}
                   </div>
@@ -628,11 +785,11 @@ export default function StaffManager({ supabase, selectedPropertyName }) {
             </div>
 
             {/* MODAL ACTIONS */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '30px', borderTop: '1px solid #2A4731', paddingTop: '20px' }}>
-              <button onClick={() => setSelectedUser(null)} style={{ padding: '10px 20px', backgroundColor: 'transparent', color: '#F1E8D0', border: '1px solid #8A9A8F', borderRadius: '6px', fontSize: '14px', cursor: 'pointer' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '30px', borderTop: '1px solid var(--staff-border)', paddingTop: '20px' }}>
+              <button onClick={() => setSelectedUser(null)} style={{ padding: '10px 20px', backgroundColor: 'transparent', color: 'var(--staff-text)', border: '1px solid var(--staff-muted)', borderRadius: '6px', fontSize: '14px', cursor: 'pointer' }}>
                 Cancel
               </button>
-              <button onClick={handleSaveUser} style={{ padding: '10px 24px', backgroundColor: '#C1531B', color: '#FFF', border: 'none', borderRadius: '6px', fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <button onClick={handleSaveUser} style={{ padding: '10px 24px', backgroundColor: 'var(--staff-primary)', color: colors?.textOnPrimary || '#FFFFFF', border: 'none', borderRadius: '6px', fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <Save size={16} /> Save Changes
               </button>
             </div>
@@ -644,13 +801,13 @@ export default function StaffManager({ supabase, selectedPropertyName }) {
       {/* PASSCODE / QR MODALS */}
       {modalType && modalData && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0, 0, 0, 0.8)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '16px' }}>
-          <div style={{ backgroundColor: '#070C08', border: '1px solid #2A4731', borderRadius: '16px', maxWidth: '448px', width: '100%', padding: '24px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)', position: 'relative' }}>
-            <h3 style={{ fontSize: '18px', fontWeight: 'bold', margin: '0 0 16px 0', color: '#F1E8D0' }}>
+          <div style={{ backgroundColor: 'var(--staff-sidebar)', border: '1px solid var(--staff-border)', borderRadius: '16px', maxWidth: '448px', width: '100%', padding: '24px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)', position: 'relative' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: 'bold', margin: '0 0 16px 0', color: 'var(--staff-text)' }}>
               {modalType === 'passphrase' ? `Passphrase for ${getDisplayName(modalData)}` : `QR Code for ${getDisplayName(modalData)}`}
             </h3>
             
             {modalType === 'passphrase' ? (
-              <div style={{ margin: '16px 0', padding: '16px', backgroundColor: '#0F1D14', border: '1px solid #2A4731', borderRadius: '12px', fontFamily: 'monospace', textAlign: 'center', fontSize: '20px', color: '#C1531B', letterSpacing: '0.05em' }}>
+              <div style={{ margin: '16px 0', padding: '16px', backgroundColor: 'var(--staff-panel)', border: '1px solid var(--staff-border)', borderRadius: '12px', fontFamily: 'monospace', textAlign: 'center', fontSize: '20px', color: 'var(--staff-primary)', letterSpacing: '0.05em' }}>
                 {modalData.passphrase || 'No passphrase stored'}
               </div>
             ) : (
@@ -658,14 +815,14 @@ export default function StaffManager({ supabase, selectedPropertyName }) {
                 <div style={{ width: '192px', height: '192px', backgroundColor: 'white', padding: '12px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <span style={{ color: 'black', fontFamily: 'monospace', fontSize: '12px', textAlign: 'center' }}>[QR Code for ID: {modalData.trailhead_id || modalData.id}]</span>
                 </div>
-                <p style={{ fontSize: '12px', color: '#8A9A8F', marginTop: '12px', fontFamily: 'monospace' }}>{modalData.trailhead_id || modalData.id}</p>
+                <p style={{ fontSize: '12px', color: 'var(--staff-muted)', marginTop: '12px', fontFamily: 'monospace' }}>{modalData.trailhead_id || modalData.id}</p>
               </div>
             )}
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px' }}>
               <button
                 onClick={() => { setModalType(null); setModalData(null); }}
-                style={{ padding: '8px 16px', fontSize: '14px', backgroundColor: '#16281D', color: '#F1E8D0', border: '1px solid #2A4731', borderRadius: '12px', fontWeight: '500', cursor: 'pointer' }}
+                style={{ padding: '8px 16px', fontSize: '14px', backgroundColor: 'var(--staff-highlight)', color: 'var(--staff-text)', border: '1px solid var(--staff-border)', borderRadius: '12px', fontWeight: '500', cursor: 'pointer' }}
               >
                 Close
               </button>

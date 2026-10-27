@@ -18,7 +18,7 @@ async function loadSocialPosts(campId) {
     .order('created_at', { ascending: false })
 }
 
-export default function SocialTab({ campBranding, inputStyle, session, activeCamp }) {
+export default function SocialTab({ colors, session, activeCamp }) {
   const [posts, setPosts] = useState([])
   const [postText, setPostText] = useState('')
   const [selectedImage, setSelectedImage] = useState(null)
@@ -27,6 +27,16 @@ export default function SocialTab({ campBranding, inputStyle, session, activeCam
   const [commentInputs, setCommentInputs] = useState({})
   
   const fileInputRef = useRef(null)
+  const inputStyle = {
+    width: '100%',
+    padding: '12px',
+    borderRadius: '8px',
+    border: `1px solid ${colors.border}`,
+    backgroundColor: colors.panel,
+    color: colors.textDark,
+    boxSizing: 'border-box',
+    font: 'inherit'
+  }
 
   const fetchPosts = useCallback(async () => {
     if (!activeCamp) return
@@ -144,10 +154,10 @@ export default function SocialTab({ campBranding, inputStyle, session, activeCam
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '600px', margin: '0 auto' }}>
       
       {/* Create Post Box */}
-      <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', border: '1px solid #d1ccc0', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+      <div style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '12px', border: `1px solid ${colors.border}`, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
         <div style={{ display: 'flex', gap: '15px' }}>
-          <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#efebe0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-             <User size={20} color="#a3b3a9" />
+          <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: colors.highlight, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+             <User size={20} color={colors.muted} />
           </div>
           <div style={{ flexGrow: 1 }}>
             <textarea 
@@ -160,19 +170,19 @@ export default function SocialTab({ campBranding, inputStyle, session, activeCam
             
             {selectedImage && (
               <div style={{ position: 'relative', display: 'inline-block', marginTop: '10px', marginBottom: '10px' }}>
-                <img src={URL.createObjectURL(selectedImage)} alt="Preview" style={{ maxHeight: '200px', borderRadius: '8px', border: '1px solid #d1ccc0' }} />
+                <img src={URL.createObjectURL(selectedImage)} alt="Preview" style={{ maxHeight: '200px', borderRadius: '8px', border: `1px solid ${colors.border}` }} />
                 <button onClick={() => setSelectedImage(null)} style={{ position: 'absolute', top: '5px', right: '5px', backgroundColor: 'rgba(0,0,0,0.6)', color: 'white', border: 'none', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                   <X size={16} />
                 </button>
               </div>
             )}
             
-            <div style={{ borderTop: '1px solid #efebe0', paddingTop: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ borderTop: `1px solid ${colors.border}`, paddingTop: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <input type="file" accept="image/*" style={{ display: 'none' }} ref={fileInputRef} onChange={handleImageSelect} />
-              <button onClick={() => fileInputRef.current.click()} disabled={isUploading} style={{ background: 'none', border: 'none', color: campBranding.secondaryColor, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold' }}>
+              <button onClick={() => fileInputRef.current.click()} disabled={isUploading} style={{ background: 'none', border: 'none', color: colors.primary, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold' }}>
                 <ImageIcon size={20} /> Photo
               </button>
-              <button onClick={handleCreatePost} disabled={isUploading || (!postText.trim() && !selectedImage)} style={{ padding: '8px 20px', backgroundColor: campBranding.primaryColor, color: 'white', border: 'none', borderRadius: '20px', cursor: (isUploading || (!postText.trim() && !selectedImage)) ? 'not-allowed' : 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', opacity: (isUploading || (!postText.trim() && !selectedImage)) ? 0.5 : 1 }}>
+              <button onClick={handleCreatePost} disabled={isUploading || (!postText.trim() && !selectedImage)} style={{ padding: '8px 20px', backgroundColor: colors.primary, color: colors.textOnPrimary, border: 'none', borderRadius: '20px', cursor: (isUploading || (!postText.trim() && !selectedImage)) ? 'not-allowed' : 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', opacity: (isUploading || (!postText.trim() && !selectedImage)) ? 0.5 : 1 }}>
                 {isUploading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />} 
                 Post
               </button>
@@ -184,7 +194,7 @@ export default function SocialTab({ campBranding, inputStyle, session, activeCam
       {/* The Feed */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
         {posts.length === 0 ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: '#a3b3a9', backgroundColor: 'white', borderRadius: '12px', border: '1px dashed #d1ccc0' }}>
+          <div style={{ padding: '40px', textAlign: 'center', color: colors.muted, backgroundColor: colors.panel, borderRadius: '12px', border: `1px dashed ${colors.border}` }}>
             No one has posted anything yet. Break the ice!
           </div>
         ) : (
@@ -196,16 +206,16 @@ export default function SocialTab({ campBranding, inputStyle, session, activeCam
             const authorPhoto = post.campers?.photo_url
 
             return (
-              <div key={post.id} style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #d1ccc0', overflow: 'hidden', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+              <div key={post.id} style={{ backgroundColor: colors.panel, borderRadius: '12px', border: `1px solid ${colors.border}`, overflow: 'hidden', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
                 
                 {/* Post Header */}
                 <div style={{ padding: '20px 20px 10px 20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div style={{ width: '44px', height: '44px', borderRadius: '50%', backgroundColor: '#efebe0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
-                    {authorPhoto ? <img src={authorPhoto} alt="Author" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <User size={24} color="#a3b3a9" />}
+                  <div style={{ width: '44px', height: '44px', borderRadius: '50%', backgroundColor: colors.highlight, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+                    {authorPhoto ? <img src={authorPhoto} alt="Author" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <User size={24} color={colors.muted} />}
                   </div>
                   <div>
-                    <strong style={{ display: 'block', color: '#182821', fontSize: '15px' }}>{post.author_name}</strong>
-                    <span style={{ fontSize: '12px', color: '#a3b3a9' }}>
+                    <strong style={{ display: 'block', color: colors.textDark, fontSize: '15px' }}>{post.author_name}</strong>
+                    <span style={{ fontSize: '12px', color: colors.muted }}>
                       {new Date(post.created_at).toLocaleDateString()} at {new Date(post.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
@@ -214,7 +224,7 @@ export default function SocialTab({ campBranding, inputStyle, session, activeCam
                 {/* Post Content */}
                 <div style={{ padding: '0 20px 15px 20px' }}>
                   {post.content && (
-                    <p style={{ margin: '0 0 10px 0', color: '#182821', lineHeight: '1.5', whiteSpace: 'pre-wrap', fontSize: '15px' }}>
+                    <p style={{ margin: '0 0 10px 0', color: colors.textDark, lineHeight: '1.5', whiteSpace: 'pre-wrap', fontSize: '15px' }}>
                       {post.content}
                     </p>
                   )}
@@ -222,24 +232,24 @@ export default function SocialTab({ campBranding, inputStyle, session, activeCam
 
                 {/* Post Image */}
                 {post.image_url && (
-                  <div style={{ width: '100%', backgroundColor: '#f9f8f6', borderTop: '1px solid #efebe0', borderBottom: '1px solid #efebe0' }}>
+                  <div style={{ width: '100%', backgroundColor: colors.background, borderTop: `1px solid ${colors.border}`, borderBottom: `1px solid ${colors.border}` }}>
                     <img src={post.image_url} alt="Post attachment" style={{ width: '100%', display: 'block', maxHeight: '500px', objectFit: 'contain' }} />
                   </div>
                 )}
                 
                 {/* Action Bar */}
-                <div style={{ padding: '10px 20px', display: 'flex', gap: '25px', borderBottom: showComments ? '1px solid #efebe0' : 'none' }}>
-                  <button onClick={() => toggleLike(post.id, hasLiked)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: hasLiked ? '#dc2626' : '#a3b3a9', fontWeight: 'bold', fontSize: '14px', padding: 0 }}>
+                <div style={{ padding: '10px 20px', display: 'flex', gap: '25px', borderBottom: showComments ? `1px solid ${colors.border}` : 'none' }}>
+                  <button onClick={() => toggleLike(post.id, hasLiked)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: hasLiked ? '#dc2626' : colors.muted, fontWeight: 'bold', fontSize: '14px', padding: 0 }}>
                     <Heart size={20} fill={hasLiked ? '#dc2626' : 'none'} /> {likeCount > 0 ? likeCount : ''}
                   </button>
-                  <button onClick={() => toggleComments(post.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: '#a3b3a9', fontWeight: 'bold', fontSize: '14px', padding: 0 }}>
+                  <button onClick={() => toggleComments(post.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: colors.muted, fontWeight: 'bold', fontSize: '14px', padding: 0 }}>
                     <MessageCircle size={20} /> {commentCount > 0 ? commentCount : ''}
                   </button>
                 </div>
 
                 {/* Comments Section */}
                 {showComments && (
-                  <div style={{ backgroundColor: '#fdf6e3', padding: '15px 20px' }}>
+                  <div style={{ backgroundColor: colors.highlight, padding: '15px 20px' }}>
                     
                     {/* List Comments */}
                     {post.social_comments && post.social_comments.length > 0 && (
@@ -248,12 +258,12 @@ export default function SocialTab({ campBranding, inputStyle, session, activeCam
                           const commentAuthorPhoto = comment.campers?.photo_url
                           return (
                             <div key={comment.id} style={{ display: 'flex', gap: '10px' }}>
-                              <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#efebe0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
-                                {commentAuthorPhoto ? <img src={commentAuthorPhoto} alt="Commenter" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <User size={16} color="#a3b3a9" />}
+                              <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: colors.background, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+                                {commentAuthorPhoto ? <img src={commentAuthorPhoto} alt="Commenter" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <User size={16} color={colors.muted} />}
                               </div>
-                              <div style={{ backgroundColor: 'white', padding: '10px 15px', borderRadius: '15px', border: '1px solid #d1ccc0', flexGrow: 1 }}>
-                                <strong style={{ display: 'block', color: '#182821', fontSize: '13px', marginBottom: '2px' }}>{comment.author_name}</strong>
-                                <span style={{ color: '#182821', fontSize: '14px', lineHeight: '1.4' }}>{comment.content}</span>
+                              <div style={{ backgroundColor: colors.panel, padding: '10px 15px', borderRadius: '15px', border: `1px solid ${colors.border}`, flexGrow: 1 }}>
+                                <strong style={{ display: 'block', color: colors.textDark, fontSize: '13px', marginBottom: '2px' }}>{comment.author_name}</strong>
+                                <span style={{ color: colors.textDark, fontSize: '14px', lineHeight: '1.4' }}>{comment.content}</span>
                               </div>
                             </div>
                           )
@@ -271,7 +281,7 @@ export default function SocialTab({ campBranding, inputStyle, session, activeCam
                         onKeyDown={(e) => e.key === 'Enter' && submitComment(post.id)}
                         style={{ ...inputStyle, borderRadius: '20px', padding: '10px 15px' }}
                       />
-                      <button onClick={() => submitComment(post.id)} disabled={!commentInputs[post.id]?.trim()} style={{ background: 'none', border: 'none', color: campBranding.secondaryColor, cursor: !commentInputs[post.id]?.trim() ? 'not-allowed' : 'pointer', padding: '5px', opacity: !commentInputs[post.id]?.trim() ? 0.5 : 1 }}>
+                      <button onClick={() => submitComment(post.id)} disabled={!commentInputs[post.id]?.trim()} style={{ background: 'none', border: 'none', color: colors.primary, cursor: !commentInputs[post.id]?.trim() ? 'not-allowed' : 'pointer', padding: '5px', opacity: !commentInputs[post.id]?.trim() ? 0.5 : 1 }}>
                         <Send size={20} />
                       </button>
                     </div>
