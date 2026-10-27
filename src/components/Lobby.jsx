@@ -7,6 +7,20 @@ import SettingsTab from './SettingsTab'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
 
+const announcementEditorModules = {
+  toolbar: [
+    [{ header: [1, 2, 3, false] }],
+    ['bold', 'italic', 'underline', 'strike'],
+    [{ color: [] }, { background: [] }],
+    [{ list: 'ordered' }, { list: 'bullet' }],
+    [{ indent: '-1' }, { indent: '+1' }],
+    [{ align: [] }],
+    ['blockquote', 'code-block'],
+    ['link'],
+    ['clean'],
+  ],
+}
+
 function normalizeAnnouncementHtml(html) {
   return (html || '').replace(/(?:&nbsp;|&#160;|&#xA0;|\u00a0)/gi, ' ')
 }
@@ -29,9 +43,11 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
 
   const [adminAnnouncement, setAdminAnnouncement] = useState('<h3>Welcome to the Project Trailhead Admin Console</h3><p>Thanks for agreeing to be our test pilots for this phase. Your feedback is what will iron out the bugs before we open this up to a larger public test group.</p>')
   const [isEditingAnnouncement, setIsEditingAnnouncement] = useState(false)
+  const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false)
+  const [isSavingAnnouncement, setIsSavingAnnouncement] = useState(false)
+  const [announcementSaveError, setAnnouncementSaveError] = useState('')
   const [tempAnnouncement, setTempAnnouncement] = useState('')
   const [isAnnouncementCollapsed, setIsAnnouncementCollapsed] = useState(false)
-  const [isAnnouncementExpanded, setIsAnnouncementExpanded] = useState(false)
   const [hasBeenUpdated, setHasBeenUpdated] = useState(false)
 
   useEffect(() => {
@@ -51,14 +67,29 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
   }
 
   async function saveAnnouncement() {
-    const normalizedAnnouncement = normalizeAnnouncementHtml(tempAnnouncement)
-    setAdminAnnouncement(normalizedAnnouncement)
-    setIsEditingAnnouncement(false)
-    setHasBeenUpdated(true)
+    if (isSavingAnnouncement) return
 
-    await supabase
-      .from('global_settings')
-      .upsert({ key: 'admin_announcement', value: normalizedAnnouncement })
+    const normalizedAnnouncement = normalizeAnnouncementHtml(tempAnnouncement)
+    setIsSavingAnnouncement(true)
+    setAnnouncementSaveError('')
+
+    try {
+      const { error } = await supabase
+        .from('global_settings')
+        .upsert({ key: 'admin_announcement', value: normalizedAnnouncement })
+
+      if (error) throw error
+
+      setAdminAnnouncement(normalizedAnnouncement)
+      setIsEditingAnnouncement(false)
+      setIsAnnouncementModalOpen(false)
+      setHasBeenUpdated(true)
+    } catch (error) {
+      console.error('Error saving admin announcement:', error.message)
+      setAnnouncementSaveError('Unable to save the announcement. Please try again.')
+    } finally {
+      setIsSavingAnnouncement(false)
+    }
   }
 
   const defaultCampForm = {
@@ -178,6 +209,37 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
           overflow-wrap: normal !important;
           white-space: normal !important;
           text-wrap: wrap !important;
+        }
+
+        .announcement-modal-content {
+          color: #111;
+          background: #fff;
+          max-height: none;
+          overflow: visible;
+        }
+
+        .announcement-modal-content h1,
+        .announcement-modal-content h2,
+        .announcement-modal-content h3 {
+          color: #111;
+        }
+
+        .announcement-modal-editor .ql-toolbar.ql-snow,
+        .announcement-modal-editor .ql-container.ql-snow,
+        .announcement-modal-editor .ql-editor {
+          background: #fff;
+          color: #111;
+        }
+
+        .announcement-modal-editor .ql-container.ql-snow {
+          height: auto !important;
+          overflow: visible !important;
+        }
+
+        .announcement-modal-editor .ql-editor {
+          min-height: 45vh;
+          height: auto !important;
+          overflow: visible !important;
         }
         
         .trailhead-announcement-content.preview {
@@ -374,9 +436,14 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
                     </div>
                     
                     <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                      {!isEditingAnnouncement && !isAnnouncementCollapsed && (
+                      {!isAnnouncementCollapsed && (
                         <button 
-                          onClick={() => { setTempAnnouncement(adminAnnouncement); setIsEditingAnnouncement(true); setIsAnnouncementExpanded(true); }} 
+                          onClick={() => {
+                            setTempAnnouncement(adminAnnouncement)
+                            setAnnouncementSaveError('')
+                            setIsEditingAnnouncement(true)
+                            setIsAnnouncementModalOpen(true)
+                          }}
                           style={{ background: 'none', border: 'none', color: colors.primary, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px', fontWeight: 'bold' }}
                         >
                           <Edit2 size={14} /> Edit
@@ -393,34 +460,23 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
                   </div>
 
                   {!isAnnouncementCollapsed && (
-                    isEditingAnnouncement ? (
-                      <div>
-                        <div style={{ backgroundColor: isDarkMode ? '#111' : '#FFF', color: colors.textDark, marginBottom: '20px' }}>
-                          <ReactQuill theme="snow" value={tempAnnouncement} onChange={setTempAnnouncement} />
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                          <button onClick={() => setIsEditingAnnouncement(false)} style={{ padding: '6px 14px', background: 'transparent', border: `1px solid ${colors.muted}`, borderRadius: '4px', cursor: 'pointer', color: colors.textDark, fontFamily: fonts.utility, fontSize: '12px' }}>Cancel</button>
-                          <button onClick={saveAnnouncement} style={{ padding: '6px 14px', backgroundColor: colors.primary, color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontFamily: fonts.utility, fontSize: '12px', fontWeight: 'bold' }}><Save size={14} /> Save</button>
-                        </div>
+                    <div>
+                      <div style={{ position: 'relative' }}>
+                        <div className="trailhead-announcement-content preview" style={{ color: colors.textDark }} dangerouslySetInnerHTML={{ __html: normalizeAnnouncementHtml(adminAnnouncement) }} />
+                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '80px', background: `linear-gradient(transparent, ${colors.panel})`, pointerEvents: 'none' }} />
                       </div>
-                    ) : (
-                      <div>
-                        <div style={{ position: 'relative' }}>
-                          <div className={`trailhead-announcement-content ${isAnnouncementExpanded ? 'expanded' : 'preview'}`} style={{ color: colors.textDark }} dangerouslySetInnerHTML={{ __html: normalizeAnnouncementHtml(adminAnnouncement) }} />
-                          {!isAnnouncementExpanded && (
-                            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '80px', background: `linear-gradient(transparent, ${colors.panel})`, pointerEvents: 'none' }} />
-                          )}
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '10px', paddingTop: '10px' }}>
-                          <button 
-                            onClick={() => setIsAnnouncementExpanded(!isAnnouncementExpanded)}
-                            style={{ background: colors.highlight, border: `1px solid ${colors.border}`, color: colors.textLight, cursor: 'pointer', fontFamily: fonts.utility, fontSize: '12px', fontWeight: 'bold', padding: '6px 16px', borderRadius: '4px', letterSpacing: '1px' }}
-                          >
-                            {isAnnouncementExpanded ? 'SHOW LESS' : 'READ MORE'}
-                          </button>
-                        </div>
+                      <div style={{ display: 'flex', justifyContent: 'center', marginTop: '10px', paddingTop: '10px' }}>
+                        <button
+                          onClick={() => {
+                            setIsEditingAnnouncement(false)
+                            setIsAnnouncementModalOpen(true)
+                          }}
+                          style={{ background: colors.highlight, border: `1px solid ${colors.border}`, color: colors.textLight, cursor: 'pointer', fontFamily: fonts.utility, fontSize: '12px', fontWeight: 'bold', padding: '6px 16px', borderRadius: '4px', letterSpacing: '1px' }}
+                        >
+                          OPEN FULL ANNOUNCEMENT
+                        </button>
                       </div>
-                    )
+                    </div>
                   )}
                 </div>
 
@@ -702,6 +758,113 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
 
         </div>
       </div>
+
+      {isAnnouncementModalOpen && (
+        <div
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !isSavingAnnouncement) {
+              setIsAnnouncementModalOpen(false)
+              setIsEditingAnnouncement(false)
+            }
+          }}
+          style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', backgroundColor: 'rgba(0, 0, 0, 0.65)' }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="announcement-modal-title"
+            style={{ display: 'flex', flexDirection: 'column', width: 'min(100%, 960px)', maxHeight: '92vh', backgroundColor: '#fff', color: '#111', borderRadius: '8px', boxShadow: '0 20px 60px rgba(0, 0, 0, 0.35)', overflow: 'hidden' }}
+          >
+            <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', padding: '16px 20px', borderBottom: '1px solid #ddd' }}>
+              <h2 id="announcement-modal-title" style={{ margin: 0, color: '#111', fontFamily: fonts.header, fontSize: '24px' }}>
+                {isEditingAnnouncement ? 'EDIT ANNOUNCEMENT' : 'ADMIN ANNOUNCEMENT'}
+              </h2>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAnnouncementModalOpen(false)
+                  setIsEditingAnnouncement(false)
+                }}
+                disabled={isSavingAnnouncement}
+                aria-label="Close announcement"
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px', border: 'none', background: 'transparent', color: '#333', cursor: 'pointer' }}
+              >
+                <X size={22} />
+              </button>
+            </header>
+
+            <div style={{ minHeight: 0, overflowY: 'auto', padding: '20px' }}>
+              {isEditingAnnouncement ? (
+                <div className="announcement-modal-editor">
+                  <ReactQuill
+                    theme="snow"
+                    value={tempAnnouncement}
+                    onChange={setTempAnnouncement}
+                    modules={announcementEditorModules}
+                  />
+                </div>
+              ) : (
+                <div
+                  className="trailhead-announcement-content announcement-modal-content"
+                  dangerouslySetInnerHTML={{ __html: normalizeAnnouncementHtml(adminAnnouncement) }}
+                />
+              )}
+              {announcementSaveError && (
+                <p role="alert" style={{ margin: '12px 0 0', color: '#b42318', fontSize: '14px' }}>
+                  {announcementSaveError}
+                </p>
+              )}
+            </div>
+
+            <footer style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', padding: '14px 20px', borderTop: '1px solid #ddd' }}>
+              {isEditingAnnouncement ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAnnouncementModalOpen(false)
+                      setIsEditingAnnouncement(false)
+                    }}
+                    disabled={isSavingAnnouncement}
+                    style={{ padding: '8px 14px', background: '#fff', border: '1px solid #888', borderRadius: '4px', cursor: 'pointer', color: '#222', fontFamily: fonts.utility, fontSize: '12px' }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={saveAnnouncement}
+                    disabled={isSavingAnnouncement}
+                    style={{ padding: '8px 14px', backgroundColor: colors.primary, color: '#fff', border: 'none', borderRadius: '4px', cursor: isSavingAnnouncement ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontFamily: fonts.utility, fontSize: '12px', fontWeight: 'bold', opacity: isSavingAnnouncement ? 0.7 : 1 }}
+                  >
+                    <Save size={14} /> {isSavingAnnouncement ? 'Saving...' : 'Save'}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setIsAnnouncementModalOpen(false)}
+                    style={{ padding: '8px 14px', background: '#fff', border: '1px solid #888', borderRadius: '4px', cursor: 'pointer', color: '#222', fontFamily: fonts.utility, fontSize: '12px' }}
+                  >
+                    Close
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTempAnnouncement(adminAnnouncement)
+                      setAnnouncementSaveError('')
+                      setIsEditingAnnouncement(true)
+                    }}
+                    style={{ padding: '8px 14px', backgroundColor: colors.primary, color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontFamily: fonts.utility, fontSize: '12px', fontWeight: 'bold' }}
+                  >
+                    <Edit2 size={14} /> Edit
+                  </button>
+                </>
+              )}
+            </footer>
+          </section>
+        </div>
+      )}
     </div>
   )
 }
