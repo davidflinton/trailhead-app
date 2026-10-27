@@ -180,6 +180,24 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
     return myAssignedCamps.includes(camp.id);
   })
 
+  const dashboardWidgetStyle = {
+    width: '100%',
+    minWidth: 0,
+    boxSizing: 'border-box',
+    padding: '16px 20px',
+    backgroundColor: colors.panel,
+    border: `2px solid ${colors.highlight}`,
+    borderRadius: '8px',
+    cursor: 'pointer',
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: '16px',
+    textAlign: 'left',
+    color: colors.textDark,
+    fontFamily: fonts.body
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: colors.background, color: colors.textDark, fontFamily: fonts.body, overflow: 'hidden' }}>
       <style>{`
@@ -409,7 +427,7 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
             <div>
               <h2 style={{ fontFamily: fonts.header, fontSize: '32px', color: colors.textDark, margin: '0 0 20px 0', letterSpacing: '1px' }}>SYSTEM DASHBOARD</h2>
               
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: '20px', minWidth: 0 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', minWidth: 0 }}>
                 
                 {/* System Alerts */}
                 <div style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '8px', border: '2px solid #ef4444', gridColumn: '1 / -1', textAlign: 'center', minWidth: 0 }}>
@@ -481,69 +499,79 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
                 </div>
 
                 {/* Properties Widget */}
-                <div onClick={() => setLobbyTab('camps')} style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '8px', border: `2px solid ${colors.highlight}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h3 style={{ margin: 0, fontFamily: fonts.header, fontSize: '24px', color: colors.textDark }}>Properties</h3>
-                    <Tent color={colors.primary} size={24} />
+                <button onClick={() => setLobbyTab('camps')} style={dashboardWidgetStyle}>
+                  <div style={{ flex: '1 1 220px', minWidth: 0 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontFamily: fonts.header, fontSize: '24px', color: colors.textDark }}>Properties</span>
+                      <Tent color={colors.primary} size={24} />
+                    </div>
+                    <div style={{ fontSize: '14px', color: colors.muted }}>{camps.length} Registered Nodes</div>
                   </div>
-                  <div style={{ fontSize: '14px', color: colors.muted }}>{camps.length} Registered Nodes</div>
-                  <div style={{ width: '100%', backgroundColor: colors.border, height: '6px', borderRadius: '3px', marginTop: '5px' }}>
+                  <div style={{ flex: '1 1 120px', maxWidth: '180px', backgroundColor: colors.border, height: '6px', borderRadius: '3px' }}>
                     <div style={{ width: '85%', backgroundColor: colors.primary, height: '100%', borderRadius: '3px' }}></div>
                   </div>
-                  <div style={{ marginTop: '10px', fontSize: '12px', fontFamily: fonts.utility, color: colors.primary, fontWeight: 'bold' }}>MANAGE DIRECTORY &rarr;</div>
-                </div>
+                  <span style={{ fontSize: '12px', fontFamily: fonts.utility, color: colors.primary, fontWeight: 'bold' }}>MANAGE DIRECTORY &rarr;</span>
+                </button>
 
                 {/* Staff Widget */}
-                <div onClick={() => setLobbyTab('staff')} style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '8px', border: `2px solid ${colors.highlight}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h3 style={{ margin: 0, fontFamily: fonts.header, fontSize: '24px', color: colors.textDark }}>Staff Directory</h3>
-                    <Users color={colors.primary} size={24} />
+                <button onClick={() => setLobbyTab('staff')} style={dashboardWidgetStyle}>
+                  <div style={{ flex: '1 1 220px', minWidth: 0 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontFamily: fonts.header, fontSize: '24px', color: colors.textDark }}>Staff Directory</span>
+                      <Users color={colors.primary} size={24} />
+                    </div>
+                    <div style={{ fontSize: '14px', color: colors.muted }}>Active Personnel: 14</div>
                   </div>
-                  <div style={{ fontSize: '14px', color: colors.muted }}>Active Personnel: 14</div>
-                  <div style={{ width: '100%', backgroundColor: colors.border, height: '6px', borderRadius: '3px', marginTop: '5px' }}>
+                  <div style={{ flex: '1 1 120px', maxWidth: '180px', backgroundColor: colors.border, height: '6px', borderRadius: '3px' }}>
                     <div style={{ width: '100%', backgroundColor: colors.primary, height: '100%', borderRadius: '3px' }}></div>
                   </div>
-                  <div style={{ marginTop: '10px', fontSize: '12px', fontFamily: fonts.utility, color: colors.primary, fontWeight: 'bold' }}>MANAGE STAFF &rarr;</div>
-                </div>
+                  <span style={{ fontSize: '12px', fontFamily: fonts.utility, color: colors.primary, fontWeight: 'bold' }}>MANAGE STAFF &rarr;</span>
+                </button>
 
                 {/* Customer Directory Widget */}
-                <div onClick={() => setLobbyTab('database')} style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '8px', border: `2px solid ${colors.highlight}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h3 style={{ margin: 0, fontFamily: fonts.header, fontSize: '24px', color: colors.textDark }}>Customer Directory</h3>
-                    <Database color={colors.primary} size={24} />
+                <button onClick={() => setLobbyTab('database')} style={dashboardWidgetStyle}>
+                  <div style={{ flex: '1 1 220px', minWidth: 0 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontFamily: fonts.header, fontSize: '24px', color: colors.textDark }}>Customer Directory</span>
+                      <Database color={colors.primary} size={24} />
+                    </div>
+                    <div style={{ fontSize: '14px', color: colors.muted }}>Master Repository</div>
                   </div>
-                  <div style={{ fontSize: '14px', color: colors.muted }}>Master Repository</div>
-                  <div style={{ width: '100%', backgroundColor: colors.border, height: '6px', borderRadius: '3px', marginTop: '5px' }}>
+                  <div style={{ flex: '1 1 120px', maxWidth: '180px', backgroundColor: colors.border, height: '6px', borderRadius: '3px' }}>
                     <div style={{ width: '100%', backgroundColor: colors.primary, height: '100%', borderRadius: '3px' }}></div>
                   </div>
-                  <div style={{ marginTop: '10px', fontSize: '12px', fontFamily: fonts.utility, color: colors.primary, fontWeight: 'bold' }}>VIEW REPOSITORY &rarr;</div>
-                </div>
+                  <span style={{ fontSize: '12px', fontFamily: fonts.utility, color: colors.primary, fontWeight: 'bold' }}>VIEW REPOSITORY &rarr;</span>
+                </button>
 
                 {/* Approvals Widget */}
-                <div onClick={() => setLobbyTab('approvals')} style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '8px', border: `2px solid ${colors.highlight}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h3 style={{ margin: '0', fontFamily: fonts.header, fontSize: '24px', color: colors.textDark }}>Approvals</h3>
-                    <CheckSquare color={colors.primary} size={24} />
+                <button onClick={() => setLobbyTab('approvals')} style={dashboardWidgetStyle}>
+                  <div style={{ flex: '1 1 220px', minWidth: 0 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontFamily: fonts.header, fontSize: '24px', color: colors.textDark }}>Approvals</span>
+                      <CheckSquare color={colors.primary} size={24} />
+                    </div>
+                    <div style={{ fontSize: '14px', color: colors.muted }}>0 Pending Registrations</div>
                   </div>
-                  <div style={{ fontSize: '14px', color: colors.muted }}>0 Pending Registrations</div>
-                  <div style={{ width: '100%', backgroundColor: colors.border, height: '6px', borderRadius: '3px', marginTop: '5px' }}>
+                  <div style={{ flex: '1 1 120px', maxWidth: '180px', backgroundColor: colors.border, height: '6px', borderRadius: '3px' }}>
                     <div style={{ width: '0%', backgroundColor: colors.primary, height: '100%', borderRadius: '3px' }}></div>
                   </div>
-                  <div style={{ marginTop: '10px', fontSize: '12px', fontFamily: fonts.utility, color: colors.primary, fontWeight: 'bold' }}>REVIEW QUEUE &rarr;</div>
-                </div>
+                  <span style={{ fontSize: '12px', fontFamily: fonts.utility, color: colors.primary, fontWeight: 'bold' }}>REVIEW QUEUE &rarr;</span>
+                </button>
 
                 {/* Consolidated Town Hall Widget */}
-                <div onClick={() => setLobbyTab('townhall')} style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '8px', border: `2px solid ${colors.highlight}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h3 style={{ margin: 0, fontFamily: fonts.header, fontSize: '24px', color: colors.textDark }}>Town Hall</h3>
-                    <MessageSquare color={colors.primary} size={24} />
+                <button onClick={() => setLobbyTab('townhall')} style={dashboardWidgetStyle}>
+                  <div style={{ flex: '1 1 220px', minWidth: 0 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontFamily: fonts.header, fontSize: '24px', color: colors.textDark }}>Town Hall</span>
+                      <MessageSquare color={colors.primary} size={24} />
+                    </div>
+                    <div style={{ fontSize: '14px', color: colors.muted }}>Team Chat & QA Notes</div>
                   </div>
-                  <div style={{ fontSize: '14px', color: colors.muted }}>Team Chat & QA Notes</div>
-                  <div style={{ width: '100%', backgroundColor: colors.border, height: '6px', borderRadius: '3px', marginTop: '5px' }}>
+                  <div style={{ flex: '1 1 120px', maxWidth: '180px', backgroundColor: colors.border, height: '6px', borderRadius: '3px' }}>
                     <div style={{ width: '50%', backgroundColor: colors.primary, height: '100%', borderRadius: '3px' }}></div>
                   </div>
-                  <div style={{ marginTop: '10px', fontSize: '12px', fontFamily: fonts.utility, color: colors.primary, fontWeight: 'bold' }}>ENTER TOWN HALL &rarr;</div>
-                </div>
+                  <span style={{ fontSize: '12px', fontFamily: fonts.utility, color: colors.primary, fontWeight: 'bold' }}>ENTER TOWN HALL &rarr;</span>
+                </button>
 
               </div>
             </div>
