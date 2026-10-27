@@ -3,28 +3,29 @@ import { supabase } from '../supabaseClient'
 
 export default function CampManager({ setCampData, setActiveTab, colors, fonts }) {
   const [campsList, setCampsList] = useState([])
-  const [isFetchingCamps, setIsFetchingCamps] = useState(false)
+  const [isFetchingCamps, setIsFetchingCamps] = useState(true)
 
   useEffect(() => {
-    fetchCamps()
-  }, [])
+    let isCurrent = true
+    async function fetchCamps() {
+      try {
+        const { data, error } = await supabase
+          .from('camps')
+          .select('*')
+          .order('name')
 
-  const fetchCamps = async () => {
-    setIsFetchingCamps(true)
-    try {
-      const { data, error } = await supabase
-        .from('camps')
-        .select('*')
-        .order('name')
-      
-      if (error) throw error
-      setCampsList(data || [])
-    } catch (error) {
-      console.error("Failed to load camps:", error.message)
-    } finally {
-      setIsFetchingCamps(false)
+        if (error) throw error
+        if (isCurrent) setCampsList(data || [])
+      } catch (error) {
+        console.error('Failed to load camps:', error.message)
+      } finally {
+        if (isCurrent) setIsFetchingCamps(false)
+      }
     }
-  }
+
+    void fetchCamps()
+    return () => { isCurrent = false }
+  }, [])
 
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto' }}>

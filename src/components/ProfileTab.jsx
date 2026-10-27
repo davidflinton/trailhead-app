@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../supabaseClient'
-import { User, Camera, Save, Loader2, Tent } from 'lucide-react'
+import { Camera, Save, Loader2, Tent } from 'lucide-react'
 
 export default function ProfileTab({ session, setSession, campBranding }) {
   const [profileData, setProfileData] = useState(null)
@@ -18,7 +18,9 @@ export default function ProfileTab({ session, setSession, campBranding }) {
         .eq('id', session.profileId)
         .single()
       
-      if (data) {
+      if (error) {
+        console.error('Error fetching profile:', error.message)
+      } else if (data) {
         setProfileData(data)
         setFormData({ 
           pronouns: data.pronouns || '', 

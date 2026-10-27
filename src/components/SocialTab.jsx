@@ -1,6 +1,22 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { supabase } from '../supabaseClient'
-import { Camera, User, Image as ImageIcon, X, Loader2, Heart, MessageCircle, Send } from 'lucide-react'
+import { User, Image as ImageIcon, X, Loader2, Heart, MessageCircle, Send } from 'lucide-react'
+
+async function loadSocialPosts(campId) {
+  return supabase
+    .from('social_posts')
+    .select(`
+      *,
+      campers (photo_url),
+      social_likes (camper_id),
+      social_comments (
+        *,
+        campers (photo_url)
+      )
+    `)
+    .eq('camp_id', campId)
+    .order('created_at', { ascending: false })
+}
 
 export default function SocialTab({ campBranding, inputStyle, session, activeCamp }) {
   const [posts, setPosts] = useState([])
@@ -12,30 +28,28 @@ export default function SocialTab({ campBranding, inputStyle, session, activeCam
   
   const fileInputRef = useRef(null)
 
-  useEffect(() => {
-    if (activeCamp) {
-      fetchPosts()
-    }
-  }, [activeCamp])
+  const fetchPosts = useCallback(async () => {
+    if (!activeCamp) return
 
-  async function fetchPosts() {
-    const { data, error } = await supabase
-      .from('social_posts')
-      .select(`
-        *,
-        campers (photo_url),
-        social_likes (camper_id),
-        social_comments (
-          *,
-          campers (photo_url)
-        )
-      `)
-      .eq('camp_id', activeCamp.id)
-      .order('created_at', { ascending: false })
+    const { data, error } = await loadSocialPosts(activeCamp.id)
     
     if (data) setPosts(data)
     if (error) console.error("Error fetching posts:", error)
-  }
+  }, [activeCamp])
+
+  useEffect(() => {
+    if (!activeCamp) return
+
+    let isCurrent = true
+    async function loadInitialPosts() {
+      const { data, error } = await loadSocialPosts(activeCamp.id)
+      if (error) console.error('Error fetching posts:', error)
+      if (isCurrent && data) setPosts(data)
+    }
+
+    void loadInitialPosts()
+    return () => { isCurrent = false }
+  }, [activeCamp])
 
   function handleImageSelect(e) {
     if (e.target.files && e.target.files[0]) {

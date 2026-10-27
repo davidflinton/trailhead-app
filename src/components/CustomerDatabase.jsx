@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
-import { Database, Users, User, Search, MoreVertical, FileText, Upload, X, Save, Shield, Phone, Mail, MapPin, Briefcase } from 'lucide-react'
+import { Database, Users, User, Search, MoreVertical, FileText, Upload, X, Save, Phone, Mail, MapPin, Briefcase } from 'lucide-react'
 
 export default function CustomerDatabase({ colors, fonts, isDarkMode }) {
   const [activeTab, setActiveTab] = useState('personnel')

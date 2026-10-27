@@ -1,7 +1,6 @@
-import React from 'react';
 import { LayoutDashboard, Building, Users, Database, CheckSquare, MessageSquare, FileText, Settings } from 'lucide-react';
 
-export default function Navigation({ activeTab, setActiveTab, campBranding, session, campType, setIsMoreOpen }) {
+export default function Navigation({ activeTab, setActiveTab, session, setIsMoreOpen }) {
   const isGlobalAdmin = session?.access_tier === 'global_superadmin' || session?.access_tier === 'global_admin';
   const isCampAdmin = session?.access_tier === 'camp_superadmin' || session?.access_tier === 'camp_admin';
 

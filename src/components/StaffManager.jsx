@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   MoreVertical, Mail, MessageSquare, Key, RefreshCw, 
   QrCode, UserX, UserCheck, Trash2, Search, Shield, FileText, Upload, X, Save, Phone, MapPin, Briefcase, User
 } from 'lucide-react';
 
-export default function StaffManager({ supabase, selectedPropertyName, colors, fonts, isDarkMode }) {
+export default function StaffManager({ supabase, selectedPropertyName }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -29,15 +29,8 @@ export default function StaffManager({ supabase, selectedPropertyName, colors, f
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  useEffect(() => {
-    if (supabase) {
-      fetchUsers();
-    }
-  }, [selectedPropertyName, supabase]);
-
-  async function fetchUsers() {
+  const fetchUsers = useCallback(async () => {
     if (!supabase) return;
-    setLoading(true);
     let query = supabase
       .from('trailhead_personnel')
       .select('*')
@@ -51,7 +44,31 @@ export default function StaffManager({ supabase, selectedPropertyName, colors, f
       setUsers(data || []);
     }
     setLoading(false);
-  }
+  }, [supabase]);
+
+  useEffect(() => {
+    if (!supabase) return
+
+    let isCurrent = true
+    async function loadInitialUsers() {
+      setLoading(true)
+      const { data, error } = await supabase
+        .from('trailhead_personnel')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (!isCurrent) return
+      if (error) {
+        console.error('Error fetching trailhead personnel:', error)
+      } else {
+        setUsers(data || [])
+      }
+      setLoading(false)
+    }
+
+    void loadInitialUsers()
+    return () => { isCurrent = false }
+  }, [selectedPropertyName, supabase]);
 
   function getDisplayName(user) {
     if (user.display_name && user.display_name.trim() !== '') {
@@ -126,17 +143,19 @@ export default function StaffManager({ supabase, selectedPropertyName, colors, f
         break;
 
       case 'reset_passphrase':
-        const newPass = Math.random().toString(36).substring(2, 10);
-        const { error: resetErr } = await supabase
-          .from('trailhead_personnel')
-          .update({ passphrase: newPass })
-          .eq('id', user.id);
+        {
+          const newPass = Math.random().toString(36).substring(2, 10);
+          const { error: resetErr } = await supabase
+            .from('trailhead_personnel')
+            .update({ passphrase: newPass })
+            .eq('id', user.id);
 
-        if (resetErr) {
-          setActionMessage({ type: 'error', text: 'Failed to reset passphrase' });
-        } else {
-          setActionMessage({ type: 'success', text: `Passphrase reset for ${userName}` });
-          fetchUsers();
+          if (resetErr) {
+            setActionMessage({ type: 'error', text: 'Failed to reset passphrase' });
+          } else {
+            setActionMessage({ type: 'success', text: `Passphrase reset for ${userName}` });
+            fetchUsers();
+          }
         }
         break;
 
@@ -146,16 +165,18 @@ export default function StaffManager({ supabase, selectedPropertyName, colors, f
         break;
 
       case 'toggle_disable':
-        const newStatus = !(user.active ?? true);
-        const { error: statusErr } = await supabase
-          .from('trailhead_personnel')
-          .update({ active: newStatus })
-          .eq('id', user.id);
+        {
+          const newStatus = !(user.active ?? true);
+          const { error: statusErr } = await supabase
+            .from('trailhead_personnel')
+            .update({ active: newStatus })
+            .eq('id', user.id);
 
-        if (statusErr) {
-          setActionMessage({ type: 'error', text: 'Failed to update user status' });
-        } else {
-          fetchUsers();
+          if (statusErr) {
+            setActionMessage({ type: 'error', text: 'Failed to update user status' });
+          } else {
+            fetchUsers();
+          }
         }
         break;
 

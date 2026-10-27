@@ -2,29 +2,35 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 import { Shield, User, Star } from 'lucide-react'
 
-export default function AdminTab({ profile, campData, colors, fonts }) {
+export default function AdminTab({ campData, colors, fonts }) {
   const [directory, setDirectory] = useState([])
   const [filter, setFilter] = useState('all')
   const [isLoading, setIsLoading] = useState(true)
 
-  useEffect(() => { 
-    if (campData?.id) fetchDirectory() 
-  }, [campData])
+  useEffect(() => {
+    if (!campData?.id) return
 
-  const fetchDirectory = async () => {
-    setIsLoading(true)
-    const { data: campers } = await supabase.from('campers').select('*').eq('camp_id', campData.id)
-    const { data: campPersonnel } = await supabase.from('camp_personnel').select('*').eq('camp_id', campData.id)
-    const { data: trailheadPersonnel } = await supabase.from('trailhead_personnel').select('*').eq('camp_id', campData.id)
+    let isCurrent = true
+    async function fetchDirectory() {
+      setIsLoading(true)
+      const { data: campers } = await supabase.from('campers').select('*').eq('camp_id', campData.id)
+      const { data: campPersonnel } = await supabase.from('camp_personnel').select('*').eq('camp_id', campData.id)
+      const { data: trailheadPersonnel } = await supabase.from('trailhead_personnel').select('*').eq('camp_id', campData.id)
 
-    const formatCampers = (campers || []).map(c => ({ ...c, entityType: 'camper', displayRole: c.camp_role || 'Camper' }))
-    const formatCampPersonnel = (campPersonnel || []).map(s => ({ ...s, entityType: 'camp_staff', displayRole: s.camp_role || 'Camp Staff' }))
-    const formatTrailhead = (trailheadPersonnel || []).map(e => ({ ...e, entityType: 'hq_staff', displayRole: e.job_title || 'Trailhead HQ' }))
+      const formatCampers = (campers || []).map(c => ({ ...c, entityType: 'camper', displayRole: c.camp_role || 'Camper' }))
+      const formatCampPersonnel = (campPersonnel || []).map(s => ({ ...s, entityType: 'camp_staff', displayRole: s.camp_role || 'Camp Staff' }))
+      const formatTrailhead = (trailheadPersonnel || []).map(e => ({ ...e, entityType: 'hq_staff', displayRole: e.job_title || 'Trailhead HQ' }))
 
-    const combined = [...formatCampers, ...formatCampPersonnel, ...formatTrailhead].sort((a, b) => (a.last_name || '').localeCompare(b.last_name || ''))
-    setDirectory(combined)
-    setIsLoading(false)
-  }
+      const combined = [...formatCampers, ...formatCampPersonnel, ...formatTrailhead].sort((a, b) => (a.last_name || '').localeCompare(b.last_name || ''))
+      if (isCurrent) {
+        setDirectory(combined)
+        setIsLoading(false)
+      }
+    }
+
+    void fetchDirectory()
+    return () => { isCurrent = false }
+  }, [campData?.id])
 
   const filtered = directory.filter(user => {
     if (filter === 'staff') return user.entityType === 'camp_staff' || user.entityType === 'hq_staff'

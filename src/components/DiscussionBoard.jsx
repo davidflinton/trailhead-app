@@ -1,5 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../supabaseClient'
+
+async function loadDiscussions() {
+  const { data } = await supabase.from('admin_discussions').select('*').order('created_at', { ascending: false })
+  return data
+}
 
 export default function DiscussionBoard({ colors, fonts, profile }) {
   const [posts, setPosts] = useState([])
@@ -8,16 +13,28 @@ export default function DiscussionBoard({ colors, fonts, profile }) {
   const [newProjectName, setNewProjectName] = useState('')
   const [postContent, setPostContent] = useState('')
 
-  useEffect(() => { fetchDiscussions() }, [])
-
-  const fetchDiscussions = async () => {
-    const { data } = await supabase.from('admin_discussions').select('*').order('created_at', { ascending: false })
+  const fetchDiscussions = useCallback(async () => {
+    const data = await loadDiscussions()
     if (data) {
       setPosts(data)
       const unique = [...new Set(data.map(d => d.project_name).filter(Boolean))]
       setProjects(['General Question', ...unique.filter(p => p !== 'General Question')])
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    let isCurrent = true
+    async function loadInitialDiscussions() {
+      const data = await loadDiscussions()
+      if (!data || !isCurrent) return
+      setPosts(data)
+      const unique = [...new Set(data.map(d => d.project_name).filter(Boolean))]
+      setProjects(['General Question', ...unique.filter(p => p !== 'General Question')])
+    }
+
+    void loadInitialDiscussions()
+    return () => { isCurrent = false }
+  }, [])
 
   const handlePost = async () => {
     if (!postContent.trim() || (selectedProject === 'New Project' && !newProjectName.trim())) return

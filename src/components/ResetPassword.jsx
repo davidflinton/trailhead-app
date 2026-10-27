@@ -1,15 +1,16 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { supabase } from '../supabaseClient'
 import { KeyRound, Check, ArrowRight, AlertTriangle, Loader2, Mail, Smartphone, ArrowLeft } from 'lucide-react'
 
 export default function ResetPassword() {
-  const [step, setStep] = useState('input')
-  const [errorMsg, setErrorMsg] = useState('')
+  const initialTrailheadId = new URLSearchParams(window.location.search).get('id') || ''
+  const [step, setStep] = useState(initialTrailheadId ? 'input' : 'error')
+  const [errorMsg, setErrorMsg] = useState(initialTrailheadId ? '' : 'Missing User ID. Please scan your QR code again.')
   const [successMsg, setSuccessMsg] = useState('')
   const [currentPassphrase, setCurrentPassphrase] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [trailheadId, setTrailheadId] = useState('')
+  const [trailheadId] = useState(initialTrailheadId)
 
   const colors = {
     background: '#0B140E', panel: '#16281D', textDark: '#F1E8D0', 
@@ -20,18 +21,6 @@ export default function ResetPassword() {
   const fonts = {
     header: "'Staatliches', sans-serif", body: "'Karla', sans-serif", utility: "'JetBrains Mono', monospace"
   }
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const paramId = params.get('id')
-
-    if (paramId) {
-      setTrailheadId(paramId)
-    } else {
-      setStep('error')
-      setErrorMsg('Missing User ID. Please scan your QR code again.')
-    }
-  }, [])
 
   const handlePasswordReset = async () => {
     setErrorMsg('')

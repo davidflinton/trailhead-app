@@ -1,14 +1,18 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
-import { ShieldCheck, Key, ArrowRight, AlertTriangle, Loader2 } from 'lucide-react'
+import { ShieldCheck, Key, ArrowRight, AlertTriangle, Loader2, Check } from 'lucide-react'
 
 export default function Register() {
-  const [step, setStep] = useState('processing')
-  const [errorMsg, setErrorMsg] = useState('')
+  const params = new URLSearchParams(window.location.search)
+  const registrationId = params.get('id')
+  const registrationCode = params.get('code')
+  const hasCredentials = Boolean(registrationId && registrationCode)
+  const [step, setStep] = useState(hasCredentials ? 'processing' : 'error')
+  const [errorMsg, setErrorMsg] = useState(hasCredentials ? '' : 'Missing registration credentials. Scan your QR code again or check your link.')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [userDbId, setUserDbId] = useState(null)
-  const [trailheadId, setTrailheadId] = useState('')
+  const [trailheadId] = useState(registrationId || '')
 
   // Matches the Admin Console Dark Theme
   const colors = {
@@ -20,57 +24,54 @@ export default function Register() {
     header: "'Staatliches', sans-serif", body: "'Karla', sans-serif", utility: "'JetBrains Mono', monospace"
   }
 
-  useEffect(() => {
-    // Extract the ID and Passphrase from the QR code's URL
-    const params = new URLSearchParams(window.location.search)
-    const paramId = params.get('id')
-    const paramCode = params.get('code')
-
-    if (paramId && paramCode) {
-      setTrailheadId(paramId)
-      processRegistration(paramId, paramCode)
-    } else {
-      setStep('error')
-      setErrorMsg('Missing registration credentials. Scan your QR code again or check your link.')
-    }
-  }, [])
-
-  const processRegistration = async (id, code) => {
-    const authEmail = `${id.toLowerCase()}@trailhead.local`
-
-    try {
-      // 1. Log the user in with the URL payload
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: authEmail,
-        password: code
-      })
-
-      if (authError) throw authError
-
-      const user = authData.user
-      setUserDbId(user.id)
-
-      // 2. Check if a password reset is mandated
-      const { data: profileData, error: profileError } = await supabase
-        .from('trailhead_personnel')
-        .select('force_password_reset')
-        .eq('id', user.id)
-        .single()
-
-      if (profileError) throw profileError
-
-      if (profileData.force_password_reset) {
-        setStep('reset')
-      } else {
-        setStep('complete')
-        finalizeLogin()
-      }
-
-    } catch (err) {
-      setStep('error')
-      setErrorMsg(err.message)
-    }
+  function finalizeLogin() {
+    setTimeout(() => {
+      window.location.href = '/'
+    }, 2000)
   }
+
+  useEffect(() => {
+    if (!registrationId || !registrationCode) return
+
+    let isCurrent = true
+    async function processRegistration() {
+      const authEmail = `${registrationId.toLowerCase()}@trailhead.local`
+
+      try {
+        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+          email: authEmail,
+          password: registrationCode
+        })
+
+        if (authError) throw authError
+
+        const user = authData.user
+        const { data: profileData, error: profileError } = await supabase
+          .from('trailhead_personnel')
+          .select('force_password_reset')
+          .eq('id', user.id)
+          .single()
+
+        if (profileError) throw profileError
+        if (!isCurrent) return
+
+        setUserDbId(user.id)
+        if (profileData.force_password_reset) {
+          setStep('reset')
+        } else {
+          setStep('complete')
+          finalizeLogin()
+        }
+      } catch (err) {
+        if (!isCurrent) return
+        setStep('error')
+        setErrorMsg(err.message)
+      }
+    }
+
+    void processRegistration()
+    return () => { isCurrent = false }
+  }, [registrationId, registrationCode])
 
   const handlePasswordReset = async () => {
     setErrorMsg('')
@@ -109,13 +110,6 @@ export default function Register() {
       setStep('error')
       setErrorMsg(err.message)
     }
-  }
-
-  const finalizeLogin = () => {
-    // Reroute back to the main app root, where App.jsx will detect the new active session
-    setTimeout(() => {
-      window.location.href = '/'
-    }, 2000)
   }
 
   const inputStyle = {

@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
-import { Tent, Users, CheckSquare, MessageSquare, LogOut, Search, MapPin, ClipboardList, ThumbsUp, MessageCircle, BarChart2, Edit2, Plus, LayoutDashboard, Menu, X, Settings, Trash2, AlertTriangle, Moon, Sun, Lock, ShieldAlert, Database, Megaphone, Save, ChevronUp, ChevronDown } from 'lucide-react'
+import { Tent, Users, CheckSquare, MessageSquare, LogOut, Search, MapPin, ThumbsUp, MessageCircle, BarChart2, Edit2, Plus, LayoutDashboard, Menu, X, Settings, Trash2, AlertTriangle, Moon, Sun, Lock, ShieldAlert, Database, Megaphone, Save, ChevronUp, ChevronDown } from 'lucide-react'
 import StaffManager from './StaffManager'
 import CustomerDatabase from './CustomerDatabase'
 import SettingsTab from './SettingsTab'
@@ -25,7 +25,19 @@ function normalizeAnnouncementHtml(html) {
   return (html || '').replace(/(?:&nbsp;|&#160;|&#xA0;|\u00a0)/gi, ' ')
 }
 
-export default function Lobby({ profile, setCampData, setActiveTab, colors, fonts, isDarkMode, setIsDarkMode, themeKey, setThemeKey }) {
+async function loadProperties(profile) {
+  let assignedCamps = []
+  if (profile?.id && profile?.access_tier !== 'global_superadmin') {
+    const { data: personnelData } = await supabase.from('trailhead_personnel').select('assigned_camps').eq('id', profile.id).single()
+    assignedCamps = personnelData?.assigned_camps || []
+  }
+
+  const { data, error } = await supabase.from('camps').select('*').order('name')
+  if (error) console.error('Error fetching properties:', error.message)
+  return { camps: data, assignedCamps }
+}
+
+export default function Lobby({ profile, colors, fonts, isDarkMode, setIsDarkMode, themeKey, setThemeKey }) {
   const [lobbyTab, setLobbyTab] = useState('dashboard')
   const [townHallView, setTownHallView] = useState('discussions')
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -51,20 +63,22 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
   const [hasBeenUpdated, setHasBeenUpdated] = useState(false)
 
   useEffect(() => {
-    fetchAnnouncement()
-  }, [])
+    let isCurrent = true
+    async function loadAnnouncement() {
+      const { data } = await supabase
+        .from('global_settings')
+        .select('value')
+        .eq('key', 'admin_announcement')
+        .single()
 
-  async function fetchAnnouncement() {
-    const { data, error } = await supabase
-      .from('global_settings')
-      .select('value')
-      .eq('key', 'admin_announcement')
-      .single()
-
-    if (data && data.value) {
-      setAdminAnnouncement(normalizeAnnouncementHtml(data.value))
+      if (isCurrent && data?.value) {
+        setAdminAnnouncement(normalizeAnnouncementHtml(data.value))
+      }
     }
-  }
+
+    void loadAnnouncement()
+    return () => { isCurrent = false }
+  }, [])
 
   async function saveAnnouncement() {
     if (isSavingAnnouncement) return
@@ -104,19 +118,20 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
   
   const headerDisplayName = profile?.display_name || `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() || profile?.access_tier
 
-  useEffect(() => { fetchProperties() }, [])
-
-  const fetchProperties = async () => {
-    setIsLoading(true)
-    if (profile?.id && profile?.access_tier !== 'global_superadmin') {
-       const { data: personnelData } = await supabase.from('trailhead_personnel').select('assigned_camps').eq('id', profile.id).single()
-       if (personnelData && personnelData.assigned_camps) setMyAssignedCamps(personnelData.assigned_camps)
+  useEffect(() => {
+    let isCurrent = true
+    async function loadInitialProperties() {
+      const { camps, assignedCamps } = await loadProperties(profile)
+      if (isCurrent) {
+        setMyAssignedCamps(assignedCamps)
+        if (camps) setCamps(camps)
+        setIsLoading(false)
+      }
     }
-    const { data, error } = await supabase.from('camps').select('*').order('name')
-    if (data) setCamps(data)
-    if (error) console.error("Error fetching properties:", error.message)
-    setIsLoading(false)
-  }
+
+    void loadInitialProperties()
+    return () => { isCurrent = false }
+  }, [profile])
 
   const selectedCamp = camps.find(c => c.id === selectedCampId)
 
@@ -125,18 +140,26 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
     window.location.reload()
   }
 
+  const refreshProperties = async () => {
+    setIsLoading(true)
+    const { camps: updatedCamps, assignedCamps } = await loadProperties(profile)
+    setMyAssignedCamps(assignedCamps)
+    if (updatedCamps) setCamps(updatedCamps)
+    setIsLoading(false)
+  }
+
   const handleAddCamp = async () => {
     if (!campForm.name.trim()) return
     const { error } = await supabase.from('camps').insert([campForm])
     if (error) console.error("Error adding camp:", error.message)
-    else { resetPropertyForms(); fetchProperties(); }
+    else { resetPropertyForms(); refreshProperties(); }
   }
 
   const handleUpdateCamp = async () => {
     if (!campForm.name.trim() || !selectedCampId) return
     const { error } = await supabase.from('camps').update(campForm).eq('id', selectedCampId)
     if (error) console.error("Error updating camp:", error.message)
-    else { resetPropertyForms(); fetchProperties(); }
+    else { resetPropertyForms(); refreshProperties(); }
   }
 
   const handleDeleteCamp = async () => {
@@ -147,7 +170,7 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
       setIsDeletingCamp(false)
       setDeletePassword('')
       setSelectedCampId(null)
-      fetchProperties()
+      refreshProperties()
     }
   }
 
@@ -499,7 +522,7 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
                 </div>
 
                 {/* Properties Widget */}
-                <button onClick={() => setLobbyTab('camps')} style={dashboardWidgetStyle}>
+                <button type="button" onClick={() => setLobbyTab('camps')} style={dashboardWidgetStyle}>
                   <div style={{ flex: '1 1 220px', minWidth: 0 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
                       <span style={{ fontFamily: fonts.header, fontSize: '24px', color: colors.textDark }}>Properties</span>
@@ -514,7 +537,7 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
                 </button>
 
                 {/* Staff Widget */}
-                <button onClick={() => setLobbyTab('staff')} style={dashboardWidgetStyle}>
+                <button type="button" onClick={() => setLobbyTab('staff')} style={dashboardWidgetStyle}>
                   <div style={{ flex: '1 1 220px', minWidth: 0 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
                       <span style={{ fontFamily: fonts.header, fontSize: '24px', color: colors.textDark }}>Staff Directory</span>
@@ -529,7 +552,7 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
                 </button>
 
                 {/* Customer Directory Widget */}
-                <button onClick={() => setLobbyTab('database')} style={dashboardWidgetStyle}>
+                <button type="button" onClick={() => setLobbyTab('database')} style={dashboardWidgetStyle}>
                   <div style={{ flex: '1 1 220px', minWidth: 0 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
                       <span style={{ fontFamily: fonts.header, fontSize: '24px', color: colors.textDark }}>Customer Directory</span>
@@ -544,7 +567,7 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
                 </button>
 
                 {/* Approvals Widget */}
-                <button onClick={() => setLobbyTab('approvals')} style={dashboardWidgetStyle}>
+                <button type="button" onClick={() => setLobbyTab('approvals')} style={dashboardWidgetStyle}>
                   <div style={{ flex: '1 1 220px', minWidth: 0 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
                       <span style={{ fontFamily: fonts.header, fontSize: '24px', color: colors.textDark }}>Approvals</span>
@@ -559,7 +582,7 @@ export default function Lobby({ profile, setCampData, setActiveTab, colors, font
                 </button>
 
                 {/* Consolidated Town Hall Widget */}
-                <button onClick={() => setLobbyTab('townhall')} style={dashboardWidgetStyle}>
+                <button type="button" onClick={() => setLobbyTab('townhall')} style={dashboardWidgetStyle}>
                   <div style={{ flex: '1 1 220px', minWidth: 0 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
                       <span style={{ fontFamily: fonts.header, fontSize: '24px', color: colors.textDark }}>Town Hall</span>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
-import { Bell, Tent, X, Palette, Shield, Database, Sun, Moon, Settings } from 'lucide-react'
+import { Bell, Tent, X, Palette, Sun, Moon } from 'lucide-react'
 
 // Import all existing components
 import Navigation from './components/Navigation'
@@ -19,35 +19,7 @@ import RequestsTab from './components/RequestsTab'
 import StaffManager from './components/StaffManager'
 import CustomerDatabase from './components/CustomerDatabase'
 import SettingsTab from './components/SettingsTab'
-
-// Freshdesk-inspired theme palette definitions
-export const THEMES = {
-  forest: {
-    name: 'Forest Sage',
-    dark: { background: '#16281D', sidebar: '#0F1D14', panel: '#0F1D14', border: '#2A4731', textDark: '#F1E8D0', textLight: '#F1E8D0', muted: '#8A9A8F', primary: '#C1531B', error: '#E8896B', highlight: '#1E3524' },
-    light: { background: '#F4F7F5', sidebar: '#FFFFFF', panel: '#FFFFFF', border: '#D1DCD5', textDark: '#1A2E22', textLight: '#1A2E22', muted: '#5C7365', primary: '#C1531B', error: '#E8896B', highlight: '#E2ECE5' }
-  },
-  slate: {
-    name: 'Midnight Slate',
-    dark: { background: '#0B0F17', sidebar: '#111827', panel: '#111827', border: '#374151', textDark: '#F3F4F6', textLight: '#F3F4F6', muted: '#9CA3AF', primary: '#3B82F6', error: '#EF4444', highlight: '#1F2937' },
-    light: { background: '#F9FAFB', sidebar: '#FFFFFF', panel: '#FFFFFF', border: '#E5E7EB', textDark: '#1F2937', textLight: '#1F2937', muted: '#6B7280', primary: '#2563EB', error: '#EF4444', highlight: '#F3F4F6' }
-  },
-  rust: {
-    name: 'Ember Rust',
-    dark: { background: '#14100F', sidebar: '#1C1615', panel: '#1C1615', border: '#42322E', textDark: '#F7F2EE', textLight: '#F7F2EE', muted: '#A38F8A', primary: '#D97706', error: '#EF4444', highlight: '#2B211E' },
-    light: { background: '#FFFBF9', sidebar: '#FFFFFF', panel: '#FFFFFF', border: '#E8DCD6', textDark: '#2B211E', textLight: '#2B211E', muted: '#7A6863', primary: '#B45309', error: '#EF4444', highlight: '#F7F2EE' }
-  },
-  ocean: {
-    name: 'Deep Ocean',
-    dark: { background: '#060A10', sidebar: '#0A1118', panel: '#0A1118', border: '#1E293B', textDark: '#E2E8F0', textLight: '#E2E8F0', muted: '#94A3B8', primary: '#0EA5E9', error: '#EF4444', highlight: '#111827' },
-    light: { background: '#F8FAFC', sidebar: '#FFFFFF', panel: '#FFFFFF', border: '#CBD5E1', textDark: '#0F172A', textLight: '#0F172A', muted: '#64748B', primary: '#0284C7', error: '#EF4444', highlight: '#F1F5F9' }
-  },
-  minimal: {
-    name: 'Charcoal Minimal',
-    dark: { background: '#0A0A0A', sidebar: '#121212', panel: '#121212', border: '#2C2C2C', textDark: '#FFFFFF', textLight: '#FFFFFF', muted: '#888888', primary: '#E5E7EB', error: '#EF4444', highlight: '#1E1E1E' },
-    light: { background: '#FFFFFF', sidebar: '#FFFFFF', panel: '#FFFFFF', border: '#CCCCCC', textDark: '#111111', textLight: '#111111', muted: '#666666', primary: '#333333', error: '#EF4444', highlight: '#F2F2F2' }
-  }
-};
+import { THEMES } from './themes'
 
 export default function App() {
   const path = window.location.pathname
@@ -114,55 +86,51 @@ function AuthenticatedApp() {
     return () => subscription.unsubscribe()
   }, [])
 
-  async function fetchUserData() {
-    try {
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single()
-
-      if (profileError) throw profileError
-      setProfile(profileData)
-
-      if (profileData?.theme_key) setThemeKey(profileData.theme_key)
-      if (profileData?.is_dark_mode !== undefined && profileData?.is_dark_mode !== null) {
-        setIsDarkMode(profileData.is_dark_mode)
-      }
-
-      const params = new URLSearchParams(window.location.search)
-      const urlCampId = params.get('campId')
-
-      if (urlCampId) {
-        const { data: campResult, error: campError } = await supabase
-          .from('camps')
-          .select('*')
-          .eq('id', urlCampId)
-          .single()
-        
-        if (campError) throw campError
-        setCampData(campResult)
-      } else if (profileData?.camp_id) {
-        const { data: campResult, error: campError } = await supabase
-          .from('camps')
-          .select('*')
-          .eq('id', profileData.camp_id)
-          .single()
-          
-        if (campError) throw campError
-        setCampData(campResult)
-      }
-    } catch (error) {
-      console.error("Error fetching user data:", error.message)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   useEffect(() => {
-    if (session) {
-      fetchUserData()
+    if (!session) return
+
+    let isCurrent = true
+    async function loadUserData() {
+      try {
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single()
+
+        if (profileError) throw profileError
+        if (!isCurrent) return
+
+        setProfile(profileData)
+        if (profileData?.theme_key) setThemeKey(profileData.theme_key)
+        if (profileData?.is_dark_mode !== undefined && profileData?.is_dark_mode !== null) {
+          setIsDarkMode(profileData.is_dark_mode)
+        }
+
+        const params = new URLSearchParams(window.location.search)
+        const urlCampId = params.get('campId')
+        const campId = urlCampId || profileData?.camp_id
+
+        if (campId) {
+          const { data: campResult, error: campError } = await supabase
+            .from('camps')
+            .select('*')
+            .eq('id', campId)
+            .single()
+
+          if (campError) throw campError
+          if (!isCurrent) return
+          setCampData(campResult)
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error.message)
+      } finally {
+        if (isCurrent) setIsLoading(false)
+      }
     }
+
+    void loadUserData()
+    return () => { isCurrent = false }
   }, [session])
 
   if (isLoading) {
@@ -178,8 +146,6 @@ function AuthenticatedApp() {
     return (
       <Lobby 
         profile={profile} 
-        setCampData={setCampData} 
-        setActiveTab={setActiveTab} 
         colors={colors} 
         fonts={fonts} 
         isDarkMode={isDarkMode} 
@@ -190,8 +156,8 @@ function AuthenticatedApp() {
     )
   }
 
-  const DrawerLink = ({ label, targetTab }) => (
-    <button 
+  const renderDrawerLink = (label, targetTab) => (
+    <button
       onClick={() => { setActiveTab(targetTab); setIsMoreOpen(false); }} 
       style={{ textAlign: 'left', background: 'none', border: 'none', fontSize: '16px', color: colors.textLight, cursor: 'pointer', fontFamily: fonts.body, fontWeight: 'bold', padding: '12px 0', borderBottom: `1px solid ${colors.highlight}` }}
     >
@@ -290,47 +256,47 @@ function AuthenticatedApp() {
             {/* Admin Links */}
             {(profile?.access_tier === 'global_superadmin' || profile?.access_tier === 'global_admin' || profile?.access_tier === 'camp_superadmin' || profile?.access_tier === 'camp_admin') && (
               <>
-                <DrawerLink label="Admin Dashboard" targetTab="admin" />
-                <DrawerLink label="Staff Manager" targetTab="staff-manager" />
-                <DrawerLink label="Customer DB" targetTab="customer-db" />
+                {renderDrawerLink('Admin Dashboard', 'admin')}
+                {renderDrawerLink('Staff Manager', 'staff-manager')}
+                {renderDrawerLink('Customer DB', 'customer-db')}
               </>
             )}
             
             {/* Global & Standard Links */}
-            <DrawerLink label="Camp Store" targetTab="store" />
-            <DrawerLink label="Payments" targetTab="payments" />
-            <DrawerLink label="Online Forms" targetTab="forms" />
-            <DrawerLink label="Interactive Camp Map" targetTab="map" />
-            <DrawerLink label="Nature ID Tool" targetTab="nature-id" />
-            <DrawerLink label="Challenges" targetTab="challenges" />
-            <DrawerLink label="Requests" targetTab="requests" />
+            {renderDrawerLink('Camp Store', 'store')}
+            {renderDrawerLink('Payments', 'payments')}
+            {renderDrawerLink('Online Forms', 'forms')}
+            {renderDrawerLink('Interactive Camp Map', 'map')}
+            {renderDrawerLink('Nature ID Tool', 'nature-id')}
+            {renderDrawerLink('Challenges', 'challenges')}
+            {renderDrawerLink('Requests', 'requests')}
 
             {/* Youth Camp Specific Links */}
             {campData?.type === 'youth_camp' && (
               <>
-                <DrawerLink label="Team Performance Reviews" targetTab="team-reviews" />
-                <DrawerLink label="Camper / Nature Guidebook" targetTab="guidebook" />
-                <DrawerLink label="Volunteer Pocket Handbook" targetTab="volunteer-handbook" />
-                <DrawerLink label="Report a Problem" targetTab="report-problem" />
-                <DrawerLink label="Speak Up" targetTab="speak-up" />
+                {renderDrawerLink('Team Performance Reviews', 'team-reviews')}
+                {renderDrawerLink('Camper / Nature Guidebook', 'guidebook')}
+                {renderDrawerLink('Volunteer Pocket Handbook', 'volunteer-handbook')}
+                {renderDrawerLink('Report a Problem', 'report-problem')}
+                {renderDrawerLink('Speak Up', 'speak-up')}
               </>
             )}
 
             {/* Standard RV Specific Links */}
             {campData?.type === 'standard_rv' && (
               <>
-                <DrawerLink label="Private Performance Reviews" targetTab="private-reviews" />
-                <DrawerLink label="Maintenance Requests" targetTab="maintenance" />
-                <DrawerLink label="Hours of Operation" targetTab="hours" />
-                <DrawerLink label="Contacts" targetTab="contacts" />
-                <DrawerLink label="Campground Rules" targetTab="rules" />
-                <DrawerLink label="Campground Policies" targetTab="policies" />
-                <DrawerLink label="Employee Handbook" targetTab="employee-handbook" />
+                {renderDrawerLink('Private Performance Reviews', 'private-reviews')}
+                {renderDrawerLink('Maintenance Requests', 'maintenance')}
+                {renderDrawerLink('Hours of Operation', 'hours')}
+                {renderDrawerLink('Contacts', 'contacts')}
+                {renderDrawerLink('Campground Rules', 'rules')}
+                {renderDrawerLink('Campground Policies', 'policies')}
+                {renderDrawerLink('Employee Handbook', 'employee-handbook')}
               </>
             )}
 
             {/* Settings Link at the bottom of the menu */}
-            <DrawerLink label="Settings" targetTab="settings" />
+            {renderDrawerLink('Settings', 'settings')}
             
             {/* Leave Camp Button */}
             {isGlobalAdmin && (

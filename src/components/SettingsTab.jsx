@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Settings, Palette, Sun, Moon, Shield, Sliders, Scale } from 'lucide-react';
-import { THEMES } from '../App';
+import { THEMES } from '../themes';
 
 export default function SettingsTab({ colors, fonts, isDarkMode, setIsDarkMode, themeKey, setThemeKey, selectedPropertyName }) {
   const [successMessage, setSuccessMessage] = useState(null);
