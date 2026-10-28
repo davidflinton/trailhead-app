@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
-import { Database, Users, User, Search, MoreVertical, FileText, Upload, X, Save, Phone, Mail, MapPin, Briefcase, ChevronDown, ChevronUp } from 'lucide-react'
+import { Database, Users, User, Search, FileText, Upload, X, Save, Phone, Mail, MapPin, Briefcase, ChevronDown, ChevronUp } from 'lucide-react'
 
 export default function CustomerDatabase({ colors, fonts }) {
   const [activeTab, setActiveTab] = useState('personnel')
@@ -13,27 +13,13 @@ export default function CustomerDatabase({ colors, fonts }) {
   const [roleFilter, setRoleFilter] = useState('all')
   const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' })
   
-  const [activeMenuId, setActiveMenuId] = useState(null)
   const [selectedUser, setSelectedUser] = useState(null)
   const [selectedRecordType, setSelectedRecordType] = useState(null)
   const [userForm, setUserForm] = useState({})
   const [userDocuments, setUserDocuments] = useState([])
   const [actionMessage, setActionMessage] = useState(null)
-  const menuRef = useRef(null)
-
   useEffect(() => {
     fetchCustomerData()
-  }, [])
-
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setActiveMenuId(null)
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
   async function fetchCustomerData() {
@@ -112,7 +98,6 @@ export default function CustomerDatabase({ colors, fonts }) {
     setSelectedUser(user)
     setSelectedRecordType(activeTab)
     setUserForm(user)
-    setActiveMenuId(null)
     setUserDocuments([
       { id: '1', name: 'Agreement_Form.pdf', size: '180 KB', date: '2026-06-12' },
       { id: '2', name: 'Emergency_Contact.pdf', size: '110 KB', date: '2026-06-12' }
@@ -304,10 +289,10 @@ export default function CustomerDatabase({ colors, fonts }) {
       )}
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '16px' }}>
-        <button onClick={() => { setActiveTab('personnel'); setRoleFilter('all'); setActiveMenuId(null) }} style={tabButtonStyle(activeTab === 'personnel')}>
+        <button onClick={() => { setActiveTab('personnel'); setRoleFilter('all') }} style={tabButtonStyle(activeTab === 'personnel')}>
           <Users size={18} /> Customer Personnel ({personnel.length})
         </button>
-        <button onClick={() => { setActiveTab('campers'); setRoleFilter('all'); setActiveMenuId(null) }} style={tabButtonStyle(activeTab === 'campers')}>
+        <button onClick={() => { setActiveTab('campers'); setRoleFilter('all') }} style={tabButtonStyle(activeTab === 'campers')}>
           <User size={18} /> Customer Campers ({campers.length})
         </button>
       </div>
@@ -355,24 +340,31 @@ export default function CustomerDatabase({ colors, fonts }) {
           </div>
         </div>
         <div style={{ overflowX: 'auto', minHeight: '300px' }}>
-          <table style={{ width: '100%', minWidth: '900px', textAlign: 'left', borderCollapse: 'collapse' }}>
+          <table style={{ width: '100%', tableLayout: 'fixed', textAlign: 'left', borderCollapse: 'collapse' }}>
+            <colgroup>
+              <col style={{ width: '24%' }} />
+              <col style={{ width: '16%' }} />
+              <col style={{ width: '16%' }} />
+              <col style={{ width: '21%' }} />
+              <col style={{ width: '14%' }} />
+              <col style={{ width: '9%' }} />
+            </colgroup>
             <thead>
               <tr style={{ borderBottom: `1px solid ${colors.border}`, color: colors.muted, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.06em', backgroundColor: colors.background }}>
-                <th style={{ padding: '13px 16px' }}>{sortButton('Name', 'name')}</th>
-                <th style={{ padding: '13px 16px' }}>{sortButton('Trailhead ID', 'id')}</th>
-                <th style={{ padding: '13px 16px' }}>{sortButton('Role', 'role')}</th>
-                <th style={{ padding: '13px 16px' }}>{sortButton(activeTab === 'personnel' ? 'Property / Location' : 'Camp / Cabin', 'property')}</th>
-                <th style={{ padding: '13px 16px' }}>Contact</th>
-                <th style={{ padding: '13px 16px' }}>{sortButton('Status', 'status')}</th>
-                <th style={{ padding: '13px 16px', textAlign: 'right' }}>Actions</th>
+                <th style={{ padding: '10px 8px', overflow: 'hidden' }}>{sortButton('Name', 'name')}</th>
+                <th style={{ padding: '10px 8px', overflow: 'hidden' }}>{sortButton('Trailhead ID', 'id')}</th>
+                <th style={{ padding: '10px 8px', overflow: 'hidden' }}>{sortButton('Role', 'role')}</th>
+                <th style={{ padding: '10px 8px', overflow: 'hidden' }}>{sortButton(activeTab === 'personnel' ? 'Property' : 'Camp', 'property')}</th>
+                <th style={{ padding: '10px 8px', overflow: 'hidden' }}>{sortButton('Status', 'status')}</th>
+                <th style={{ padding: '10px 4px', textAlign: 'right', overflow: 'hidden' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan="7" style={{ textAlign: 'center', padding: '48px', color: colors.muted }}>Loading customer records...</td></tr>
+                <tr><td colSpan="6" style={{ textAlign: 'center', padding: '48px', color: colors.muted }}>Loading customer records...</td></tr>
               ) : filteredRecords.length === 0 ? (
                 <tr>
-                  <td colSpan="7" style={{ textAlign: 'center', padding: '48px', color: colors.muted }}>
+                  <td colSpan="6" style={{ textAlign: 'center', padding: '48px', color: colors.muted }}>
                     <div style={{ fontSize: '15px', fontWeight: 'bold', marginBottom: '6px' }}>No records match these filters</div>
                     <div style={{ fontSize: '13px' }}>Try another search term or clear a filter.</div>
                     <button
@@ -390,55 +382,35 @@ export default function CustomerDatabase({ colors, fonts }) {
                 const displayRole = getDisplayRole(record)
                 const isActive = isRecordActive(record)
                 const property = getDisplayAssignment(record)
-                const location = getDisplayLocation(record)
-                const contact = getDisplayEmail(record) || getDisplayPhone(record) || 'No contact provided'
                 const initials = displayName.split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join('').toUpperCase() || '?'
+                const singleLineStyle = { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }
 
                 return (
                   <tr key={`${activeTab}-${record.id}`} style={{ borderBottom: `1px solid ${colors.border}`, transition: 'background-color 0.15s' }}>
-                    <td style={{ padding: '12px 16px' }}>
-                      <button type="button" onClick={() => handleOpenDetails(record)} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: 0, border: 'none', background: 'none', color: 'inherit', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit' }}>
+                    <td style={{ padding: '8px', overflow: 'hidden' }}>
+                      <button type="button" onClick={() => handleOpenDetails(record)} style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%', minWidth: 0, padding: 0, border: 'none', background: 'none', color: 'inherit', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px' }}>
                         <span aria-hidden="true" style={{ width: '38px', height: '38px', flex: '0 0 38px', display: 'grid', placeItems: 'center', borderRadius: '50%', backgroundColor: colors.highlight, color: colors.textDark, fontSize: '13px', fontWeight: 'bold' }}>{initials}</span>
-                        <span style={{ minWidth: 0, fontWeight: '600', color: colors.textDark }}>{displayName}</span>
+                        <span style={{ minWidth: 0, fontSize: '13px', fontWeight: '600', color: colors.textDark, ...singleLineStyle }}>{displayName}</span>
                       </button>
                     </td>
-                    <td style={{ padding: '12px 16px', color: colors.muted, fontFamily: 'monospace', fontSize: '13px' }}>{displayId}</td>
-                    <td style={{ padding: '12px 16px', color: colors.textDark, textTransform: 'capitalize' }}>{displayRole}</td>
-                    <td style={{ padding: '12px 16px', color: colors.textDark }}>
-                      <div>{property}</div>
-                      {location && <div style={{ color: colors.muted, fontSize: '12px', marginTop: '3px' }}>{activeTab === 'personnel' ? `Dept: ${record.department || 'N/A'}` : `Cabin: ${location}`}</div>}
-                      {activeTab === 'campers' && record.assigned_team && <div style={{ color: colors.muted, fontSize: '12px', marginTop: '3px' }}>Team: {record.assigned_team}</div>}
-                    </td>
-                    <td style={{ padding: '12px 16px', color: colors.muted, fontSize: '13px' }}>{contact}</td>
-                    <td style={{ padding: '12px 16px' }}>
+                    <td style={{ padding: '8px', color: colors.muted, fontFamily: 'monospace', fontSize: '13px', ...singleLineStyle }} title={displayId}>{displayId}</td>
+                    <td style={{ padding: '8px', color: colors.textDark, fontSize: '13px', fontWeight: '600', textTransform: 'capitalize', ...singleLineStyle }} title={displayRole}>{displayRole}</td>
+                    <td style={{ padding: '8px', color: colors.textDark, fontSize: '13px', ...singleLineStyle }} title={property}>{property}</td>
+                    <td style={{ padding: '8px' }}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '5px 9px', fontSize: '11px', borderRadius: '9999px', fontWeight: '600', backgroundColor: isActive ? colors.highlight : 'rgba(220, 38, 38, 0.15)', color: isActive ? colors.primary : colors.error, border: `1px solid ${isActive ? colors.primary : colors.error}` }}>
                         <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: isActive ? colors.primary : colors.error }} />
                         {isActive ? 'Active' : 'Disabled'}
                       </span>
                     </td>
-                    <td ref={activeMenuId === record.id ? menuRef : null} style={{ padding: '12px 16px', textAlign: 'right', position: 'relative' }}>
+                    <td style={{ padding: '4px', textAlign: 'right' }}>
                       <button
                         type="button"
-                        onClick={() => setActiveMenuId(activeMenuId === record.id ? null : record.id)}
-                        style={{ padding: '6px', background: 'none', border: 'none', borderRadius: '8px', color: colors.muted, cursor: 'pointer' }}
-                        aria-label={`Actions for ${displayName}`}
-                        aria-haspopup="menu"
-                        aria-expanded={activeMenuId === record.id}
+                        onClick={() => handleOpenDetails(record)}
+                        style={{ padding: '6px 10px', border: `1px solid ${colors.border}`, borderRadius: '6px', backgroundColor: colors.highlight, color: colors.textDark, cursor: 'pointer', fontFamily: fonts.utility, fontSize: '12px', fontWeight: '600' }}
+                        aria-label={`Edit ${displayName}`}
                       >
-                        <MoreVertical size={18} />
+                        Edit
                       </button>
-                      {activeMenuId === record.id && (
-                        <div role="menu" style={{ position: 'absolute', right: '24px', top: '48px', width: '180px', backgroundColor: colors.sidebar, border: `1px solid ${colors.border}`, borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.5)', padding: '6px 0', zIndex: 50, textAlign: 'left' }}>
-                          <button
-                            type="button"
-                            role="menuitem"
-                            onClick={() => handleOpenDetails(record)}
-                            style={{ width: '100%', padding: '8px 16px', fontSize: '13px', color: colors.textDark, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold' }}
-                          >
-                            <FileText size={14} color={colors.primary} /> View Details & Edit
-                          </button>
-                        </div>
-                      )}
                     </td>
                   </tr>
                 )
