@@ -6,6 +6,7 @@ export default function CustomerDatabase({ colors, fonts }) {
   const [activeTab, setActiveTab] = useState('personnel')
   const [personnel, setPersonnel] = useState([])
   const [campers, setCampers] = useState([])
+  const [campNamesById, setCampNamesById] = useState({})
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -53,22 +54,58 @@ export default function CustomerDatabase({ colors, fonts }) {
     if (campersError) console.error("Error fetching customer campers:", campersError.message)
     else setCampers(campersData || [])
 
+    const { data: campsData, error: campsError } = await supabase
+      .from('camps')
+      .select('id, name')
+
+    if (campsError) console.error('Error fetching camp names:', campsError.message)
+    else setCampNamesById(Object.fromEntries((campsData || []).map((camp) => [camp.id, camp.name])))
+
     setIsLoading(false)
   }
 
   function getDisplayName(user) {
-    const isImportedPlaceholder = (value) => /^imported staff member(?:\s*#?\d+)?$/i.test(value.trim())
+    const normalizeNameValue = (value) => typeof value === 'string' ? value.trim() : ''
+    const isGenericPlaceholder = (value) => {
+      const cleanValue = normalizeNameValue(value)
+      if (!cleanValue) return true
+      const genericPatterns = [
+        /^imported\s+staff\s+member(?:\s*#?\d+)?$/i,
+        /^imported\s+user(?:\s*#?\d+)?$/i,
+        /^unknown\s+user$/i,
+        /^user(?:\s*#?\d+)?$/i,
+        /^n\/?a$/i,
+        /^null$/i,
+        /^undefined$/i
+      ]
+      return genericPatterns.some((pattern) => pattern.test(cleanValue))
+    }
+
+    const fullNameCandidate = [
+      user.prefix,
+      user.first_name,
+      user.middle_name,
+      user.last_name,
+      user.suffix
+    ].filter(Boolean).join(' ').trim()
+
     const nameCandidates = [
       user.display_name,
-      [user.prefix, user.first_name, user.middle_name, user.last_name, user.suffix].filter(Boolean).join(' '),
+      user.full_name,
+      user.name,
+      user.preferred_name,
+      fullNameCandidate,
       user.username,
       user.user_name,
-      user.name
+      user.email ? user.email.split('@')[0] : ''
     ]
 
-    return nameCandidates.find(value => (
-      typeof value === 'string' && value.trim() !== '' && !isImportedPlaceholder(value)
-    ))?.trim() || 'Unnamed Record'
+    const validName = nameCandidates.find((value) => {
+      const normalized = normalizeNameValue(value)
+      return normalized !== '' && !isGenericPlaceholder(normalized)
+    })
+
+    return normalizeNameValue(validName) || 'Unnamed Record'
   }
 
   function handleOpenDetails(user) {
@@ -101,6 +138,31 @@ export default function CustomerDatabase({ colors, fonts }) {
   }
 
   const records = activeTab === 'personnel' ? personnel : campers
+  const getDisplayAssignment = (record) => {
+    const campName = record.camp_id ? campNamesById[record.camp_id] : ''
+    return activeTab === 'personnel'
+      ? record.property_assignment || record.property_name || 'Unassigned'
+      : campName || record.property_name || (record.camp_id ? 'Camp assignment' : 'Unassigned')
+  }
+  const getDisplayLocation = (record) => activeTab === 'personnel'
+    ? record.cabin_assignment || record.site_or_cabin || ''
+    : record.cabin_assignment || record.site_or_cabin || record.current_cabin || ''
+  const getDisplayEmail = (record, recordType = activeTab) => {
+    const candidates = recordType === 'personnel'
+      ? [record.work_email, record.personal_email, record.email]
+      : [record.personal_email, record.email, record.work_email]
+    return candidates.find((email) => (
+      typeof email === 'string'
+      && email.trim() !== ''
+      && !/^no-email@placeholder\.com$/i.test(email.trim())
+    )) || ''
+  }
+  const getDisplayPhone = (record, recordType = activeTab) => {
+    const candidates = recordType === 'personnel'
+      ? [record.work_phone, record.personal_phone, record.phone]
+      : [record.personal_phone, record.phone, record.work_phone]
+    return candidates.find((phone) => typeof phone === 'string' && phone.trim() !== '') || ''
+  }
   const getDisplayRole = (record) => (
     activeTab === 'personnel'
       ? record.system_role || record.role || record.position_title || 'Staff'
@@ -115,7 +177,7 @@ export default function CustomerDatabase({ colors, fonts }) {
   const activeRecords = records.filter(isRecordActive).length
   const filteredRecords = records
     .filter(record => {
-      const email = record.work_email || record.personal_email || record.email || ''
+      const email = getDisplayEmail(record)
       const role = getDisplayRole(record)
       const values = [
         getDisplayName(record),
@@ -124,11 +186,13 @@ export default function CustomerDatabase({ colors, fonts }) {
         record.name || '',
         record.trailhead_id || record.id || '',
         email,
-        record.work_phone || record.personal_phone || record.phone || '',
-        record.property_assignment || record.property_name || '',
+        getDisplayPhone(record),
+        getDisplayAssignment(record),
         record.department || '',
         record.position_title || '',
-        record.cabin_assignment || record.site_or_cabin || '',
+        getDisplayLocation(record),
+        record.assigned_team || '',
+        record.camp_id || '',
         role,
         record.employment_status || record.status || ''
       ]
@@ -141,7 +205,7 @@ export default function CustomerDatabase({ colors, fonts }) {
       const valueFor = (record) => {
         if (sortConfig.key === 'name') return getDisplayName(record)
         if (sortConfig.key === 'role') return getDisplayRole(record)
-        if (sortConfig.key === 'property') return record.property_assignment || record.property_name || ''
+        if (sortConfig.key === 'property') return getDisplayAssignment(record)
         if (sortConfig.key === 'status') return isRecordActive(record) ? 'Active' : 'Disabled'
         return record.trailhead_id || record.id || ''
       }
@@ -297,7 +361,7 @@ export default function CustomerDatabase({ colors, fonts }) {
                 <th style={{ padding: '13px 16px' }}>{sortButton('Name', 'name')}</th>
                 <th style={{ padding: '13px 16px' }}>{sortButton('Trailhead ID', 'id')}</th>
                 <th style={{ padding: '13px 16px' }}>{sortButton('Role', 'role')}</th>
-                <th style={{ padding: '13px 16px' }}>{sortButton('Property / Location', 'property')}</th>
+                <th style={{ padding: '13px 16px' }}>{sortButton(activeTab === 'personnel' ? 'Property / Location' : 'Camp / Cabin', 'property')}</th>
                 <th style={{ padding: '13px 16px' }}>Contact</th>
                 <th style={{ padding: '13px 16px' }}>{sortButton('Status', 'status')}</th>
                 <th style={{ padding: '13px 16px', textAlign: 'right' }}>Actions</th>
@@ -325,9 +389,9 @@ export default function CustomerDatabase({ colors, fonts }) {
                 const displayId = record.trailhead_id || record.id?.substring(0, 8) || 'N/A'
                 const displayRole = getDisplayRole(record)
                 const isActive = isRecordActive(record)
-                const property = record.property_assignment || record.property_name || 'Unassigned'
-                const location = record.cabin_assignment || record.site_or_cabin
-                const contact = record.work_email || record.personal_email || record.email || record.work_phone || record.personal_phone || 'No contact provided'
+                const property = getDisplayAssignment(record)
+                const location = getDisplayLocation(record)
+                const contact = getDisplayEmail(record) || getDisplayPhone(record) || 'No contact provided'
                 const initials = displayName.split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join('').toUpperCase() || '?'
 
                 return (
@@ -342,7 +406,8 @@ export default function CustomerDatabase({ colors, fonts }) {
                     <td style={{ padding: '12px 16px', color: colors.textDark, textTransform: 'capitalize' }}>{displayRole}</td>
                     <td style={{ padding: '12px 16px', color: colors.textDark }}>
                       <div>{property}</div>
-                      {location && <div style={{ color: colors.muted, fontSize: '12px', marginTop: '3px' }}>{activeTab === 'personnel' ? `Dept: ${record.department || 'N/A'}` : `Location: ${location}`}</div>}
+                      {location && <div style={{ color: colors.muted, fontSize: '12px', marginTop: '3px' }}>{activeTab === 'personnel' ? `Dept: ${record.department || 'N/A'}` : `Cabin: ${location}`}</div>}
+                      {activeTab === 'campers' && record.assigned_team && <div style={{ color: colors.muted, fontSize: '12px', marginTop: '3px' }}>Team: {record.assigned_team}</div>}
                     </td>
                     <td style={{ padding: '12px 16px', color: colors.muted, fontSize: '13px' }}>{contact}</td>
                     <td style={{ padding: '12px 16px' }}>
@@ -417,7 +482,7 @@ export default function CustomerDatabase({ colors, fonts }) {
                     {isRecordActive(selectedUser) ? 'Active' : 'Disabled'}
                   </span>
                 </div>
-                <div style={{ color: colors.muted, fontSize: '13px', overflowWrap: 'anywhere' }}>{selectedUser.work_email || selectedUser.personal_email || selectedUser.email || 'No email provided'}</div>
+                <div style={{ color: colors.muted, fontSize: '13px', overflowWrap: 'anywhere' }}>{getDisplayEmail(selectedUser, selectedRecordType) || 'No email provided'}</div>
                 <div style={{ color: colors.muted, fontSize: '12px', marginTop: '5px', textTransform: 'capitalize' }}>
                   {getDisplayRole(selectedUser)} <span style={{ padding: '0 5px' }}>·</span> ID: {selectedUser.trailhead_id || selectedUser.id?.substring(0, 8) || 'N/A'}
                 </div>
@@ -481,6 +546,23 @@ export default function CustomerDatabase({ colors, fonts }) {
                     <input type="text" value={userForm.display_name || ''} onChange={(e) => setUserForm({...userForm, display_name: e.target.value})} style={inputStyle} placeholder="Auto: First Last" />
                   </div>
 
+                  {selectedRecordType === 'campers' && (
+                    <>
+                      <div style={fieldContainerStyle}>
+                        <label style={labelStyle}>PREFERRED NAME</label>
+                        <input type="text" value={userForm.preferred_name || ''} onChange={(e) => setUserForm({...userForm, preferred_name: e.target.value})} style={inputStyle} />
+                      </div>
+                      <div style={fieldContainerStyle}>
+                        <label style={labelStyle}>DATE OF BIRTH</label>
+                        <input type="date" value={userForm.date_of_birth || ''} onChange={(e) => setUserForm({...userForm, date_of_birth: e.target.value})} style={inputStyle} />
+                      </div>
+                      <div style={fieldContainerStyle}>
+                        <label style={labelStyle}>PRONOUNS</label>
+                        <input type="text" value={userForm.pronouns || ''} onChange={(e) => setUserForm({...userForm, pronouns: e.target.value})} style={inputStyle} />
+                      </div>
+                    </>
+                  )}
+
                   <div style={fieldContainerStyle}>
                     <label style={labelStyle}>TRAILHEAD ID</label>
                     <input type="text" value={userForm.trailhead_id || ''} onChange={(e) => setUserForm({...userForm, trailhead_id: e.target.value})} style={inputStyle} />
@@ -499,20 +581,24 @@ export default function CustomerDatabase({ colors, fonts }) {
                     <input type="text" value={userForm.personal_phone || ''} onChange={(e) => setUserForm({...userForm, personal_phone: e.target.value})} style={inputStyle} />
                   </div>
 
-                  <div style={fieldContainerStyle}>
-                    <label style={labelStyle}>WORK PHONE</label>
-                    <input type="text" value={userForm.work_phone || ''} onChange={(e) => setUserForm({...userForm, work_phone: e.target.value})} style={inputStyle} />
-                  </div>
+                  {selectedRecordType === 'personnel' && (
+                    <div style={fieldContainerStyle}>
+                      <label style={labelStyle}>WORK PHONE</label>
+                      <input type="text" value={userForm.work_phone || ''} onChange={(e) => setUserForm({...userForm, work_phone: e.target.value})} style={inputStyle} />
+                    </div>
+                  )}
 
                   <div style={fieldContainerStyle}>
                     <label style={labelStyle}>PERSONAL EMAIL</label>
                     <input type="email" value={userForm.personal_email || ''} onChange={(e) => setUserForm({...userForm, personal_email: e.target.value})} style={inputStyle} />
                   </div>
 
-                  <div style={fieldContainerStyle}>
-                    <label style={labelStyle}>WORK EMAIL</label>
-                    <input type="email" value={userForm.work_email || ''} onChange={(e) => setUserForm({...userForm, work_email: e.target.value})} style={inputStyle} />
-                  </div>
+                  {selectedRecordType === 'personnel' && (
+                    <div style={fieldContainerStyle}>
+                      <label style={labelStyle}>WORK EMAIL</label>
+                      <input type="email" value={userForm.work_email || ''} onChange={(e) => setUserForm({...userForm, work_email: e.target.value})} style={inputStyle} />
+                    </div>
+                  )}
 
                 </div>
               </div>
@@ -532,103 +618,192 @@ export default function CustomerDatabase({ colors, fonts }) {
                     <input type="text" value={userForm.primary_emergency_contact_phone || ''} onChange={(e) => setUserForm({...userForm, primary_emergency_contact_phone: e.target.value})} style={inputStyle} />
                   </div>
 
+                  {selectedRecordType === 'campers' && (
+                    <div style={fieldContainerStyle}>
+                      <label style={labelStyle}>PRIMARY CONTACT RELATIONSHIP</label>
+                      <input type="text" value={userForm.primary_emergency_contact_relationship || ''} onChange={(e) => setUserForm({...userForm, primary_emergency_contact_relationship: e.target.value})} style={inputStyle} />
+                    </div>
+                  )}
+
                   <div style={fieldContainerStyle}>
                     <label style={labelStyle}>SECONDARY CONTACT NAME</label>
-                    <input type="text" value={userForm.secondary_emergency_contact_name || ''} onChange={(e) => setUserForm({...userForm, secondary_emergency_contact_name: e.target.value})} style={inputStyle} />
+                    <input
+                      type="text"
+                      value={selectedRecordType === 'campers' ? userForm.emergency_contact_2_name || '' : userForm.secondary_emergency_contact_name || ''}
+                      onChange={(e) => setUserForm({
+                        ...userForm,
+                        [selectedRecordType === 'campers' ? 'emergency_contact_2_name' : 'secondary_emergency_contact_name']: e.target.value
+                      })}
+                      style={inputStyle}
+                    />
                   </div>
 
                   <div style={fieldContainerStyle}>
                     <label style={labelStyle}>SECONDARY CONTACT PHONE</label>
-                    <input type="text" value={userForm.secondary_emergency_contact_phone || ''} onChange={(e) => setUserForm({...userForm, secondary_emergency_contact_phone: e.target.value})} style={inputStyle} />
+                    <input
+                      type="text"
+                      value={selectedRecordType === 'campers' ? userForm.emergency_contact_2_phone || '' : userForm.secondary_emergency_contact_phone || ''}
+                      onChange={(e) => setUserForm({
+                        ...userForm,
+                        [selectedRecordType === 'campers' ? 'emergency_contact_2_phone' : 'secondary_emergency_contact_phone']: e.target.value
+                      })}
+                      style={inputStyle}
+                    />
                   </div>
 
+                  {selectedRecordType === 'campers' && (
+                    <>
+                      <div style={fieldContainerStyle}>
+                        <label style={labelStyle}>THIRD CONTACT NAME</label>
+                        <input type="text" value={userForm.emergency_contact_3_name || ''} onChange={(e) => setUserForm({...userForm, emergency_contact_3_name: e.target.value})} style={inputStyle} />
+                      </div>
+                      <div style={fieldContainerStyle}>
+                        <label style={labelStyle}>THIRD CONTACT PHONE</label>
+                        <input type="text" value={userForm.emergency_contact_3_phone || ''} onChange={(e) => setUserForm({...userForm, emergency_contact_3_phone: e.target.value})} style={inputStyle} />
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 
               {/* SECTION 4: EMPLOYMENT & SYSTEM ROLES */}
               <div>
-                <h4 style={sectionHeaderStyle}><Briefcase size={18} /> Employment & System Roles</h4>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '15px' }}>
-                  
-                  <div style={fieldContainerStyle}>
-                    <label style={labelStyle}>START DATE</label>
-                    <input type="date" value={userForm.start_date || ''} onChange={(e) => setUserForm({...userForm, start_date: e.target.value})} style={inputStyle} />
-                  </div>
+                <h4 style={sectionHeaderStyle}>
+                  <Briefcase size={18} />
+                  {selectedRecordType === 'personnel' ? 'Employment & System Roles' : 'Camp Profile'}
+                </h4>
+                {selectedRecordType === 'personnel' ? (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '15px' }}>
+                    <div style={fieldContainerStyle}>
+                      <label style={labelStyle}>START DATE</label>
+                      <input type="date" value={userForm.start_date || ''} onChange={(e) => setUserForm({...userForm, start_date: e.target.value})} style={inputStyle} />
+                    </div>
 
-                  <div style={fieldContainerStyle}>
-                    <label style={labelStyle}>EMPLOYMENT TYPE</label>
-                    <select value={userForm.employment_type || ''} onChange={(e) => setUserForm({...userForm, employment_type: e.target.value})} style={inputStyle}>
-                      <option value="">Select Type</option>
-                      <option value="FT">FT</option>
-                      <option value="PT">PT</option>
-                      <option value="Contract">Contract</option>
-                      <option value="Seasonal">Seasonal</option>
-                      <option value="Volunteer">Volunteer</option>
-                      <option value="Intern">Intern</option>
-                    </select>
-                  </div>
+                    <div style={fieldContainerStyle}>
+                      <label style={labelStyle}>EMPLOYMENT TYPE</label>
+                      <select value={userForm.employment_type || ''} onChange={(e) => setUserForm({...userForm, employment_type: e.target.value})} style={inputStyle}>
+                        <option value="">Select Type</option>
+                        <option value="FT">FT</option>
+                        <option value="PT">PT</option>
+                        <option value="Contract">Contract</option>
+                        <option value="Seasonal">Seasonal</option>
+                        <option value="Volunteer">Volunteer</option>
+                        <option value="Intern">Intern</option>
+                      </select>
+                    </div>
 
-                  <div style={fieldContainerStyle}>
-                    <label style={labelStyle}>EMPLOYMENT STATUS</label>
-                    <select value={userForm.employment_status || ''} onChange={(e) => setUserForm({...userForm, employment_status: e.target.value})} style={inputStyle}>
-                      <option value="">Select Status</option>
-                      <option value="Active">Active</option>
-                      <option value="On Leave">On Leave</option>
-                      <option value="Disabled">Disabled</option>
-                      <option value="Terminated">Terminated</option>
-                    </select>
-                  </div>
+                    <div style={fieldContainerStyle}>
+                      <label style={labelStyle}>EMPLOYMENT STATUS</label>
+                      <select value={userForm.employment_status || ''} onChange={(e) => setUserForm({...userForm, employment_status: e.target.value})} style={inputStyle}>
+                        <option value="">Select Status</option>
+                        <option value="Active">Active</option>
+                        <option value="On Leave">On Leave</option>
+                        <option value="Disabled">Disabled</option>
+                        <option value="Terminated">Terminated</option>
+                      </select>
+                    </div>
 
-                  <div style={fieldContainerStyle}>
-                    <label style={labelStyle}>SYSTEM ROLE</label>
-                    <select value={userForm.system_role || ''} onChange={(e) => setUserForm({...userForm, system_role: e.target.value})} style={inputStyle}>
-                      <option value="">Select Role</option>
-                      <option value="Global Superadmin">Global Superadmin</option>
-                      <option value="Global Admin">Global Admin</option>
-                      <option value="Camp Superadmin">Camp Superadmin</option>
-                      <option value="Camp Admin">Camp Admin</option>
-                      <option value="Camp Staff">Camp Staff</option>
-                      <option value="Camp Volunteer">Camp Volunteer</option>
-                      <option value="Camper">Camper</option>
-                      <option value="Youth Camper">Youth Camper</option>
-                    </select>
-                  </div>
+                    <div style={fieldContainerStyle}>
+                      <label style={labelStyle}>SYSTEM ROLE</label>
+                      <select value={userForm.system_role || ''} onChange={(e) => setUserForm({...userForm, system_role: e.target.value})} style={inputStyle}>
+                        <option value="">Select Role</option>
+                        <option value="Global Superadmin">Global Superadmin</option>
+                        <option value="Global Admin">Global Admin</option>
+                        <option value="Camp Superadmin">Camp Superadmin</option>
+                        <option value="Camp Admin">Camp Admin</option>
+                        <option value="Camp Staff">Camp Staff</option>
+                        <option value="Camp Volunteer">Camp Volunteer</option>
+                        <option value="Camper">Camper</option>
+                        <option value="Youth Camper">Youth Camper</option>
+                      </select>
+                    </div>
 
-                  <div style={fieldContainerStyle}>
-                    <label style={labelStyle}>POSITION TITLE</label>
-                    <input type="text" value={userForm.position_title || ''} onChange={(e) => setUserForm({...userForm, position_title: e.target.value})} style={inputStyle} />
-                  </div>
+                    <div style={fieldContainerStyle}>
+                      <label style={labelStyle}>POSITION TITLE</label>
+                      <input type="text" value={userForm.position_title || ''} onChange={(e) => setUserForm({...userForm, position_title: e.target.value})} style={inputStyle} />
+                    </div>
 
-                  <div style={fieldContainerStyle}>
-                    <label style={labelStyle}>DEPARTMENT</label>
-                    <input type="text" value={userForm.department || ''} onChange={(e) => setUserForm({...userForm, department: e.target.value})} style={inputStyle} />
+                    <div style={fieldContainerStyle}>
+                      <label style={labelStyle}>DEPARTMENT</label>
+                      <input type="text" value={userForm.department || ''} onChange={(e) => setUserForm({...userForm, department: e.target.value})} style={inputStyle} />
+                    </div>
                   </div>
-
-                </div>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '15px' }}>
+                    <div style={fieldContainerStyle}>
+                      <label style={labelStyle}>CAMP ROLE</label>
+                      <input type="text" value={userForm.camp_role || ''} onChange={(e) => setUserForm({...userForm, camp_role: e.target.value})} style={inputStyle} />
+                    </div>
+                    <div style={fieldContainerStyle}>
+                      <label style={labelStyle}>STATUS</label>
+                      <input type="text" value={userForm.employment_status || ''} onChange={(e) => setUserForm({...userForm, employment_status: e.target.value})} style={inputStyle} />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* SECTION 5: PROPERTY & LOCATION ASSIGNMENTS */}
               <div>
-                <h4 style={sectionHeaderStyle}><MapPin size={18} /> Property & Location Assignments</h4>
+                <h4 style={sectionHeaderStyle}><MapPin size={18} /> {selectedRecordType === 'personnel' ? 'Property & Location Assignments' : 'Camp & Cabin Assignment'}</h4>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '15px' }}>
-                  
-                  <div style={fieldContainerStyle}>
-                    <label style={labelStyle}>PROPERTY ASSIGNMENT</label>
-                    <input type="text" value={userForm.property_assignment || ''} onChange={(e) => setUserForm({...userForm, property_assignment: e.target.value})} style={inputStyle} />
-                  </div>
-
-                  <div style={fieldContainerStyle}>
-                    <label style={labelStyle}>CABIN ASSIGNMENT</label>
-                    <input type="text" value={userForm.cabin_assignment || ''} onChange={(e) => setUserForm({...userForm, cabin_assignment: e.target.value})} style={inputStyle} />
-                  </div>
-
-                  <div style={fieldContainerStyle}>
-                    <label style={labelStyle}>LOT ASSIGNMENT</label>
-                    <input type="text" value={userForm.lot_assignment || ''} onChange={(e) => setUserForm({...userForm, lot_assignment: e.target.value})} style={inputStyle} />
-                  </div>
-
+                  {selectedRecordType === 'personnel' ? (
+                    <>
+                      <div style={fieldContainerStyle}>
+                        <label style={labelStyle}>PROPERTY ASSIGNMENT</label>
+                        <input type="text" value={userForm.property_assignment || ''} onChange={(e) => setUserForm({...userForm, property_assignment: e.target.value})} style={inputStyle} />
+                      </div>
+                      <div style={fieldContainerStyle}>
+                        <label style={labelStyle}>CABIN ASSIGNMENT</label>
+                        <input type="text" value={userForm.cabin_assignment || ''} onChange={(e) => setUserForm({...userForm, cabin_assignment: e.target.value})} style={inputStyle} />
+                      </div>
+                      <div style={fieldContainerStyle}>
+                        <label style={labelStyle}>LOT ASSIGNMENT</label>
+                        <input type="text" value={userForm.lot_assignment || ''} onChange={(e) => setUserForm({...userForm, lot_assignment: e.target.value})} style={inputStyle} />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div style={fieldContainerStyle}>
+                        <label style={labelStyle}>CAMP</label>
+                        <select
+                          value={userForm.camp_id || ''}
+                          onChange={(e) => setUserForm({...userForm, camp_id: e.target.value || null})}
+                          style={inputStyle}
+                        >
+                          <option value="">Unassigned</option>
+                          {Object.entries(campNamesById).map(([campId, campName]) => (
+                            <option key={campId} value={campId}>{campName}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div style={fieldContainerStyle}>
+                        <label style={labelStyle}>CABIN / SITE</label>
+                        <input type="text" value={userForm.site_or_cabin || ''} onChange={(e) => setUserForm({...userForm, site_or_cabin: e.target.value})} style={inputStyle} />
+                      </div>
+                      <div style={fieldContainerStyle}>
+                        <label style={labelStyle}>TEAM</label>
+                        <input type="text" value={userForm.assigned_team || ''} onChange={(e) => setUserForm({...userForm, assigned_team: e.target.value})} style={inputStyle} />
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
+
+              {selectedRecordType === 'campers' && (
+                <div>
+                  <h4 style={sectionHeaderStyle}><FileText size={18} /> Camper Notes & Photo</h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '15px' }}>
+                    <div style={fieldContainerStyle}>
+                      <label style={labelStyle}>PHOTO URL</label>
+                      <input type="url" value={userForm.photo_url || ''} onChange={(e) => setUserForm({...userForm, photo_url: e.target.value})} style={inputStyle} />
+                    </div>
+                    <div style={{ ...fieldContainerStyle, gridColumn: '1 / -1' }}>
+                      <label style={labelStyle}>MEDICAL NOTES</label>
+                      <textarea value={userForm.medical_notes || ''} onChange={(e) => setUserForm({...userForm, medical_notes: e.target.value})} style={{ ...inputStyle, minHeight: '90px', height: 'auto', padding: '10px 12px', resize: 'vertical' }} />
+                    </div>
+                  </div>
+                </div>
+              )}
 
             </div>
 
