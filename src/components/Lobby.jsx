@@ -44,6 +44,22 @@ export default function Lobby({ profile, currentUserEmail, colors, fonts, isDark
   
   const [camps, setCamps] = useState([])
   const [myAssignedCamps, setMyAssignedCamps] = useState([])
+  const [pendingRegistrations, setPendingRegistrations] = useState([])
+  const [isAddingRegistration, setIsAddingRegistration] = useState(false)
+  const [isSavingRegistration, setIsSavingRegistration] = useState(false)
+  const [registrationError, setRegistrationError] = useState('')
+  const [approvalError, setApprovalError] = useState('')
+  const [registrationForm, setRegistrationForm] = useState({
+    name: '',
+    type: 'Campground',
+    contact_name: '',
+    contact_number: '',
+    contact_email: '',
+    mailing_address: '',
+    property_address: '',
+    website_url: '',
+    gs_restricted: false
+  })
   const [search, setSearch] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   
@@ -138,6 +154,33 @@ export default function Lobby({ profile, currentUserEmail, colors, fonts, isDark
     return () => { isCurrent = false }
   }, [profile])
 
+  useEffect(() => {
+    if (lobbyTab !== 'approvals') return
+
+    let isCurrent = true
+    async function loadPendingRegistrations() {
+      const { data, error } = await supabase
+        .from('camp_registrations')
+        .select('*')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Error fetching pending camp registrations:', error.message)
+        if (isCurrent) setApprovalError('Unable to load pending registrations. Please try again.')
+        return
+      }
+
+      if (isCurrent) {
+        setPendingRegistrations(data || [])
+        setApprovalError('')
+      }
+    }
+
+    void loadPendingRegistrations()
+    return () => { isCurrent = false }
+  }, [lobbyTab])
+
   const selectedCamp = camps.find(c => c.id === selectedCampId)
 
   const handleLogout = async () => {
@@ -151,6 +194,77 @@ export default function Lobby({ profile, currentUserEmail, colors, fonts, isDark
     setMyAssignedCamps(assignedCamps)
     if (updatedCamps) setCamps(updatedCamps)
     setIsLoading(false)
+  }
+
+  const refreshPendingRegistrations = async () => {
+    const { data, error } = await supabase
+      .from('camp_registrations')
+      .select('*')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Error refreshing pending camp registrations:', error.message)
+      setApprovalError('Unable to refresh pending registrations. Please try again.')
+      return
+    }
+
+    setPendingRegistrations(data || [])
+    setApprovalError('')
+  }
+
+  const handleSubmitRegistration = async (event) => {
+    event.preventDefault()
+    if (isSavingRegistration) return
+
+    setRegistrationError('')
+    setIsSavingRegistration(true)
+
+    const { error } = await supabase
+      .from('camp_registrations')
+      .insert([{
+        ...registrationForm,
+        name: registrationForm.name.trim(),
+        submitted_by: profile.id
+      }])
+
+    if (error) {
+      console.error('Error submitting camp registration:', error.message)
+      setRegistrationError('Unable to submit the registration. Please try again.')
+    } else {
+      setRegistrationForm({
+        name: '',
+        type: 'Campground',
+        contact_name: '',
+        contact_number: '',
+        contact_email: '',
+        mailing_address: '',
+        property_address: '',
+        website_url: '',
+        gs_restricted: false
+      })
+      setIsAddingRegistration(false)
+      await refreshPendingRegistrations()
+    }
+
+    setIsSavingRegistration(false)
+  }
+
+  const handleReviewRegistration = async (registration, decision) => {
+    setApprovalError('')
+    const { error } = await supabase.rpc(
+      decision === 'approve' ? 'approve_camp_registration' : 'reject_camp_registration',
+      { registration_id: registration.id }
+    )
+
+    if (error) {
+      console.error(`Error ${decision}ing camp registration:`, error.message)
+      setApprovalError(`Unable to ${decision} this registration. Please try again.`)
+      return
+    }
+
+    await refreshPendingRegistrations()
+    if (decision === 'approve') await refreshProperties()
   }
 
   const handleAddCamp = async () => {
@@ -743,9 +857,85 @@ export default function Lobby({ profile, currentUserEmail, colors, fonts, isDark
 
           {lobbyTab === 'approvals' && (
             <div style={{ backgroundColor: colors.panel, padding: '30px', borderRadius: '8px', border: `2px solid ${colors.highlight}` }}>
-              <h2 style={{ fontFamily: fonts.header, fontSize: '28px', color: colors.textDark, margin: '0 0 5px 0' }}>PENDING APPROVALS</h2>
-              <p style={{ color: colors.muted, margin: '0 0 20px 0', fontSize: '14px' }}>Review and approve recently registered camps.</p>
-              <div style={{ padding: '30px', backgroundColor: colors.panel, border: `1px solid ${colors.border}`, borderRadius: '4px', textAlign: 'center', color: colors.muted, fontFamily: fonts.utility }}>No pending camp registrations at this time.</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
+                <div>
+                  <h2 style={{ fontFamily: fonts.header, fontSize: '28px', color: colors.textDark, margin: '0 0 5px 0' }}>PENDING APPROVALS</h2>
+                  <p style={{ color: colors.muted, margin: 0, fontSize: '14px' }}>Review camp registrations or enter one on behalf of a property.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setIsAddingRegistration(!isAddingRegistration); setRegistrationError('') }}
+                  style={{ backgroundColor: colors.primary, color: colors.textOnPrimary, border: 'none', padding: '10px 14px', borderRadius: '5px', cursor: 'pointer', fontFamily: fonts.utility, fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '7px' }}
+                >
+                  <Plus size={16} /> MANUALLY ENTER REGISTRATION
+                </button>
+              </div>
+
+              {approvalError && (
+                <div role="alert" style={{ marginBottom: '16px', padding: '12px 14px', border: `1px solid ${colors.error}`, borderRadius: '5px', color: colors.error, fontSize: '13px' }}>
+                  {approvalError}
+                </div>
+              )}
+
+              {isAddingRegistration && (
+                <form onSubmit={handleSubmitRegistration} style={{ marginBottom: '24px', padding: '20px', backgroundColor: colors.background, border: `1px solid ${colors.border}`, borderRadius: '6px' }}>
+                  <h3 style={{ margin: '0 0 16px', color: colors.textDark, fontFamily: fonts.header, fontSize: '20px' }}>MANUAL CAMP REGISTRATION</h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+                    <input required type="text" placeholder="Property Name *" value={registrationForm.name} onChange={(event) => setRegistrationForm({ ...registrationForm, name: event.target.value })} style={{ boxSizing: 'border-box', minWidth: 0, padding: '10px', borderRadius: '4px', border: `1px solid ${colors.border}`, backgroundColor: colors.panel, color: colors.textDark, fontFamily: fonts.body }} />
+                    <select value={registrationForm.type} onChange={(event) => setRegistrationForm({ ...registrationForm, type: event.target.value })} style={{ boxSizing: 'border-box', minWidth: 0, padding: '10px', borderRadius: '4px', border: `1px solid ${colors.border}`, backgroundColor: colors.panel, color: colors.textDark, fontFamily: fonts.body }}>
+                      <option value="Campground">Campground</option>
+                      <option value="Youth Camp">Youth Camp</option>
+                      <option value="Standard Property">Standard Property</option>
+                    </select>
+                    <input type="text" placeholder="Contact Name" value={registrationForm.contact_name} onChange={(event) => setRegistrationForm({ ...registrationForm, contact_name: event.target.value })} style={{ boxSizing: 'border-box', minWidth: 0, padding: '10px', borderRadius: '4px', border: `1px solid ${colors.border}`, backgroundColor: colors.panel, color: colors.textDark, fontFamily: fonts.body }} />
+                    <input type="tel" placeholder="Contact Number" value={registrationForm.contact_number} onChange={(event) => setRegistrationForm({ ...registrationForm, contact_number: event.target.value })} style={{ boxSizing: 'border-box', minWidth: 0, padding: '10px', borderRadius: '4px', border: `1px solid ${colors.border}`, backgroundColor: colors.panel, color: colors.textDark, fontFamily: fonts.body }} />
+                    <input type="email" placeholder="Contact Email" value={registrationForm.contact_email} onChange={(event) => setRegistrationForm({ ...registrationForm, contact_email: event.target.value })} style={{ boxSizing: 'border-box', minWidth: 0, padding: '10px', borderRadius: '4px', border: `1px solid ${colors.border}`, backgroundColor: colors.panel, color: colors.textDark, fontFamily: fonts.body }} />
+                    <input type="url" placeholder="Website URL" value={registrationForm.website_url} onChange={(event) => setRegistrationForm({ ...registrationForm, website_url: event.target.value })} style={{ boxSizing: 'border-box', minWidth: 0, padding: '10px', borderRadius: '4px', border: `1px solid ${colors.border}`, backgroundColor: colors.panel, color: colors.textDark, fontFamily: fonts.body }} />
+                    <input type="text" placeholder="Property Address" value={registrationForm.property_address} onChange={(event) => setRegistrationForm({ ...registrationForm, property_address: event.target.value })} style={{ boxSizing: 'border-box', minWidth: 0, padding: '10px', borderRadius: '4px', border: `1px solid ${colors.border}`, backgroundColor: colors.panel, color: colors.textDark, fontFamily: fonts.body }} />
+                    <input type="text" placeholder="Mailing Address" value={registrationForm.mailing_address} onChange={(event) => setRegistrationForm({ ...registrationForm, mailing_address: event.target.value })} style={{ boxSizing: 'border-box', minWidth: 0, padding: '10px', borderRadius: '4px', border: `1px solid ${colors.border}`, backgroundColor: colors.panel, color: colors.textDark, fontFamily: fonts.body }} />
+                    {profile?.access_tier === 'global_superadmin' && (
+                      <label style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: '10px', color: colors.textDark, fontSize: '13px' }}>
+                        <input type="checkbox" checked={registrationForm.gs_restricted} onChange={(event) => setRegistrationForm({ ...registrationForm, gs_restricted: event.target.checked })} />
+                        Restrict this property to Global Superadmins
+                      </label>
+                    )}
+                  </div>
+                  {registrationError && <p role="alert" style={{ margin: '12px 0 0', color: colors.error, fontSize: '13px' }}>{registrationError}</p>}
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '16px' }}>
+                    <button type="button" onClick={() => { setIsAddingRegistration(false); setRegistrationError('') }} disabled={isSavingRegistration} style={{ padding: '9px 14px', border: `1px solid ${colors.border}`, borderRadius: '4px', background: 'transparent', color: colors.textDark, cursor: 'pointer', fontFamily: fonts.utility, fontSize: '12px' }}>CANCEL</button>
+                    <button type="submit" disabled={isSavingRegistration} style={{ padding: '9px 14px', border: 'none', borderRadius: '4px', backgroundColor: colors.primary, color: colors.textOnPrimary, cursor: isSavingRegistration ? 'wait' : 'pointer', fontFamily: fonts.utility, fontSize: '12px' }}>{isSavingRegistration ? 'SUBMITTING…' : 'SUBMIT FOR APPROVAL'}</button>
+                  </div>
+                </form>
+              )}
+
+              {pendingRegistrations.length === 0 ? (
+                <div style={{ padding: '30px', backgroundColor: colors.panel, border: `1px solid ${colors.border}`, borderRadius: '4px', textAlign: 'center', color: colors.muted, fontFamily: fonts.utility }}>No pending camp registrations at this time.</div>
+              ) : (
+                <div style={{ display: 'grid', gap: '12px' }}>
+                  {pendingRegistrations.map((registration) => (
+                    <article key={registration.id} style={{ padding: '18px', backgroundColor: colors.background, border: `1px solid ${colors.border}`, borderRadius: '6px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '14px' }}>
+                        <div style={{ minWidth: 0, flex: '1 1 300px' }}>
+                          <h3 style={{ margin: '0 0 5px', color: colors.textDark, fontSize: '17px' }}>{registration.name}</h3>
+                          <div style={{ color: colors.primary, fontSize: '12px', marginBottom: '10px' }}>{registration.type}</div>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '6px 16px', color: colors.muted, fontSize: '13px', overflowWrap: 'anywhere' }}>
+                            {registration.contact_name && <div>Contact: {registration.contact_name}</div>}
+                            {registration.contact_number && <div>Phone: {registration.contact_number}</div>}
+                            {registration.contact_email && <div>Email: {registration.contact_email}</div>}
+                            {registration.property_address && <div>Property address: {registration.property_address}</div>}
+                            {registration.mailing_address && <div>Mailing address: {registration.mailing_address}</div>}
+                            {registration.website_url && <div>Website: {registration.website_url}</div>}
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                          <button type="button" onClick={() => handleReviewRegistration(registration, 'approve')} style={{ padding: '9px 12px', border: 'none', borderRadius: '4px', backgroundColor: colors.primary, color: colors.textOnPrimary, cursor: 'pointer', fontFamily: fonts.utility, fontSize: '12px' }}>APPROVE</button>
+                          <button type="button" onClick={() => handleReviewRegistration(registration, 'reject')} style={{ padding: '9px 12px', border: `1px solid ${colors.error}`, borderRadius: '4px', backgroundColor: 'transparent', color: colors.error, cursor: 'pointer', fontFamily: fonts.utility, fontSize: '12px' }}>REJECT</button>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
