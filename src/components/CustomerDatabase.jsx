@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../supabaseClient'
-import { Database, Users, User, Search, MoreVertical, FileText, Upload, X, Save, Phone, Mail, MapPin, Briefcase } from 'lucide-react'
+import { Database, Users, User, Search, MoreVertical, FileText, Upload, X, Save, Phone, Mail, MapPin, Briefcase, ChevronDown, ChevronUp } from 'lucide-react'
 
 export default function CustomerDatabase({ colors, fonts }) {
   const [activeTab, setActiveTab] = useState('personnel')
@@ -8,15 +8,31 @@ export default function CustomerDatabase({ colors, fonts }) {
   const [campers, setCampers] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [roleFilter, setRoleFilter] = useState('all')
+  const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' })
   
   const [activeMenuId, setActiveMenuId] = useState(null)
   const [selectedUser, setSelectedUser] = useState(null)
+  const [selectedRecordType, setSelectedRecordType] = useState(null)
   const [userForm, setUserForm] = useState({})
   const [userDocuments, setUserDocuments] = useState([])
   const [actionMessage, setActionMessage] = useState(null)
+  const menuRef = useRef(null)
 
   useEffect(() => {
     fetchCustomerData()
+  }, [])
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setActiveMenuId(null)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
   async function fetchCustomerData() {
@@ -41,16 +57,23 @@ export default function CustomerDatabase({ colors, fonts }) {
   }
 
   function getDisplayName(user) {
-    if (user.display_name && user.display_name.trim() !== '') {
-      return user.display_name;
-    }
-    const standardName = [user.first_name, user.last_name].filter(Boolean).join(' ');
-    if (standardName) return standardName;
-    return user.name || 'Unnamed Record';
+    const isImportedPlaceholder = (value) => /^imported staff member(?:\s*#?\d+)?$/i.test(value.trim())
+    const nameCandidates = [
+      user.display_name,
+      [user.prefix, user.first_name, user.middle_name, user.last_name, user.suffix].filter(Boolean).join(' '),
+      user.username,
+      user.user_name,
+      user.name
+    ]
+
+    return nameCandidates.find(value => (
+      typeof value === 'string' && value.trim() !== '' && !isImportedPlaceholder(value)
+    ))?.trim() || 'Unnamed Record'
   }
 
   function handleOpenDetails(user) {
     setSelectedUser(user)
+    setSelectedRecordType(activeTab)
     setUserForm(user)
     setActiveMenuId(null)
     setUserDocuments([
@@ -60,8 +83,8 @@ export default function CustomerDatabase({ colors, fonts }) {
   }
 
   async function handleSaveUser() {
-    if (!selectedUser) return
-    const tableName = activeTab === 'personnel' ? 'customer_personnel' : 'customer_campers'
+    if (!selectedUser || !selectedRecordType) return
+    const tableName = selectedRecordType === 'personnel' ? 'customer_personnel' : 'customer_campers'
     const { error } = await supabase
       .from(tableName)
       .update(userForm)
@@ -73,24 +96,65 @@ export default function CustomerDatabase({ colors, fonts }) {
       setActionMessage({ type: 'success', text: 'Record updated successfully.' })
       fetchCustomerData()
       setSelectedUser(null)
+      setSelectedRecordType(null)
     }
   }
 
-  const filteredPersonnel = personnel.filter(p => {
-    const fullName = getDisplayName(p)
-    const email = p.work_email || p.personal_email || p.email || ''
-    const property = p.property_assignment || p.property_name || ''
-    const term = searchTerm.toLowerCase()
-    return fullName.toLowerCase().includes(term) || email.toLowerCase().includes(term) || property.toLowerCase().includes(term)
-  })
+  const records = activeTab === 'personnel' ? personnel : campers
+  const getDisplayRole = (record) => (
+    activeTab === 'personnel'
+      ? record.system_role || record.role || record.position_title || 'Staff'
+      : record.camp_role || record.camper_role || 'Camper'
+  ).replaceAll('_', ' ')
+  const isRecordActive = (record) => {
+    const status = (record.employment_status || record.status || '').trim().toLowerCase()
+    return record.active !== false && !['disabled', 'inactive', 'terminated'].includes(status)
+  }
+  const normalizedSearch = searchTerm.trim().toLowerCase()
+  const roleOptions = [...new Set(records.map(getDisplayRole))].sort((a, b) => a.localeCompare(b))
+  const activeRecords = records.filter(isRecordActive).length
+  const filteredRecords = records
+    .filter(record => {
+      const email = record.work_email || record.personal_email || record.email || ''
+      const role = getDisplayRole(record)
+      const values = [
+        getDisplayName(record),
+        record.username || '',
+        record.user_name || '',
+        record.name || '',
+        record.trailhead_id || record.id || '',
+        email,
+        record.work_phone || record.personal_phone || record.phone || '',
+        record.property_assignment || record.property_name || '',
+        record.department || '',
+        record.position_title || '',
+        record.cabin_assignment || record.site_or_cabin || '',
+        role,
+        record.employment_status || record.status || ''
+      ]
+      const matchesSearch = !normalizedSearch || values.some(value => String(value).toLowerCase().includes(normalizedSearch))
+      const matchesStatus = statusFilter === 'all' || (statusFilter === 'active' ? isRecordActive(record) : !isRecordActive(record))
+      const matchesRole = roleFilter === 'all' || role === roleFilter
+      return matchesSearch && matchesStatus && matchesRole
+    })
+    .sort((a, b) => {
+      const valueFor = (record) => {
+        if (sortConfig.key === 'name') return getDisplayName(record)
+        if (sortConfig.key === 'role') return getDisplayRole(record)
+        if (sortConfig.key === 'property') return record.property_assignment || record.property_name || ''
+        if (sortConfig.key === 'status') return isRecordActive(record) ? 'Active' : 'Disabled'
+        return record.trailhead_id || record.id || ''
+      }
+      const result = valueFor(a).localeCompare(valueFor(b), undefined, { numeric: true, sensitivity: 'base' })
+      return sortConfig.direction === 'asc' ? result : -result
+    })
 
-  const filteredCampers = campers.filter(c => {
-    const fullName = getDisplayName(c)
-    const property = c.property_assignment || c.property_name || ''
-    const cabin = c.cabin_assignment || c.site_or_cabin || ''
-    const term = searchTerm.toLowerCase()
-    return fullName.toLowerCase().includes(term) || property.toLowerCase().includes(term) || cabin.toLowerCase().includes(term)
-  })
+  function toggleSort(key) {
+    setSortConfig(current => ({
+      key,
+      direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc'
+    }))
+  }
 
   const tabButtonStyle = (isActive) => ({
     flex: 1,
@@ -115,30 +179,57 @@ export default function CustomerDatabase({ colors, fonts }) {
   const labelStyle = { display: 'block', fontSize: '11px', fontFamily: fonts.utility, color: colors.muted, fontWeight: 'bold', letterSpacing: '0.5px' }
   const inputStyle = { width: '100%', height: '40px', boxSizing: 'border-box', padding: '0 12px', borderRadius: '6px', border: `1px solid ${colors.border}`, backgroundColor: colors.panel, color: colors.textDark, fontFamily: fonts.body, fontSize: '14px', outline: 'none' }
   const sectionHeaderStyle = { fontFamily: fonts.header, fontSize: '18px', color: colors.primary, margin: '0 0 15px 0', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: `1px solid ${colors.border}`, paddingBottom: '8px', letterSpacing: '0.5px' }
+  const filterButtonStyle = (isActive) => ({
+    display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 13px',
+    backgroundColor: isActive ? colors.highlight : 'transparent',
+    color: isActive ? colors.textDark : colors.muted,
+    border: `1px solid ${isActive ? colors.primary : colors.border}`,
+    borderRadius: '6px', cursor: 'pointer', fontFamily: fonts.utility,
+    fontSize: '12px', fontWeight: isActive ? 'bold' : 'normal', whiteSpace: 'nowrap'
+  })
+  const sortButton = (label, key) => (
+    <button
+      type="button"
+      onClick={() => toggleSort(key)}
+      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: 0, border: 'none', background: 'none', color: colors.muted, font: 'inherit', textTransform: 'inherit', letterSpacing: 'inherit', cursor: 'pointer' }}
+    >
+      {label}
+      {sortConfig.key === key && (sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}
+    </button>
+  )
 
   return (
-    <div style={{ backgroundColor: colors.panel, padding: '30px', borderRadius: '8px', border: `2px solid ${colors.highlight}`, color: colors.textDark, fontFamily: fonts.body, position: 'relative' }}>
-      
-      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', gap: '16px' }}>
+    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px', color: colors.textDark, fontFamily: fonts.body, position: 'relative' }}>
+      <div style={{ marginBottom: '20px', color: colors.muted, fontSize: '12px', fontFamily: fonts.utility, letterSpacing: '0.04em' }}>
+        DIRECTORY <span style={{ padding: '0 7px' }}>/</span> CUSTOMER RECORDS
+      </div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '24px', gap: '16px' }}>
         <div>
-          <h2 style={{ fontFamily: fonts.header, fontSize: '32px', margin: '0 0 5px 0', color: colors.textDark, letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Database color={colors.primary} size={28} /> CUSTOMER DATABASE
-          </h2>
-          <p style={{ color: colors.muted, margin: 0, fontSize: '14px' }}>
-            Centralized master repository utilizing uniform identity and directory fields across all records.
+          <h1 style={{ fontSize: '28px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '10px', margin: '0 0 6px 0', color: colors.textDark, letterSpacing: '-0.02em' }}>
+            <Database color={colors.primary} size={25} /> Customer Directory
+          </h1>
+          <p style={{ color: colors.muted, fontSize: '14px', margin: 0 }}>
+            Search and manage customer personnel and camper records.
           </p>
         </div>
-
-        <div style={{ position: 'relative', width: '100%', maxWidth: '300px' }}>
-          <Search size={18} color={colors.muted} style={{ position: 'absolute', left: '12px', top: '12px' }} />
-          <input 
-            type="text"
-            placeholder="Search records..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ width: '100%', boxSizing: 'border-box', padding: '10px 10px 10px 40px', borderRadius: '8px', border: `1px solid ${colors.border}`, backgroundColor: colors.panel, color: colors.textDark, fontSize: '14px', outline: 'none' }}
-          />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: colors.muted, fontSize: '13px' }}>
+          <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: colors.primary }} />
+          Directory synced
         </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px', marginBottom: '20px' }}>
+        {[
+          { label: 'Total records', value: records.length, detail: activeTab === 'personnel' ? 'Customer personnel' : 'Customer campers' },
+          { label: 'Active', value: activeRecords, detail: 'Current directory records' },
+          { label: 'Disabled', value: records.length - activeRecords, detail: 'Inactive or terminated' }
+        ].map(stat => (
+          <div key={stat.label} style={{ padding: '16px 18px', backgroundColor: colors.panel, border: `1px solid ${colors.border}`, borderRadius: '8px' }}>
+            <div style={{ color: colors.muted, fontSize: '12px', marginBottom: '7px' }}>{stat.label}</div>
+            <div style={{ fontSize: '24px', lineHeight: 1.1, fontWeight: '600', color: colors.textDark }}>{isLoading ? '—' : stat.value}</div>
+            <div style={{ color: colors.muted, fontSize: '11px', marginTop: '5px' }}>{stat.detail}</div>
+          </div>
+        ))}
       </div>
 
       {actionMessage && (
@@ -148,142 +239,189 @@ export default function CustomerDatabase({ colors, fonts }) {
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: '15px', marginBottom: '24px' }}>
-        <button onClick={() => setActiveTab('personnel')} style={tabButtonStyle(activeTab === 'personnel')}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '16px' }}>
+        <button onClick={() => { setActiveTab('personnel'); setRoleFilter('all'); setActiveMenuId(null) }} style={tabButtonStyle(activeTab === 'personnel')}>
           <Users size={18} /> Customer Personnel ({personnel.length})
         </button>
-        <button onClick={() => setActiveTab('campers')} style={tabButtonStyle(activeTab === 'campers')}>
+        <button onClick={() => { setActiveTab('campers'); setRoleFilter('all'); setActiveMenuId(null) }} style={tabButtonStyle(activeTab === 'campers')}>
           <User size={18} /> Customer Campers ({campers.length})
         </button>
       </div>
 
-      <div style={{ backgroundColor: colors.sidebar, border: `1px solid ${colors.border}`, borderRadius: '12px', overflow: 'hidden' }}>
-        <div style={{ overflowX: 'auto', minHeight: '350px' }}>
-          <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+      <div style={{ backgroundColor: colors.panel, border: `1px solid ${colors.border}`, borderRadius: '10px', overflow: 'hidden', boxShadow: '0 8px 20px rgba(0, 0, 0, 0.18)' }}>
+        <div style={{ padding: '16px', borderBottom: `1px solid ${colors.border}`, display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }} role="group" aria-label="Filter customer records by status">
+              {[
+                { key: 'all', label: 'All records', count: records.length },
+                { key: 'active', label: 'Active', count: activeRecords },
+                { key: 'disabled', label: 'Disabled', count: records.length - activeRecords }
+              ].map(filter => (
+                <button key={filter.key} type="button" aria-pressed={statusFilter === filter.key} onClick={() => setStatusFilter(filter.key)} style={filterButtonStyle(statusFilter === filter.key)}>
+                  {filter.label}<span style={{ color: statusFilter === filter.key ? colors.primary : colors.muted }}>{filter.count}</span>
+                </button>
+              ))}
+            </div>
+            <span style={{ color: colors.muted, fontSize: '12px' }}>
+              {isLoading ? 'Loading directory…' : `${filteredRecords.length} of ${records.length} records`}
+            </span>
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+            <div style={{ position: 'relative', flex: '1 1 280px', minWidth: '220px' }}>
+              <Search size={17} color={colors.muted} style={{ position: 'absolute', left: '12px', top: '11px' }} />
+              <input
+                id="customer-directory-search"
+                name="customerDirectorySearch"
+                type="search"
+                placeholder="Search name, email, ID, property, or role"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                style={{ ...inputStyle, paddingLeft: '38px', borderRadius: '6px' }}
+              />
+            </div>
+            <select
+              aria-label="Filter customer records by role"
+              value={roleFilter}
+              onChange={(event) => setRoleFilter(event.target.value)}
+              style={{ ...inputStyle, width: 'auto', minWidth: '180px', cursor: 'pointer' }}
+            >
+              <option value="all">All roles</option>
+              {roleOptions.map(role => <option key={role} value={role}>{role}</option>)}
+            </select>
+          </div>
+        </div>
+        <div style={{ overflowX: 'auto', minHeight: '300px' }}>
+          <table style={{ width: '100%', minWidth: '900px', textAlign: 'left', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ borderBottom: `2px solid ${colors.border}`, color: colors.muted, fontSize: '12px', textTransform: 'uppercase', fontFamily: fonts.utility, backgroundColor: colors.highlight }}>
-                <th style={{ padding: '14px 16px' }}>Display Name / Identity</th>
-                <th style={{ padding: '14px 16px' }}>Property Assignment</th>
-                <th style={{ padding: '14px 16px' }}>Contact / Emails</th>
-                <th style={{ padding: '14px 16px' }}>Role / Status / Location</th>
-                <th style={{ padding: '14px 16px', textAlign: 'right' }}>Actions</th>
+              <tr style={{ borderBottom: `1px solid ${colors.border}`, color: colors.muted, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.06em', backgroundColor: colors.background }}>
+                <th style={{ padding: '13px 16px' }}>{sortButton('Name', 'name')}</th>
+                <th style={{ padding: '13px 16px' }}>{sortButton('Trailhead ID', 'id')}</th>
+                <th style={{ padding: '13px 16px' }}>{sortButton('Role', 'role')}</th>
+                <th style={{ padding: '13px 16px' }}>{sortButton('Property / Location', 'property')}</th>
+                <th style={{ padding: '13px 16px' }}>Contact</th>
+                <th style={{ padding: '13px 16px' }}>{sortButton('Status', 'status')}</th>
+                <th style={{ padding: '13px 16px', textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
+                <tr><td colSpan="7" style={{ textAlign: 'center', padding: '48px', color: colors.muted }}>Loading customer records...</td></tr>
+              ) : filteredRecords.length === 0 ? (
                 <tr>
-                  <td colSpan="5" style={{ textAlign: 'center', padding: '48px', color: colors.muted, fontFamily: fonts.utility }}>Loading database records...</td>
+                  <td colSpan="7" style={{ textAlign: 'center', padding: '48px', color: colors.muted }}>
+                    <div style={{ fontSize: '15px', fontWeight: 'bold', marginBottom: '6px' }}>No records match these filters</div>
+                    <div style={{ fontSize: '13px' }}>Try another search term or clear a filter.</div>
+                    <button
+                      type="button"
+                      onClick={() => { setSearchTerm(''); setStatusFilter('all'); setRoleFilter('all') }}
+                      style={{ marginTop: '14px', padding: '8px 12px', border: `1px solid ${colors.primary}`, borderRadius: '6px', background: 'transparent', color: colors.textDark, cursor: 'pointer', fontFamily: fonts.utility, fontSize: '12px' }}
+                    >
+                      Clear filters
+                    </button>
+                  </td>
                 </tr>
-              ) : activeTab === 'personnel' ? (
-                filteredPersonnel.length === 0 ? (
-                  <tr>
-                    <td colSpan="5" style={{ textAlign: 'center', padding: '48px', color: colors.muted }}>No customer personnel records found.</td>
-                  </tr>
-                ) : (
-                  filteredPersonnel.map(user => {
-                    const displayName = getDisplayName(user);
-                    const displayProperty = user.property_assignment || user.property_name || 'Unassigned'
-                    const displayEmail = user.work_email || user.personal_email || user.email || 'No email provided'
-                    const displayRole = user.system_role || user.role || 'Staff'
+              ) : filteredRecords.map(record => {
+                const displayName = getDisplayName(record)
+                const displayId = record.trailhead_id || record.id?.substring(0, 8) || 'N/A'
+                const displayRole = getDisplayRole(record)
+                const isActive = isRecordActive(record)
+                const property = record.property_assignment || record.property_name || 'Unassigned'
+                const location = record.cabin_assignment || record.site_or_cabin
+                const contact = record.work_email || record.personal_email || record.email || record.work_phone || record.personal_phone || 'No contact provided'
+                const initials = displayName.split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join('').toUpperCase() || '?'
 
-                    return (
-                      <tr key={user.id} style={{ borderBottom: `1px solid ${colors.border}` }}>
-                        <td style={{ padding: '14px 16px' }}>
-                          <div style={{ fontWeight: 'bold', color: colors.textDark }}>{displayName}</div>
-                          <div style={{ fontSize: '11px', color: colors.muted, fontFamily: fonts.utility }}>ID: {user.trailhead_id || user.id.substring(0,8)}</div>
-                        </td>
-                        <td style={{ padding: '14px 16px', color: colors.textDark }}>{displayProperty}</td>
-                        <td style={{ padding: '14px 16px', color: colors.muted, fontSize: '14px' }}>{displayEmail}</td>
-                        <td style={{ padding: '14px 16px', color: colors.textDark }}>
-                          <div style={{ textTransform: 'capitalize' }}>{displayRole.replace('_', ' ')}</div>
-                          <div style={{ fontSize: '11px', color: colors.muted, fontFamily: fonts.utility }}>Dept: {user.department || 'N/A'}</div>
-                        </td>
-                        <td style={{ padding: '14px 16px', textAlign: 'right', position: 'relative' }}>
+                return (
+                  <tr key={`${activeTab}-${record.id}`} style={{ borderBottom: `1px solid ${colors.border}`, transition: 'background-color 0.15s' }}>
+                    <td style={{ padding: '12px 16px' }}>
+                      <button type="button" onClick={() => handleOpenDetails(record)} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: 0, border: 'none', background: 'none', color: 'inherit', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit' }}>
+                        <span aria-hidden="true" style={{ width: '38px', height: '38px', flex: '0 0 38px', display: 'grid', placeItems: 'center', borderRadius: '50%', backgroundColor: colors.highlight, color: colors.textDark, fontSize: '13px', fontWeight: 'bold' }}>{initials}</span>
+                        <span style={{ minWidth: 0, fontWeight: '600', color: colors.textDark }}>{displayName}</span>
+                      </button>
+                    </td>
+                    <td style={{ padding: '12px 16px', color: colors.muted, fontFamily: 'monospace', fontSize: '13px' }}>{displayId}</td>
+                    <td style={{ padding: '12px 16px', color: colors.textDark, textTransform: 'capitalize' }}>{displayRole}</td>
+                    <td style={{ padding: '12px 16px', color: colors.textDark }}>
+                      <div>{property}</div>
+                      {location && <div style={{ color: colors.muted, fontSize: '12px', marginTop: '3px' }}>{activeTab === 'personnel' ? `Dept: ${record.department || 'N/A'}` : `Location: ${location}`}</div>}
+                    </td>
+                    <td style={{ padding: '12px 16px', color: colors.muted, fontSize: '13px' }}>{contact}</td>
+                    <td style={{ padding: '12px 16px' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '5px 9px', fontSize: '11px', borderRadius: '9999px', fontWeight: '600', backgroundColor: isActive ? colors.highlight : 'rgba(220, 38, 38, 0.15)', color: isActive ? colors.primary : colors.error, border: `1px solid ${isActive ? colors.primary : colors.error}` }}>
+                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: isActive ? colors.primary : colors.error }} />
+                        {isActive ? 'Active' : 'Disabled'}
+                      </span>
+                    </td>
+                    <td ref={activeMenuId === record.id ? menuRef : null} style={{ padding: '12px 16px', textAlign: 'right', position: 'relative' }}>
+                      <button
+                        type="button"
+                        onClick={() => setActiveMenuId(activeMenuId === record.id ? null : record.id)}
+                        style={{ padding: '6px', background: 'none', border: 'none', borderRadius: '8px', color: colors.muted, cursor: 'pointer' }}
+                        aria-label={`Actions for ${displayName}`}
+                        aria-haspopup="menu"
+                        aria-expanded={activeMenuId === record.id}
+                      >
+                        <MoreVertical size={18} />
+                      </button>
+                      {activeMenuId === record.id && (
+                        <div role="menu" style={{ position: 'absolute', right: '24px', top: '48px', width: '180px', backgroundColor: colors.sidebar, border: `1px solid ${colors.border}`, borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.5)', padding: '6px 0', zIndex: 50, textAlign: 'left' }}>
                           <button
-                            onClick={() => setActiveMenuId(activeMenuId === user.id ? null : user.id)}
-                            style={{ padding: '6px', background: 'none', border: 'none', borderRadius: '8px', color: colors.muted, cursor: 'pointer' }}
+                            type="button"
+                            role="menuitem"
+                            onClick={() => handleOpenDetails(record)}
+                            style={{ width: '100%', padding: '8px 16px', fontSize: '13px', color: colors.textDark, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold' }}
                           >
-                            <MoreVertical size={18} />
+                            <FileText size={14} color={colors.primary} /> View Details & Edit
                           </button>
-
-                          {activeMenuId === user.id && (
-                            <div style={{ position: 'absolute', right: '24px', top: '48px', width: '160px', backgroundColor: colors.sidebar, border: `1px solid ${colors.border}`, borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.5)', padding: '6px 0', zIndex: 50, textAlign: 'left' }}>
-                              <button
-                                onClick={() => handleOpenDetails(user)}
-                                style={{ width: '100%', padding: '8px 16px', fontSize: '13px', color: colors.textDark, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold' }}
-                              >
-                                <FileText size={14} color={colors.primary} /> View Details
-                              </button>
-                            </div>
-                          )}
-                        </td>
-                      </tr>
-                    )
-                  })
-                )
-              ) : (
-                filteredCampers.length === 0 ? (
-                  <tr>
-                    <td colSpan="5" style={{ textAlign: 'center', padding: '48px', color: colors.muted }}>No camper records found.</td>
+                        </div>
+                      )}
+                    </td>
                   </tr>
-                ) : (
-                  filteredCampers.map(camper => {
-                    const fullName = getDisplayName(camper);
-                    const displayCamp = camper.property_assignment || camper.property_name || 'Assigned Camp'
-                    const displayContact = camper.personal_email || camper.email || camper.personal_phone || 'No contact info'
-                    const locationInfo = `Cabin: ${camper.cabin_assignment || camper.site_or_cabin || 'Unassigned'}`
-
-                    return (
-                      <tr key={camper.id} style={{ borderBottom: `1px solid ${colors.border}` }}>
-                        <td style={{ padding: '14px 16px' }}>
-                          <div style={{ fontWeight: 'bold', color: colors.textDark }}>{fullName}</div>
-                          <div style={{ fontSize: '11px', color: colors.muted, fontFamily: fonts.utility }}>ID: {camper.trailhead_id || camper.id.substring(0,8)}</div>
-                        </td>
-                        <td style={{ padding: '14px 16px', color: colors.textDark }}>{displayCamp}</td>
-                        <td style={{ padding: '14px 16px', color: colors.muted, fontSize: '14px' }}>{displayContact}</td>
-                        <td style={{ padding: '14px 16px', color: colors.textDark, fontSize: '13px' }}>{locationInfo}</td>
-                        <td style={{ padding: '14px 16px', textAlign: 'right', position: 'relative' }}>
-                          <button
-                            onClick={() => setActiveMenuId(activeMenuId === camper.id ? null : camper.id)}
-                            style={{ padding: '6px', background: 'none', border: 'none', borderRadius: '8px', color: colors.muted, cursor: 'pointer' }}
-                          >
-                            <MoreVertical size={18} />
-                          </button>
-
-                          {activeMenuId === camper.id && (
-                            <div style={{ position: 'absolute', right: '24px', top: '48px', width: '160px', backgroundColor: colors.sidebar, border: `1px solid ${colors.border}`, borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.5)', padding: '6px 0', zIndex: 50, textAlign: 'left' }}>
-                              <button
-                                onClick={() => handleOpenDetails(camper)}
-                                style={{ width: '100%', padding: '8px 16px', fontSize: '13px', color: colors.textDark, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold' }}
-                              >
-                                <FileText size={14} color={colors.primary} /> View Details
-                              </button>
-                            </div>
-                          )}
-                        </td>
-                      </tr>
-                    )
-                  })
                 )
-              )}
+              })}
             </tbody>
           </table>
         </div>
+        {!isLoading && records.length > 0 && (
+          <div style={{ padding: '12px 16px', borderTop: `1px solid ${colors.border}`, color: colors.muted, fontSize: '12px' }}>
+            Showing {filteredRecords.length} {filteredRecords.length === 1 ? 'record' : 'records'}
+          </div>
+        )}
       </div>
 
       {/* FULL RECORD DETAILS & DOCUMENTS MODAL */}
       {selectedUser && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '20px' }}>
-          <div style={{ backgroundColor: colors.sidebar, border: `2px solid ${colors.primary}`, borderRadius: '16px', maxWidth: '900px', width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: '30px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)', color: colors.textDark, boxSizing: 'border-box' }}>
+        <div role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) { setSelectedUser(null); setSelectedRecordType(null) } }} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '20px' }}>
+          <div role="dialog" aria-modal="true" aria-labelledby="customer-record-title" style={{ backgroundColor: colors.sidebar, border: `1px solid ${colors.border}`, borderRadius: '12px', maxWidth: '960px', width: '100%', maxHeight: '92vh', overflowY: 'auto', padding: '24px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)', color: colors.textDark, boxSizing: 'border-box' }}>
             
             {/* Modal Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${colors.border}`, paddingBottom: '15px', marginBottom: '25px' }}>
-              <h3 style={{ fontFamily: fonts.header, fontSize: '24px', margin: 0, color: colors.textDark, display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <FileText color={colors.primary} /> Record Profile & Directory Details
-              </h3>
-              <button onClick={() => setSelectedUser(null)} style={{ background: 'none', border: 'none', color: colors.muted, cursor: 'pointer' }}>
+              <div>
+                <div style={{ color: colors.muted, fontSize: '11px', fontFamily: fonts.utility, letterSpacing: '0.06em', marginBottom: '5px' }}>DIRECTORY <span style={{ padding: '0 5px' }}>/</span> CUSTOMER PROFILE</div>
+                <h3 id="customer-record-title" style={{ fontFamily: fonts.header, fontSize: '20px', margin: 0, color: colors.textDark, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  {activeTab === 'personnel' ? 'Customer personnel details' : 'Customer camper details'}
+                </h3>
+              </div>
+              <button type="button" aria-label="Close customer profile" onClick={() => { setSelectedUser(null); setSelectedRecordType(null) }} style={{ display: 'grid', placeItems: 'center', width: '36px', height: '36px', background: 'transparent', border: `1px solid ${colors.border}`, borderRadius: '6px', color: colors.muted, cursor: 'pointer' }}>
                 <X size={24} />
               </button>
+            </div>
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '16px', padding: '18px', marginBottom: '24px', backgroundColor: colors.panel, border: `1px solid ${colors.border}`, borderRadius: '8px' }}>
+              <span aria-hidden="true" style={{ width: '58px', height: '58px', flex: '0 0 58px', display: 'grid', placeItems: 'center', borderRadius: '50%', backgroundColor: colors.highlight, color: colors.textDark, fontSize: '18px', fontWeight: 'bold' }}>
+                {getDisplayName(selectedUser).split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join('').toUpperCase() || '?'}
+              </span>
+              <div style={{ flex: '1 1 240px', minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginBottom: '5px' }}>
+                  <strong style={{ fontSize: '20px', color: colors.textDark }}>{getDisplayName(selectedUser)}</strong>
+                  <span style={{ padding: '4px 8px', borderRadius: '9999px', backgroundColor: isRecordActive(selectedUser) ? colors.highlight : 'rgba(220, 38, 38, 0.15)', border: `1px solid ${isRecordActive(selectedUser) ? colors.primary : colors.error}`, color: isRecordActive(selectedUser) ? colors.primary : colors.error, fontSize: '11px', fontWeight: '600' }}>
+                    {isRecordActive(selectedUser) ? 'Active' : 'Disabled'}
+                  </span>
+                </div>
+                <div style={{ color: colors.muted, fontSize: '13px', overflowWrap: 'anywhere' }}>{selectedUser.work_email || selectedUser.personal_email || selectedUser.email || 'No email provided'}</div>
+                <div style={{ color: colors.muted, fontSize: '12px', marginTop: '5px', textTransform: 'capitalize' }}>
+                  {getDisplayRole(selectedUser)} <span style={{ padding: '0 5px' }}>·</span> ID: {selectedUser.trailhead_id || selectedUser.id?.substring(0, 8) || 'N/A'}
+                </div>
+              </div>
             </div>
 
             {/* FORM SECTIONS */}
@@ -535,7 +673,7 @@ export default function CustomerDatabase({ colors, fonts }) {
 
             {/* MODAL ACTIONS */}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '30px', borderTop: `1px solid ${colors.border}`, paddingTop: '20px' }}>
-              <button onClick={() => setSelectedUser(null)} style={{ padding: '10px 20px', backgroundColor: 'transparent', color: colors.textDark, border: `1px solid ${colors.muted}`, borderRadius: '6px', fontFamily: fonts.header, fontSize: '14px', cursor: 'pointer' }}>
+              <button onClick={() => { setSelectedUser(null); setSelectedRecordType(null) }} style={{ padding: '10px 20px', backgroundColor: 'transparent', color: colors.textDark, border: `1px solid ${colors.muted}`, borderRadius: '6px', fontFamily: fonts.header, fontSize: '14px', cursor: 'pointer' }}>
                 Cancel
               </button>
               <button onClick={handleSaveUser} style={{ padding: '10px 24px', backgroundColor: colors.primary, color: colors.textOnPrimary, border: 'none', borderRadius: '6px', fontFamily: fonts.header, fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
