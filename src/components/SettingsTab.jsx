@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Settings, Palette, Sun, Moon, Shield, Sliders, Scale } from 'lucide-react';
 import { THEMES } from '../themes';
+import PageHeader from './PageHeader';
 
 export default function SettingsTab({ colors, fonts, isDarkMode, setIsDarkMode, themeKey, setThemeKey, selectedPropertyName }) {
   const [successMessage, setSuccessMessage] = useState(null);
@@ -12,17 +13,16 @@ export default function SettingsTab({ colors, fonts, isDarkMode, setIsDarkMode, 
   }
 
   return (
-    <div style={{ maxWidth: '1000px', margin: '0 auto', color: colors.textDark, fontFamily: fonts.body }}>
-      
-      {/* Header */}
-      <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ fontSize: '28px', fontFamily: fonts.header, margin: '0 0 6px 0', color: colors.textDark, display: 'flex', alignItems: 'center', gap: '10px', letterSpacing: '1px' }}>
-          <Settings size={28} color={colors.primary} /> SYSTEM & PROPERTY SETTINGS
-        </h1>
-        <p style={{ color: colors.muted, fontSize: '14px', margin: 0 }}>
-          Manage global application preferences, interface themes, and property portal configurations for <strong style={{ color: colors.textDark }}>{selectedPropertyName || 'Trailhead Console'}</strong>.
-        </p>
-      </div>
+    <div style={{ maxWidth: '1000px', width: '100%', boxSizing: 'border-box', margin: '0 auto', padding: '24px', color: colors.textDark, fontFamily: fonts.body }}>
+      <PageHeader
+        title="Settings"
+        subtitle={<>Manage application preferences, themes, and property portal settings for <strong style={{ color: colors.textDark }}>{selectedPropertyName || 'Trailhead Console'}</strong>.</>}
+        icon={Settings}
+        colors={colors}
+        fonts={fonts}
+        eyebrow={<>ADMIN CONSOLE <span style={{ padding: '0 7px' }}>/</span> SETTINGS</>}
+        padding="0"
+      />
 
       {successMessage && (
         <div style={{ marginBottom: '20px', padding: '12px 16px', borderRadius: '8px', backgroundColor: colors.highlight, border: `1px solid ${colors.border}`, color: colors.textDark, fontFamily: fonts.utility, fontSize: '14px' }}>

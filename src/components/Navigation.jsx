@@ -1,72 +1,78 @@
-import { LayoutDashboard, Building, Users, Database, CheckSquare, MessageSquare, FileText, Settings } from 'lucide-react';
+import { CalendarDays, Home, Menu, UserRound, Users } from 'lucide-react'
 
-export default function Navigation({ activeTab, setActiveTab, session, setIsMoreOpen, colors }) {
-  const isGlobalAdmin = session?.access_tier === 'global_superadmin' || session?.access_tier === 'global_admin';
-  const isCampAdmin = session?.access_tier === 'camp_superadmin' || session?.access_tier === 'camp_admin';
+const primaryTabs = [
+  { id: 'news', label: 'Home', Icon: Home },
+  { id: 'events', label: 'Events', Icon: CalendarDays },
+  { id: 'social', label: 'Community', Icon: Users },
+  { id: 'profile', label: 'Profile', Icon: UserRound },
+]
 
-  const navItemStyle = (tabName) => ({
+export default function Navigation({ activeTab, setActiveTab, setIsMoreOpen, isMoreOpen, colors, fonts }) {
+  const isMoreActive = !primaryTabs.some((tab) => tab.id === activeTab)
+
+  const buttonStyle = (isActive) => ({
     display: 'flex',
+    flex: '1 1 0',
+    minWidth: 0,
+    minHeight: '48px',
+    flexDirection: 'column',
     alignItems: 'center',
-    gap: '12px',
-    padding: '12px 16px',
-    borderRadius: '8px',
-    backgroundColor: activeTab === tabName ? colors.highlight : 'transparent',
-    color: colors.textLight,
+    justifyContent: 'center',
+    gap: '3px',
+    padding: '6px 4px',
     border: 'none',
-    width: '100%',
-    textAlign: 'left',
+    borderRadius: '8px',
+    backgroundColor: isActive ? colors.highlight : 'transparent',
+    color: isActive ? colors.primary : colors.textLight,
     cursor: 'pointer',
-    fontSize: '15px',
-    fontWeight: activeTab === tabName ? 'bold' : 'normal',
-    transition: 'background-color 0.2s'
-  });
+    fontFamily: fonts.body,
+    fontSize: '12px',
+    fontWeight: isActive ? 'bold' : 'normal',
+    lineHeight: 1.2,
+    transition: 'background-color 0.2s, color 0.2s',
+    WebkitTapHighlightColor: 'transparent',
+  })
 
   return (
-    <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-      
-      <div style={{ fontSize: '11px', fontFamily: 'monospace', color: colors.muted, textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '1px' }}>
-        Console Navigation
-      </div>
-
-      <button onClick={() => { setActiveTab('dashboard'); setIsMoreOpen(false); }} style={navItemStyle('dashboard')}>
-        <LayoutDashboard size={18} color={colors.primary} /> Dashboard
+    <nav
+      aria-label="Main navigation"
+      style={{
+        display: 'flex',
+        flex: '0 0 auto',
+        alignItems: 'stretch',
+        gap: '4px',
+        padding: '8px 8px calc(8px + env(safe-area-inset-bottom))',
+        backgroundColor: colors.sidebar,
+        borderTop: `1px solid ${colors.highlight}`,
+        zIndex: 10,
+      }}
+    >
+      {primaryTabs.map(({ id, label, Icon }) => {
+        const isActive = activeTab === id
+        return (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setActiveTab(id)}
+            aria-current={isActive ? 'page' : undefined}
+            style={buttonStyle(isActive)}
+          >
+            <Icon size={20} aria-hidden="true" />
+            <span>{label}</span>
+          </button>
+        )
+      })}
+      <button
+        type="button"
+        onClick={() => setIsMoreOpen(true)}
+        aria-current={isMoreActive ? 'page' : undefined}
+        aria-expanded={isMoreOpen}
+        aria-label="Open more options"
+        style={buttonStyle(isMoreActive || isMoreOpen)}
+      >
+        <Menu size={20} aria-hidden="true" />
+        <span>More</span>
       </button>
-
-      {(isGlobalAdmin || isCampAdmin) && (
-        <button onClick={() => { setActiveTab('properties'); setIsMoreOpen(false); }} style={navItemStyle('properties')}>
-          <Building size={18} color={colors.primary} /> Properties
-        </button>
-      )}
-
-      {(isGlobalAdmin || isCampAdmin) && (
-        <button onClick={() => { setActiveTab('staff'); setIsMoreOpen(false); }} style={navItemStyle('staff')}>
-          <Users size={18} color={colors.primary} /> Staff
-        </button>
-      )}
-
-      {(isGlobalAdmin || isCampAdmin) && (
-        <button onClick={() => { setActiveTab('customer_db'); setIsMoreOpen(false); }} style={navItemStyle('customer_db')}>
-          <Database size={18} color={colors.primary} /> Customer DB
-        </button>
-      )}
-
-      <button onClick={() => { setActiveTab('approvals'); setIsMoreOpen(false); }} style={navItemStyle('approvals')}>
-        <CheckSquare size={18} color={colors.primary} /> Approvals
-      </button>
-
-      <button onClick={() => { setActiveTab('discuss'); setIsMoreOpen(false); }} style={navItemStyle('discuss')}>
-        <MessageSquare size={18} color={colors.primary} /> Discuss
-      </button>
-
-      <button onClick={() => { setActiveTab('notes'); setIsMoreOpen(false); }} style={navItemStyle('notes')}>
-        <FileText size={18} color={colors.primary} /> Notes
-      </button>
-
-      {/* Settings Option for Property Portals / Navigation */}
-      <button onClick={() => { setActiveTab('settings'); setIsMoreOpen(false); }} style={navItemStyle('settings')}>
-        <Settings size={18} color={colors.primary} /> Settings
-      </button>
-
-    </div>
-  );
+    </nav>
+  )
 }

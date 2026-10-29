@@ -235,7 +235,7 @@ function AuthenticatedApp() {
         
         {/* Admin & Utility Tabs */}
         {activeTab === 'admin' && <AdminTab profile={profile} campData={campData} colors={colors} fonts={fonts} />}
-        {activeTab === 'staff-manager' && <StaffManager supabase={supabase} selectedPropertyName={campData?.name || 'Whispering Pines Youth Camp'} colors={colors} fonts={fonts} isDarkMode={isDarkMode} />}
+        {activeTab === 'staff-manager' && <StaffManager supabase={supabase} selectedPropertyName={campData?.name || 'Test-Youth Camp'} colors={colors} fonts={fonts} isDarkMode={isDarkMode} />}
         {activeTab === 'customer-db' && <CustomerDatabase colors={colors} fonts={fonts} />}
         {activeTab === 'settings' && <SettingsTab colors={colors} fonts={fonts} isDarkMode={isDarkMode} setIsDarkMode={handleDarkModeToggle} themeKey={themeKey} setThemeKey={handleThemeChange} selectedPropertyName={campData?.name || 'Trailhead Admin Console'} />}
         {activeTab === 'challenges' && <ChallengesTab activeCamp={campData} colors={colors} fonts={fonts} />}
@@ -331,9 +331,9 @@ function AuthenticatedApp() {
         activeTab={activeTab} 
         setActiveTab={setActiveTab} 
         colors={colors}
-        session={profile} 
-        campType={campData?.type}
         setIsMoreOpen={setIsMoreOpen} 
+        isMoreOpen={isMoreOpen}
+        fonts={fonts}
       />
       
     </div>

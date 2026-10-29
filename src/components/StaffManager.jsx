@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   MoreVertical, Mail, MessageSquare, Key, RefreshCw, 
-  QrCode, UserX, UserCheck, Trash2, Search, Shield, FileText, Upload, X, Save, Phone, MapPin, Briefcase, User, ChevronDown, ChevronUp
+  QrCode, UserX, UserCheck, Trash2, Search, Users, FileText, Upload, X, Save, Phone, MapPin, Briefcase, User, ChevronDown, ChevronUp
 } from 'lucide-react';
+import PageHeader from './PageHeader';
 
 export default function StaffManager({ supabase, selectedPropertyName, colors, fonts }) {
   const [users, setUsers] = useState([]);
@@ -265,6 +266,8 @@ export default function StaffManager({ supabase, selectedPropertyName, colors, f
     <div style={{
       padding: '24px',
       maxWidth: '1200px',
+      width: '100%',
+      boxSizing: 'border-box',
       margin: '0 auto',
       color: 'var(--staff-text)',
       fontFamily: fonts?.body || 'sans-serif',
@@ -278,23 +281,16 @@ export default function StaffManager({ supabase, selectedPropertyName, colors, f
       '--staff-text': colors?.textDark || '#E8EDF5',
       '--staff-muted': colors?.muted || '#A5B0C0'
     }}>
-      <div style={{ marginBottom: '20px', color: 'var(--staff-muted)', fontSize: '12px', fontFamily: fonts?.utility || 'monospace', letterSpacing: '0.04em' }}>
-        IDENTITY <span style={{ padding: '0 7px', color: 'var(--staff-muted)' }}>/</span> PERSONNEL DIRECTORY
-      </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '24px', gap: '16px' }}>
-        <div>
-          <h1 style={{ fontSize: '28px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '10px', margin: '0 0 6px 0', color: 'var(--staff-text)', letterSpacing: '-0.02em' }}>
-            <Shield size={25} style={{ color: colors?.primary || '#8E9BF0' }} /> Personnel
-          </h1>
-          <p style={{ color: 'var(--staff-muted)', fontSize: '14px', margin: 0 }}>
-            Manage identities{selectedPropertyName ? ` for ${selectedPropertyName}` : ' across your organization'}
-          </p>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--staff-muted)', fontSize: '13px' }}>
-          <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#4ADE80' }} />
-          Directory synced
-        </div>
-      </div>
+      <PageHeader
+        title="Staff Directory"
+        subtitle={`Manage staff identities${selectedPropertyName ? ` for ${selectedPropertyName}` : ' across your organization'}`}
+        icon={Users}
+        colors={colors}
+        fonts={fonts}
+        eyebrow={<>DIRECTORY <span style={{ padding: '0 7px' }}>/</span> STAFF DIRECTORY</>}
+        status="Directory synced"
+        padding="0"
+      />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px', marginBottom: '20px' }}>
         {[

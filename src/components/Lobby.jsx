@@ -1,8 +1,9 @@
 ﻿import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
-import { Tent, Users, CheckSquare, MessageSquare, LogOut, Search, MapPin, ThumbsUp, MessageCircle, BarChart2, Edit2, Plus, LayoutDashboard, Menu, X, Settings, Trash2, AlertTriangle, Moon, Sun, Lock, ShieldAlert, Database, Megaphone, Save, ChevronUp, ChevronDown } from 'lucide-react'
+import { Tent, Users, CheckSquare, MessageSquare, LogOut, Search, MapPin, Edit2, Plus, LayoutDashboard, Menu, X, Settings, Trash2, AlertTriangle, Moon, Sun, Lock, ShieldAlert, Database, Megaphone, Save, ChevronUp, ChevronDown } from 'lucide-react'
 import StaffManager from './StaffManager'
 import CustomerDatabase from './CustomerDatabase'
+import PageHeader from './PageHeader'
 import SettingsTab from './SettingsTab'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
@@ -25,6 +26,60 @@ function normalizeAnnouncementHtml(html) {
   return (html || '').replace(/(?:&nbsp;|&#160;|&#xA0;|\u00a0)/gi, ' ')
 }
 
+const propertyTypes = [
+  'Campground/RV Park',
+  'Youth Camp',
+  'Standard Property',
+  'Cabins, Lodges & Resorts',
+  'Vacation Rentals / Short-Term Rentals',
+  'Bed-and-Breakfasts, Inns & Guesthouses',
+  'Hotels/Motels',
+  'Hostels',
+  'Marinas & Storage',
+  'Retreat, Conference & Event Centers'
+]
+
+const registrationPropertyTypes = [
+  ...propertyTypes,
+  'Other'
+]
+
+const registrationFeatureOptions = [
+  'Reservations and guest management',
+  'Staff coordination',
+  'Maintenance tracking',
+  'Announcements and communication',
+  'Reporting and analytics',
+  'Multi-property management'
+]
+
+const defaultRegistrationForm = {
+  name: '',
+  organization_name: '',
+  property_types: ['Campground/RV Park'],
+  other_property_type: '',
+  contact_name: '',
+  contact_number: '',
+  contact_email: '',
+  billing_contact_name: '',
+  billing_contact_email: '',
+  mailing_address: '',
+  property_address: '',
+  website_url: '',
+  location_count: 1,
+  current_unit_count: 0,
+  peak_unit_count: 0,
+  current_people_count: 0,
+  peak_people_count: 0,
+  requested_features: [],
+  other_feature: '',
+  plan_preference: 'help_me_choose',
+  billing_preference: 'monthly_or_annual',
+  desired_start_date: '',
+  notes: '',
+  gs_restricted: false
+}
+
 async function loadProperties(profile) {
   let assignedCamps = []
   if (profile?.id && profile?.access_tier !== 'global_superadmin') {
@@ -41,6 +96,13 @@ export default function Lobby({ profile, currentUserEmail, colors, fonts, isDark
   const [lobbyTab, setLobbyTab] = useState('dashboard')
   const [townHallView, setTownHallView] = useState('discussions')
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [townHallPosts, setTownHallPosts] = useState([])
+  const [isLoadingPosts, setIsLoadingPosts] = useState(false)
+  const [isSavingPost, setIsSavingPost] = useState(false)
+  const [postError, setPostError] = useState('')
+  const [postForm, setPostForm] = useState({ title: '', content: '' })
+  const [editingPostId, setEditingPostId] = useState(null)
+  const [editPostForm, setEditPostForm] = useState({ title: '', content: '' })
   
   const [camps, setCamps] = useState([])
   const [myAssignedCamps, setMyAssignedCamps] = useState([])
@@ -49,17 +111,7 @@ export default function Lobby({ profile, currentUserEmail, colors, fonts, isDark
   const [isSavingRegistration, setIsSavingRegistration] = useState(false)
   const [registrationError, setRegistrationError] = useState('')
   const [approvalError, setApprovalError] = useState('')
-  const [registrationForm, setRegistrationForm] = useState({
-    name: '',
-    type: 'Campground',
-    contact_name: '',
-    contact_number: '',
-    contact_email: '',
-    mailing_address: '',
-    property_address: '',
-    website_url: '',
-    gs_restricted: false
-  })
+  const [registrationForm, setRegistrationForm] = useState(defaultRegistrationForm)
   const [search, setSearch] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   
@@ -128,13 +180,14 @@ export default function Lobby({ profile, currentUserEmail, colors, fonts, isDark
   }
 
   const defaultCampForm = {
-    name: '', type: 'Campground', contact_name: '', contact_number: '', 
+    name: '', type: 'Campground/RV Park', contact_name: '', contact_number: '',
     contact_email: '', mailing_address: '', property_address: '', website_url: '',
+    amenities: '', capacity: '', nightly_rate: '',
     gs_restricted: false
   }
   const [campForm, setCampForm] = useState(defaultCampForm)
 
-  const [selectedProject, setSelectedProject] = useState('Squirrel Hill Campground')
+  const [selectedProject, setSelectedProject] = useState('Test-Campground')
   const [newProjectName, setNewProjectName] = useState('')
   
   const headerDisplayName = profile?.display_name || `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() || profile?.access_tier
@@ -181,6 +234,38 @@ export default function Lobby({ profile, currentUserEmail, colors, fonts, isDark
     return () => { isCurrent = false }
   }, [lobbyTab])
 
+  useEffect(() => {
+    if (lobbyTab !== 'townhall') return
+
+    let isCurrent = true
+    async function loadTownHallPosts() {
+      setIsLoadingPosts(true)
+      setPostError('')
+      const { data, error } = await supabase
+        .from('town_hall_posts')
+        .select('*')
+        .eq('post_type', townHallView === 'discussions' ? 'discussion' : 'note')
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Error fetching Town Hall posts:', error.message)
+        if (isCurrent) {
+          setPostError('Unable to load posts. Please try again.')
+          setIsLoadingPosts(false)
+        }
+        return
+      }
+
+      if (isCurrent) {
+        setTownHallPosts(data || [])
+        setIsLoadingPosts(false)
+      }
+    }
+
+    void loadTownHallPosts()
+    return () => { isCurrent = false }
+  }, [lobbyTab, townHallView])
+
   const selectedCamp = camps.find(c => c.id === selectedCampId)
 
   const handleLogout = async () => {
@@ -213,18 +298,52 @@ export default function Lobby({ profile, currentUserEmail, colors, fonts, isDark
     setApprovalError('')
   }
 
+  const toggleRegistrationOption = (field, option, isChecked) => {
+    setRegistrationForm((current) => ({
+      ...current,
+      [field]: isChecked
+        ? [...current[field], option]
+        : current[field].filter((value) => value !== option)
+    }))
+  }
+
   const handleSubmitRegistration = async (event) => {
     event.preventDefault()
     if (isSavingRegistration) return
 
     setRegistrationError('')
+    if (registrationForm.property_types.length === 0) {
+      setRegistrationError('Select at least one property type.')
+      return
+    }
+    if (Number(registrationForm.peak_unit_count) < Number(registrationForm.current_unit_count)) {
+      setRegistrationError('Peak units/assets must be at least the current unit/assets count.')
+      return
+    }
+    if (Number(registrationForm.peak_people_count) < Number(registrationForm.current_people_count)) {
+      setRegistrationError('Peak occupants must be at least the current occupants count.')
+      return
+    }
     setIsSavingRegistration(true)
 
     const { error } = await supabase
       .from('camp_registrations')
       .insert([{
         ...registrationForm,
+        type: registrationForm.property_types[0],
         name: registrationForm.name.trim(),
+        organization_name: registrationForm.organization_name.trim(),
+        other_property_type: registrationForm.other_property_type.trim(),
+        contact_name: registrationForm.contact_name.trim(),
+        contact_email: registrationForm.contact_email.trim(),
+        billing_contact_name: registrationForm.billing_contact_name.trim(),
+        billing_contact_email: registrationForm.billing_contact_email.trim(),
+        current_unit_count: Number(registrationForm.current_unit_count),
+        peak_unit_count: Number(registrationForm.peak_unit_count),
+        current_people_count: Number(registrationForm.current_people_count),
+        peak_people_count: Number(registrationForm.peak_people_count),
+        location_count: Number(registrationForm.location_count),
+        desired_start_date: registrationForm.desired_start_date || null,
         submitted_by: profile.id
       }])
 
@@ -232,17 +351,7 @@ export default function Lobby({ profile, currentUserEmail, colors, fonts, isDark
       console.error('Error submitting camp registration:', error.message)
       setRegistrationError('Unable to submit the registration. Please try again.')
     } else {
-      setRegistrationForm({
-        name: '',
-        type: 'Campground',
-        contact_name: '',
-        contact_number: '',
-        contact_email: '',
-        mailing_address: '',
-        property_address: '',
-        website_url: '',
-        gs_restricted: false
-      })
+      setRegistrationForm(defaultRegistrationForm)
       setIsAddingRegistration(false)
       await refreshPendingRegistrations()
     }
@@ -267,16 +376,118 @@ export default function Lobby({ profile, currentUserEmail, colors, fonts, isDark
     if (decision === 'approve') await refreshProperties()
   }
 
+  const handleCreateTownHallPost = async (event) => {
+    event.preventDefault()
+    if (isSavingPost) return
+
+    const postType = townHallView === 'discussions' ? 'discussion' : 'note'
+    const projectName = postType === 'discussion'
+      ? selectedProject === 'new_project' ? newProjectName.trim() : selectedProject
+      : null
+    if (postType === 'discussion' && !projectName) {
+      setPostError('Enter a project or campground name before posting.')
+      return
+    }
+    if (!postForm.content.trim()) {
+      setPostError('Post content cannot be empty.')
+      return
+    }
+
+    setIsSavingPost(true)
+    setPostError('')
+    const { data, error } = await supabase
+      .from('town_hall_posts')
+      .insert([{
+        post_type: postType,
+        project_name: projectName,
+        title: postForm.title.trim(),
+        content: postForm.content.trim(),
+        author_id: profile.id,
+        author_name: headerDisplayName || currentUserEmail || 'Team member'
+      }])
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error creating Town Hall post:', error.message)
+      setPostError('Unable to publish your post. Please try again.')
+    } else {
+      setTownHallPosts((posts) => [data, ...posts])
+      setPostForm({ title: '', content: '' })
+      if (postType === 'discussion' && selectedProject === 'new_project') {
+        setSelectedProject(projectName)
+        setNewProjectName('')
+      }
+    }
+    setIsSavingPost(false)
+  }
+
+  const handleSaveTownHallEdit = async (post) => {
+    if (isSavingPost) return
+    if (!editPostForm.content.trim()) {
+      setPostError('Post content cannot be empty.')
+      return
+    }
+
+    setIsSavingPost(true)
+    setPostError('')
+    const { data, error } = await supabase
+      .from('town_hall_posts')
+      .update({
+        title: editPostForm.title.trim(),
+        content: editPostForm.content.trim()
+      })
+      .eq('id', post.id)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error updating Town Hall post:', error.message)
+      setPostError('Unable to save your changes. Please try again.')
+    } else {
+      setTownHallPosts((posts) => posts.map((item) => item.id === post.id ? data : item))
+      setEditingPostId(null)
+    }
+    setIsSavingPost(false)
+  }
+
+  const handleDeleteTownHallPost = async (post) => {
+    const { error } = await supabase
+      .from('town_hall_posts')
+      .delete()
+      .eq('id', post.id)
+
+    if (error) {
+      console.error('Error deleting Town Hall post:', error.message)
+      setPostError('Unable to delete this post. Please try again.')
+      return
+    }
+
+    setTownHallPosts((posts) => posts.filter((item) => item.id !== post.id))
+    if (editingPostId === post.id) setEditingPostId(null)
+    setPostError('')
+  }
+
   const handleAddCamp = async () => {
     if (!campForm.name.trim()) return
-    const { error } = await supabase.from('camps').insert([campForm])
+    const { error } = await supabase.from('camps').insert([{
+      ...campForm,
+      amenities: campForm.amenities.split(',').map((amenity) => amenity.trim()).filter(Boolean),
+      capacity: campForm.capacity === '' ? null : Number(campForm.capacity),
+      nightly_rate: campForm.nightly_rate === '' ? null : Number(campForm.nightly_rate)
+    }])
     if (error) console.error("Error adding camp:", error.message)
     else { resetPropertyForms(); refreshProperties(); }
   }
 
   const handleUpdateCamp = async () => {
     if (!campForm.name.trim() || !selectedCampId) return
-    const { error } = await supabase.from('camps').update(campForm).eq('id', selectedCampId)
+    const { error } = await supabase.from('camps').update({
+      ...campForm,
+      amenities: campForm.amenities.split(',').map((amenity) => amenity.trim()).filter(Boolean),
+      capacity: campForm.capacity === '' ? null : Number(campForm.capacity),
+      nightly_rate: campForm.nightly_rate === '' ? null : Number(campForm.nightly_rate)
+    }).eq('id', selectedCampId)
     if (error) console.error("Error updating camp:", error.message)
     else { resetPropertyForms(); refreshProperties(); }
   }
@@ -309,6 +520,9 @@ export default function Lobby({ profile, currentUserEmail, colors, fonts, isDark
       contact_name: camp.contact_name || '', contact_number: camp.contact_number || '',
       contact_email: camp.contact_email || '', mailing_address: camp.mailing_address || '',
       property_address: camp.property_address || '', website_url: camp.website_url || '',
+      amenities: (camp.amenities || []).join(', '),
+      capacity: camp.capacity ?? '',
+      nightly_rate: camp.nightly_rate ?? '',
       gs_restricted: camp.gs_restricted || false
     })
   }
@@ -323,6 +537,25 @@ export default function Lobby({ profile, currentUserEmail, colors, fonts, isDark
     if (profile?.access_tier === 'global_admin') return !camp.gs_restricted;
     return myAssignedCamps.includes(camp.id);
   })
+
+  const registrationInputStyle = {
+    boxSizing: 'border-box',
+    width: '100%',
+    minWidth: 0,
+    padding: '10px',
+    borderRadius: '4px',
+    border: `1px solid ${colors.border}`,
+    backgroundColor: colors.panel,
+    color: colors.textDark,
+    fontFamily: fonts.body
+  }
+  const registrationLabelStyle = {
+    display: 'block',
+    marginBottom: '6px',
+    color: colors.textDark,
+    fontSize: '13px',
+    fontWeight: '600'
+  }
 
   const dashboardWidgetStyle = {
     width: '100%',
@@ -569,7 +802,7 @@ export default function Lobby({ profile, currentUserEmail, colors, fonts, isDark
           {/* DASHBOARD TAB */}
           {lobbyTab === 'dashboard' && (
             <div>
-              <h2 style={{ fontFamily: fonts.header, fontSize: '32px', color: colors.textDark, margin: '0 0 20px 0', letterSpacing: '1px' }}>SYSTEM DASHBOARD</h2>
+              <PageHeader title="Dashboard" subtitle="Overview of properties, personnel, announcements, and system status." icon={LayoutDashboard} colors={colors} fonts={fonts} eyebrow={<>ADMIN CONSOLE <span style={{ padding: '0 7px' }}>/</span> DASHBOARD</>} />
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', minWidth: 0 }}>
                 
@@ -723,13 +956,10 @@ export default function Lobby({ profile, currentUserEmail, colors, fonts, isDark
 
           {/* 1. CAMP MANAGEMENT */}
           {lobbyTab === 'camps' && (
-            <div style={{ backgroundColor: colors.panel, padding: '30px', borderRadius: '8px', border: `2px solid ${colors.highlight}` }}>
+            <>
+              <PageHeader title="Property Directory" subtitle="Select a property below to access management tools." icon={Tent} colors={colors} fonts={fonts} eyebrow={<>DIRECTORY <span style={{ padding: '0 7px' }}>/</span> PROPERTIES</>} />
+              <div style={{ backgroundColor: colors.panel, padding: '30px', borderRadius: '8px', border: `2px solid ${colors.highlight}` }}>
               
-              <div style={{ marginBottom: '20px' }}>
-                <h2 style={{ fontFamily: fonts.header, fontSize: '28px', color: colors.textDark, margin: '0 0 5px 0', letterSpacing: '1px' }}>PROPERTY DIRECTORY</h2>
-                <p style={{ color: colors.muted, margin: 0, fontSize: '14px' }}>Select a property below to access management tools.</p>
-              </div>
-
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '20px', padding: '15px', backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: '4px', border: `1px solid ${colors.muted}` }}>
                 {profile?.access_tier === 'global_superadmin' && (
                   <>
@@ -752,9 +982,7 @@ export default function Lobby({ profile, currentUserEmail, colors, fonts, isDark
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginBottom: '20px' }}>
                     <input type="text" placeholder="Property Name *" value={campForm.name} onChange={(e) => setCampForm({...campForm, name: e.target.value})} style={{ boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: 'transparent', color: colors.textDark, fontFamily: fonts.body }} />
                     <select value={campForm.type} onChange={(e) => setCampForm({...campForm, type: e.target.value})} style={{ padding: '10px', boxSizing: 'border-box', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: 'transparent', color: colors.textDark, fontFamily: fonts.body }}>
-                      <option value="Campground">Campground</option>
-                      <option value="Youth Camp">Youth Camp</option>
-                      <option value="Standard Property">Standard Property</option>
+                      {propertyTypes.map((propertyType) => <option key={propertyType} value={propertyType}>{propertyType}</option>)}
                     </select>
                     <input type="text" placeholder="Contact Name" value={campForm.contact_name} onChange={(e) => setCampForm({...campForm, contact_name: e.target.value})} style={{ boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: 'transparent', color: colors.textDark, fontFamily: fonts.body }} />
                     <input type="text" placeholder="Contact Number" value={campForm.contact_number} onChange={(e) => setCampForm({...campForm, contact_number: e.target.value})} style={{ boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: 'transparent', color: colors.textDark, fontFamily: fonts.body }} />
@@ -762,6 +990,9 @@ export default function Lobby({ profile, currentUserEmail, colors, fonts, isDark
                     <input type="url" placeholder="Existing Website URL" value={campForm.website_url} onChange={(e) => setCampForm({...campForm, website_url: e.target.value})} style={{ boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: 'transparent', color: colors.textDark, fontFamily: fonts.body }} />
                     <input type="text" placeholder="Property Address" value={campForm.property_address} onChange={(e) => setCampForm({...campForm, property_address: e.target.value})} style={{ gridColumn: '1 / -1', boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: 'transparent', color: colors.textDark, fontFamily: fonts.body }} />
                     <input type="text" placeholder="Mailing Address" value={campForm.mailing_address} onChange={(e) => setCampForm({...campForm, mailing_address: e.target.value})} style={{ gridColumn: '1 / -1', boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: 'transparent', color: colors.textDark, fontFamily: fonts.body }} />
+                    <textarea placeholder="Amenities (comma-separated)" value={campForm.amenities} onChange={(e) => setCampForm({...campForm, amenities: e.target.value})} style={{ boxSizing: 'border-box', minHeight: '70px', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: 'transparent', color: colors.textDark, fontFamily: fonts.body }} />
+                    <input type="number" min="0" step="1" placeholder="Capacity (guests)" value={campForm.capacity} onChange={(e) => setCampForm({...campForm, capacity: e.target.value})} style={{ boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: 'transparent', color: colors.textDark, fontFamily: fonts.body }} />
+                    <input type="number" min="0" step="0.01" placeholder="Nightly rate ($)" value={campForm.nightly_rate} onChange={(e) => setCampForm({...campForm, nightly_rate: e.target.value})} style={{ boxSizing: 'border-box', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: 'transparent', color: colors.textDark, fontFamily: fonts.body }} />
                     
                     {profile?.access_tier === 'global_superadmin' && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', gridColumn: '1 / -1', padding: '10px', backgroundColor: colors.background, borderRadius: '4px', border: `1px solid ${colors.border}` }}>
@@ -830,13 +1061,12 @@ export default function Lobby({ profile, currentUserEmail, colors, fonts, isDark
                   </div>
                 ))}
               </div>
-            </div>
+              </div>
+            </>
           )}
 
           {lobbyTab === 'staff' && (
-            <div style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '8px', border: `2px solid ${colors.highlight}` }}>
-              <StaffManager supabase={supabase} colors={colors} fonts={fonts} isDarkMode={isDarkMode} />
-            </div>
+            <StaffManager supabase={supabase} colors={colors} fonts={fonts} isDarkMode={isDarkMode} />
           )}
 
           {lobbyTab === 'database' && (
@@ -856,12 +1086,10 @@ export default function Lobby({ profile, currentUserEmail, colors, fonts, isDark
           )}
 
           {lobbyTab === 'approvals' && (
-            <div style={{ backgroundColor: colors.panel, padding: '30px', borderRadius: '8px', border: `2px solid ${colors.highlight}` }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
-                <div>
-                  <h2 style={{ fontFamily: fonts.header, fontSize: '28px', color: colors.textDark, margin: '0 0 5px 0' }}>PENDING APPROVALS</h2>
-                  <p style={{ color: colors.muted, margin: 0, fontSize: '14px' }}>Review camp registrations or enter one on behalf of a property.</p>
-                </div>
+            <>
+              <PageHeader title="Pending Approvals" subtitle="Review camp registrations or enter one on behalf of a property." icon={CheckSquare} colors={colors} fonts={fonts} eyebrow={<>ADMIN CONSOLE <span style={{ padding: '0 7px' }}>/</span> APPROVALS</>} />
+              <div style={{ backgroundColor: colors.panel, padding: '30px', borderRadius: '8px', border: `2px solid ${colors.highlight}` }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
                 <button
                   type="button"
                   onClick={() => { setIsAddingRegistration(!isAddingRegistration); setRegistrationError('') }}
@@ -879,27 +1107,127 @@ export default function Lobby({ profile, currentUserEmail, colors, fonts, isDark
 
               {isAddingRegistration && (
                 <form onSubmit={handleSubmitRegistration} style={{ marginBottom: '24px', padding: '20px', backgroundColor: colors.background, border: `1px solid ${colors.border}`, borderRadius: '6px' }}>
-                  <h3 style={{ margin: '0 0 16px', color: colors.textDark, fontFamily: fonts.header, fontSize: '20px' }}>MANUAL CAMP REGISTRATION</h3>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
-                    <input required type="text" placeholder="Property Name *" value={registrationForm.name} onChange={(event) => setRegistrationForm({ ...registrationForm, name: event.target.value })} style={{ boxSizing: 'border-box', minWidth: 0, padding: '10px', borderRadius: '4px', border: `1px solid ${colors.border}`, backgroundColor: colors.panel, color: colors.textDark, fontFamily: fonts.body }} />
-                    <select value={registrationForm.type} onChange={(event) => setRegistrationForm({ ...registrationForm, type: event.target.value })} style={{ boxSizing: 'border-box', minWidth: 0, padding: '10px', borderRadius: '4px', border: `1px solid ${colors.border}`, backgroundColor: colors.panel, color: colors.textDark, fontFamily: fonts.body }}>
-                      <option value="Campground">Campground</option>
-                      <option value="Youth Camp">Youth Camp</option>
-                      <option value="Standard Property">Standard Property</option>
-                    </select>
-                    <input type="text" placeholder="Contact Name" value={registrationForm.contact_name} onChange={(event) => setRegistrationForm({ ...registrationForm, contact_name: event.target.value })} style={{ boxSizing: 'border-box', minWidth: 0, padding: '10px', borderRadius: '4px', border: `1px solid ${colors.border}`, backgroundColor: colors.panel, color: colors.textDark, fontFamily: fonts.body }} />
-                    <input type="tel" placeholder="Contact Number" value={registrationForm.contact_number} onChange={(event) => setRegistrationForm({ ...registrationForm, contact_number: event.target.value })} style={{ boxSizing: 'border-box', minWidth: 0, padding: '10px', borderRadius: '4px', border: `1px solid ${colors.border}`, backgroundColor: colors.panel, color: colors.textDark, fontFamily: fonts.body }} />
-                    <input type="email" placeholder="Contact Email" value={registrationForm.contact_email} onChange={(event) => setRegistrationForm({ ...registrationForm, contact_email: event.target.value })} style={{ boxSizing: 'border-box', minWidth: 0, padding: '10px', borderRadius: '4px', border: `1px solid ${colors.border}`, backgroundColor: colors.panel, color: colors.textDark, fontFamily: fonts.body }} />
-                    <input type="url" placeholder="Website URL" value={registrationForm.website_url} onChange={(event) => setRegistrationForm({ ...registrationForm, website_url: event.target.value })} style={{ boxSizing: 'border-box', minWidth: 0, padding: '10px', borderRadius: '4px', border: `1px solid ${colors.border}`, backgroundColor: colors.panel, color: colors.textDark, fontFamily: fonts.body }} />
-                    <input type="text" placeholder="Property Address" value={registrationForm.property_address} onChange={(event) => setRegistrationForm({ ...registrationForm, property_address: event.target.value })} style={{ boxSizing: 'border-box', minWidth: 0, padding: '10px', borderRadius: '4px', border: `1px solid ${colors.border}`, backgroundColor: colors.panel, color: colors.textDark, fontFamily: fonts.body }} />
-                    <input type="text" placeholder="Mailing Address" value={registrationForm.mailing_address} onChange={(event) => setRegistrationForm({ ...registrationForm, mailing_address: event.target.value })} style={{ boxSizing: 'border-box', minWidth: 0, padding: '10px', borderRadius: '4px', border: `1px solid ${colors.border}`, backgroundColor: colors.panel, color: colors.textDark, fontFamily: fonts.body }} />
-                    {profile?.access_tier === 'global_superadmin' && (
-                      <label style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: '10px', color: colors.textDark, fontSize: '13px' }}>
-                        <input type="checkbox" checked={registrationForm.gs_restricted} onChange={(event) => setRegistrationForm({ ...registrationForm, gs_restricted: event.target.checked })} />
-                        Restrict this property to Global Superadmins
-                      </label>
-                    )}
+                  <h3 style={{ margin: '0 0 6px', color: colors.textDark, fontFamily: fonts.header, fontSize: '20px' }}>NEW CUSTOMER INTAKE</h3>
+                  <p style={{ margin: '0 0 20px', color: colors.muted, fontSize: '13px' }}>Capture the operation’s size and needs. This form does not collect payment details; plan and pricing can be confirmed during follow-up.</p>
+
+                  <h4 style={{ margin: '0 0 10px', color: colors.primary, fontFamily: fonts.header, fontSize: '16px' }}>Organization & Contact</h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', marginBottom: '20px' }}>
+                    <label style={registrationLabelStyle}>Property or location name *
+                      <input required type="text" value={registrationForm.name} onChange={(event) => setRegistrationForm({ ...registrationForm, name: event.target.value })} style={{ ...registrationInputStyle, marginTop: '6px' }} />
+                    </label>
+                    <label style={registrationLabelStyle}>Organization / business name
+                      <input type="text" value={registrationForm.organization_name} onChange={(event) => setRegistrationForm({ ...registrationForm, organization_name: event.target.value })} style={{ ...registrationInputStyle, marginTop: '6px' }} />
+                    </label>
+                    <label style={registrationLabelStyle}>Primary contact name
+                      <input type="text" value={registrationForm.contact_name} onChange={(event) => setRegistrationForm({ ...registrationForm, contact_name: event.target.value })} style={{ ...registrationInputStyle, marginTop: '6px' }} />
+                    </label>
+                    <label style={registrationLabelStyle}>Primary contact email
+                      <input type="email" value={registrationForm.contact_email} onChange={(event) => setRegistrationForm({ ...registrationForm, contact_email: event.target.value })} style={{ ...registrationInputStyle, marginTop: '6px' }} />
+                    </label>
+                    <label style={registrationLabelStyle}>Primary contact phone
+                      <input type="tel" value={registrationForm.contact_number} onChange={(event) => setRegistrationForm({ ...registrationForm, contact_number: event.target.value })} style={{ ...registrationInputStyle, marginTop: '6px' }} />
+                    </label>
+                    <label style={registrationLabelStyle}>Website
+                      <input type="url" value={registrationForm.website_url} onChange={(event) => setRegistrationForm({ ...registrationForm, website_url: event.target.value })} style={{ ...registrationInputStyle, marginTop: '6px' }} />
+                    </label>
+                    <label style={registrationLabelStyle}>Property address
+                      <input type="text" value={registrationForm.property_address} onChange={(event) => setRegistrationForm({ ...registrationForm, property_address: event.target.value })} style={{ ...registrationInputStyle, marginTop: '6px' }} />
+                    </label>
+                    <label style={registrationLabelStyle}>Mailing address
+                      <input type="text" value={registrationForm.mailing_address} onChange={(event) => setRegistrationForm({ ...registrationForm, mailing_address: event.target.value })} style={{ ...registrationInputStyle, marginTop: '6px' }} />
+                    </label>
+                    <label style={registrationLabelStyle}>Billing contact name
+                      <input type="text" value={registrationForm.billing_contact_name} onChange={(event) => setRegistrationForm({ ...registrationForm, billing_contact_name: event.target.value })} style={{ ...registrationInputStyle, marginTop: '6px' }} />
+                    </label>
+                    <label style={registrationLabelStyle}>Billing contact email
+                      <input type="email" value={registrationForm.billing_contact_email} onChange={(event) => setRegistrationForm({ ...registrationForm, billing_contact_email: event.target.value })} style={{ ...registrationInputStyle, marginTop: '6px' }} />
+                    </label>
                   </div>
+
+                  <h4 style={{ margin: '0 0 10px', color: colors.primary, fontFamily: fonts.header, fontSize: '16px' }}>Property Types</h4>
+                  <fieldset style={{ border: `1px solid ${colors.border}`, borderRadius: '5px', padding: '12px', margin: '0 0 20px' }}>
+                    <legend style={{ padding: '0 6px', color: colors.textDark, fontSize: '13px' }}>Select all that apply *</legend>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '8px 14px' }}>
+                      {registrationPropertyTypes.map((propertyType) => (
+                        <label key={propertyType} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: colors.textDark, fontSize: '13px' }}>
+                          <input type="checkbox" checked={registrationForm.property_types.includes(propertyType)} onChange={(event) => toggleRegistrationOption('property_types', propertyType, event.target.checked)} />
+                          {propertyType}
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+                  {registrationForm.property_types.includes('Other') && (
+                    <label style={{ ...registrationLabelStyle, marginBottom: '20px' }}>Describe the other property type
+                      <input required type="text" value={registrationForm.other_property_type} onChange={(event) => setRegistrationForm({ ...registrationForm, other_property_type: event.target.value })} style={{ ...registrationInputStyle, marginTop: '6px' }} />
+                    </label>
+                  )}
+
+                  <h4 style={{ margin: '0 0 10px', color: colors.primary, fontFamily: fonts.header, fontSize: '16px' }}>Operation Size</h4>
+                  <p style={{ margin: '0 0 12px', color: colors.muted, fontSize: '12px' }}>Estimate current and peak-season active inventory and people managed. Historical records are not included in these estimates.</p>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '20px' }}>
+                    <label style={registrationLabelStyle}>Number of locations
+                      <input required type="number" min="1" step="1" value={registrationForm.location_count} onChange={(event) => setRegistrationForm({ ...registrationForm, location_count: event.target.value })} style={{ ...registrationInputStyle, marginTop: '6px' }} />
+                    </label>
+                    <label style={registrationLabelStyle}>Current units / assets
+                      <input required type="number" min="0" step="1" value={registrationForm.current_unit_count} onChange={(event) => setRegistrationForm({ ...registrationForm, current_unit_count: event.target.value })} style={{ ...registrationInputStyle, marginTop: '6px' }} />
+                    </label>
+                    <label style={registrationLabelStyle}>Peak units / assets
+                      <input required type="number" min="0" step="1" value={registrationForm.peak_unit_count} onChange={(event) => setRegistrationForm({ ...registrationForm, peak_unit_count: event.target.value })} style={{ ...registrationInputStyle, marginTop: '6px' }} />
+                    </label>
+                    <label style={registrationLabelStyle}>Current occupants / guests
+                      <input required type="number" min="0" step="1" value={registrationForm.current_people_count} onChange={(event) => setRegistrationForm({ ...registrationForm, current_people_count: event.target.value })} style={{ ...registrationInputStyle, marginTop: '6px' }} />
+                    </label>
+                    <label style={registrationLabelStyle}>Peak occupants / guests
+                      <input required type="number" min="0" step="1" value={registrationForm.peak_people_count} onChange={(event) => setRegistrationForm({ ...registrationForm, peak_people_count: event.target.value })} style={{ ...registrationInputStyle, marginTop: '6px' }} />
+                    </label>
+                  </div>
+
+                  <h4 style={{ margin: '0 0 10px', color: colors.primary, fontFamily: fonts.header, fontSize: '16px' }}>Needs & Subscription Preferences</h4>
+                  <fieldset style={{ border: `1px solid ${colors.border}`, borderRadius: '5px', padding: '12px', margin: '0 0 12px' }}>
+                    <legend style={{ padding: '0 6px', color: colors.textDark, fontSize: '13px' }}>Features of interest</legend>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '8px 14px' }}>
+                      {registrationFeatureOptions.map((feature) => (
+                        <label key={feature} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: colors.textDark, fontSize: '13px' }}>
+                          <input type="checkbox" checked={registrationForm.requested_features.includes(feature)} onChange={(event) => toggleRegistrationOption('requested_features', feature, event.target.checked)} />
+                          {feature}
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', marginBottom: '12px' }}>
+                    <label style={registrationLabelStyle}>Other feature or need
+                      <input type="text" value={registrationForm.other_feature} onChange={(event) => setRegistrationForm({ ...registrationForm, other_feature: event.target.value })} style={{ ...registrationInputStyle, marginTop: '6px' }} />
+                    </label>
+                    <label style={registrationLabelStyle}>Plan preference (not a quote)
+                      <select value={registrationForm.plan_preference} onChange={(event) => setRegistrationForm({ ...registrationForm, plan_preference: event.target.value })} style={{ ...registrationInputStyle, marginTop: '6px' }}>
+                        <option value="help_me_choose">Help me choose</option>
+                        <option value="starter">Starter</option>
+                        <option value="growth">Growth</option>
+                        <option value="portfolio">Portfolio</option>
+                        <option value="enterprise">Enterprise / custom</option>
+                      </select>
+                    </label>
+                    <label style={registrationLabelStyle}>Billing preference
+                      <select value={registrationForm.billing_preference} onChange={(event) => setRegistrationForm({ ...registrationForm, billing_preference: event.target.value })} style={{ ...registrationInputStyle, marginTop: '6px' }}>
+                        <option value="monthly_or_annual">Monthly or annual</option>
+                        <option value="monthly">Monthly</option>
+                        <option value="annual">Annual</option>
+                      </select>
+                    </label>
+                    <label style={registrationLabelStyle}>Desired start date
+                      <input type="date" value={registrationForm.desired_start_date} onChange={(event) => setRegistrationForm({ ...registrationForm, desired_start_date: event.target.value })} style={{ ...registrationInputStyle, marginTop: '6px' }} />
+                    </label>
+                  </div>
+                  <label style={{ ...registrationLabelStyle, marginBottom: '16px' }}>Additional notes
+                    <textarea value={registrationForm.notes} onChange={(event) => setRegistrationForm({ ...registrationForm, notes: event.target.value })} rows="3" style={{ ...registrationInputStyle, marginTop: '6px', resize: 'vertical' }} />
+                  </label>
+
+                  {profile?.access_tier === 'global_superadmin' && (
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px', color: colors.textDark, fontSize: '13px' }}>
+                      <input type="checkbox" checked={registrationForm.gs_restricted} onChange={(event) => setRegistrationForm({ ...registrationForm, gs_restricted: event.target.checked })} />
+                      Restrict the created property to Global Superadmins
+                    </label>
+                  )}
                   {registrationError && <p role="alert" style={{ margin: '12px 0 0', color: colors.error, fontSize: '13px' }}>{registrationError}</p>}
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '16px' }}>
                     <button type="button" onClick={() => { setIsAddingRegistration(false); setRegistrationError('') }} disabled={isSavingRegistration} style={{ padding: '9px 14px', border: `1px solid ${colors.border}`, borderRadius: '4px', background: 'transparent', color: colors.textDark, cursor: 'pointer', fontFamily: fonts.utility, fontSize: '12px' }}>CANCEL</button>
@@ -917,14 +1245,26 @@ export default function Lobby({ profile, currentUserEmail, colors, fonts, isDark
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '14px' }}>
                         <div style={{ minWidth: 0, flex: '1 1 300px' }}>
                           <h3 style={{ margin: '0 0 5px', color: colors.textDark, fontSize: '17px' }}>{registration.name}</h3>
-                          <div style={{ color: colors.primary, fontSize: '12px', marginBottom: '10px' }}>{registration.type}</div>
+                          <div style={{ color: colors.primary, fontSize: '12px', marginBottom: '10px' }}>{registration.organization_name || 'Organization not provided'} · {(registration.property_types || [registration.type]).join(', ')}</div>
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '6px 16px', color: colors.muted, fontSize: '13px', overflowWrap: 'anywhere' }}>
                             {registration.contact_name && <div>Contact: {registration.contact_name}</div>}
                             {registration.contact_number && <div>Phone: {registration.contact_number}</div>}
                             {registration.contact_email && <div>Email: {registration.contact_email}</div>}
+                            {registration.billing_contact_name && <div>Billing contact: {registration.billing_contact_name}</div>}
+                            {registration.billing_contact_email && <div>Billing email: {registration.billing_contact_email}</div>}
                             {registration.property_address && <div>Property address: {registration.property_address}</div>}
                             {registration.mailing_address && <div>Mailing address: {registration.mailing_address}</div>}
                             {registration.website_url && <div>Website: {registration.website_url}</div>}
+                            {registration.other_property_type && <div>Other property type: {registration.other_property_type}</div>}
+                            <div>Locations: {registration.location_count}</div>
+                            <div>Units/assets: {registration.current_unit_count} current · {registration.peak_unit_count} peak</div>
+                            <div>Occupants/guests: {registration.current_people_count} current · {registration.peak_people_count} peak</div>
+                            <div>Plan preference: {{ help_me_choose: 'Help me choose', starter: 'Starter', growth: 'Growth', portfolio: 'Portfolio', enterprise: 'Enterprise / custom' }[registration.plan_preference] || 'Help me choose'}</div>
+                            <div>Billing: {{ monthly_or_annual: 'Monthly or annual', monthly: 'Monthly', annual: 'Annual' }[registration.billing_preference] || 'Not specified'}</div>
+                            {registration.desired_start_date && <div>Desired start: {registration.desired_start_date}</div>}
+                            {(registration.requested_features || []).length > 0 && <div style={{ gridColumn: '1 / -1' }}>Features: {registration.requested_features.join(', ')}</div>}
+                            {registration.other_feature && <div style={{ gridColumn: '1 / -1' }}>Other need: {registration.other_feature}</div>}
+                            {registration.notes && <div style={{ gridColumn: '1 / -1', whiteSpace: 'pre-wrap' }}>Notes: {registration.notes}</div>}
                           </div>
                         </div>
                         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -937,17 +1277,14 @@ export default function Lobby({ profile, currentUserEmail, colors, fonts, isDark
                 </div>
               )}
             </div>
+            </>
           )}
 
           {/* UNIFIED TOWN HALL MODULE */}
           {lobbyTab === 'townhall' && (
-            <div style={{ backgroundColor: colors.panel, padding: '30px', borderRadius: '8px', border: `2px solid ${colors.highlight}` }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
-                <div>
-                  <h2 style={{ fontFamily: fonts.header, fontSize: '28px', color: colors.textDark, margin: '0 0 5px 0' }}>TOWN HALL</h2>
-                  <p style={{ color: colors.muted, margin: 0, fontSize: '14px' }}>Central hub for team communication and system feedback.</p>
-                </div>
-              </div>
+            <>
+              <PageHeader title="Town Hall" subtitle="Central hub for team communication and system feedback." icon={MessageSquare} colors={colors} fonts={fonts} eyebrow={<>ADMIN CONSOLE <span style={{ padding: '0 7px' }}>/</span> TOWN HALL</>} />
+              <div style={{ backgroundColor: colors.panel, padding: '30px', borderRadius: '8px', border: `2px solid ${colors.highlight}` }}>
               
               {/* Town Hall Sub-navigation Tabs */}
               <div style={{ display: 'flex', borderBottom: `2px solid ${colors.border}`, marginBottom: '25px' }}>
@@ -971,8 +1308,8 @@ export default function Lobby({ profile, currentUserEmail, colors, fonts, isDark
                   <div style={{ marginBottom: '20px' }}>
                     <label style={{ display: 'block', color: colors.textDark, fontWeight: 'bold', marginBottom: '8px', fontSize: '14px' }}>Select Project or Campground:</label>
                     <select value={selectedProject} onChange={(e) => setSelectedProject(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', padding: '12px', borderRadius: '4px', border: `1px solid ${colors.border}`, backgroundColor: colors.panel, color: colors.textDark, fontFamily: fonts.body }}>
-                      <option value="Camp Whispering Pines">Camp Whispering Pines</option>
-                      <option value="Squirrel Hill Campground">Squirrel Hill Campground</option>
+                      <option value="Test-Youth Camp">Test-Youth Camp</option>
+                      <option value="Test-Campground">Test-Campground</option>
                       <option value="new_project">+ New Project</option>
                     </select>
                   </div>
@@ -982,37 +1319,123 @@ export default function Lobby({ profile, currentUserEmail, colors, fonts, isDark
                       <input type="text" value={newProjectName} onChange={handleProjectTextChange} placeholder="Project Name..." style={{ width: '100%', boxSizing: 'border-box', padding: '12px', borderRadius: '4px', border: `1px solid ${colors.muted}`, backgroundColor: 'transparent', color: colors.textDark, fontFamily: fonts.body }} />
                     </div>
                   )}
-                  <div style={{ backgroundColor: colors.panel, padding: '20px', borderRadius: '4px', border: `1px solid ${colors.border}`, marginBottom: '15px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                      <span style={{ fontWeight: 'bold', color: colors.textDark }}>System Update: App Testing Phase 2</span>
-                      <span style={{ fontSize: '12px', color: colors.muted }}>10:42 AM</span>
+                  <form onSubmit={handleCreateTownHallPost} style={{ padding: '18px', marginBottom: '20px', backgroundColor: colors.panel, border: `1px solid ${colors.border}`, borderRadius: '6px' }}>
+                    <label style={{ display: 'block', marginBottom: '10px', color: colors.textDark, fontWeight: 'bold', fontSize: '14px' }}>Discussion title
+                      <input type="text" value={postForm.title} onChange={(event) => setPostForm({ ...postForm, title: event.target.value })} placeholder="Optional title" style={{ width: '100%', boxSizing: 'border-box', marginTop: '6px', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.border}`, backgroundColor: colors.background, color: colors.textDark, fontFamily: fonts.body }} />
+                    </label>
+                    <label style={{ display: 'block', marginBottom: '12px', color: colors.textDark, fontWeight: 'bold', fontSize: '14px' }}>Your post
+                      <textarea required value={postForm.content} onChange={(event) => setPostForm({ ...postForm, content: event.target.value })} rows="4" placeholder="Share an update or start a discussion..." style={{ width: '100%', boxSizing: 'border-box', display: 'block', marginTop: '6px', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.border}`, backgroundColor: colors.background, color: colors.textDark, fontFamily: fonts.body, resize: 'vertical' }} />
+                    </label>
+                    {postError && <p role="alert" style={{ margin: '0 0 12px', color: colors.error, fontSize: '13px' }}>{postError}</p>}
+                    <button type="submit" disabled={isSavingPost} style={{ backgroundColor: colors.primary, color: colors.textOnPrimary, border: 'none', padding: '9px 16px', borderRadius: '4px', cursor: isSavingPost ? 'wait' : 'pointer', fontFamily: fonts.utility, fontSize: '12px' }}>{isSavingPost ? 'POSTING…' : 'POST TO DISCUSSION'}</button>
+                  </form>
+
+                  {isLoadingPosts ? (
+                    <div style={{ padding: '28px', textAlign: 'center', color: colors.muted }}>Loading discussions…</div>
+                  ) : townHallPosts.length === 0 ? (
+                    <div style={{ padding: '28px', textAlign: 'center', color: colors.muted, backgroundColor: colors.panel, border: `1px solid ${colors.border}`, borderRadius: '6px' }}>No discussion posts yet for this project.</div>
+                  ) : (
+                    <div style={{ display: 'grid', gap: '12px' }}>
+                      {townHallPosts.filter((post) => post.project_name === (selectedProject === 'new_project' ? newProjectName.trim() : selectedProject)).map((post) => {
+                        const isAuthor = post.author_id === profile?.id
+                        const canDelete = isAuthor || profile?.access_tier === 'global_superadmin'
+                        const isEditing = editingPostId === post.id
+                        return (
+                          <article key={post.id} style={{ padding: '18px', backgroundColor: colors.panel, border: `1px solid ${colors.border}`, borderRadius: '6px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap', marginBottom: '10px' }}>
+                              <div>
+                                <div style={{ color: colors.primary, fontSize: '12px', fontFamily: fonts.utility }}>{post.project_name}</div>
+                                <div style={{ color: colors.muted, fontSize: '12px', marginTop: '4px' }}>{post.author_name} · {new Date(post.created_at).toLocaleString()}{post.updated_at !== post.created_at ? ' · edited' : ''}</div>
+                              </div>
+                              {(isAuthor || canDelete) && !isEditing && (
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                  {isAuthor && <button type="button" onClick={() => { setEditingPostId(post.id); setEditPostForm({ title: post.title, content: post.content }); setPostError('') }} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '6px 9px', border: `1px solid ${colors.border}`, borderRadius: '4px', background: 'transparent', color: colors.textDark, cursor: 'pointer', fontFamily: fonts.utility, fontSize: '11px' }}><Edit2 size={14} /> EDIT</button>}
+                                  {canDelete && <button type="button" onClick={() => { if (window.confirm('Delete this discussion post?')) void handleDeleteTownHallPost(post) }} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '6px 9px', border: `1px solid ${colors.error}`, borderRadius: '4px', background: 'transparent', color: colors.error, cursor: 'pointer', fontFamily: fonts.utility, fontSize: '11px' }}><Trash2 size={14} /> DELETE</button>}
+                                </div>
+                              )}
+                            </div>
+                            {isEditing ? (
+                              <div>
+                                <input type="text" value={editPostForm.title} onChange={(event) => setEditPostForm({ ...editPostForm, title: event.target.value })} aria-label="Edit discussion title" style={{ width: '100%', boxSizing: 'border-box', marginBottom: '8px', padding: '9px', borderRadius: '4px', border: `1px solid ${colors.border}`, backgroundColor: colors.background, color: colors.textDark, fontFamily: fonts.body }} />
+                                <textarea value={editPostForm.content} onChange={(event) => setEditPostForm({ ...editPostForm, content: event.target.value })} rows="4" aria-label="Edit discussion post" style={{ width: '100%', boxSizing: 'border-box', padding: '9px', borderRadius: '4px', border: `1px solid ${colors.border}`, backgroundColor: colors.background, color: colors.textDark, fontFamily: fonts.body, resize: 'vertical' }} />
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '10px' }}>
+                                  <button type="button" onClick={() => setEditingPostId(null)} style={{ padding: '7px 10px', border: `1px solid ${colors.border}`, borderRadius: '4px', background: 'transparent', color: colors.textDark, cursor: 'pointer' }}>Cancel</button>
+                                  <button type="button" onClick={() => void handleSaveTownHallEdit(post)} disabled={isSavingPost} style={{ padding: '7px 10px', border: 'none', borderRadius: '4px', backgroundColor: colors.primary, color: colors.textOnPrimary, cursor: 'pointer' }}>Save</button>
+                                </div>
+                              </div>
+                            ) : (
+                              <>
+                                {post.title && <h3 style={{ margin: '0 0 8px', color: colors.textDark, fontSize: '16px' }}>{post.title}</h3>}
+                                <p style={{ margin: 0, color: colors.textDark, fontSize: '15px', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{post.content}</p>
+                              </>
+                            )}
+                          </article>
+                        )
+                      })}
                     </div>
-                    <p style={{ color: colors.textDark, fontSize: '15px', margin: '0 0 20px 0', lineHeight: 1.5 }}>Please make sure all QA Testers have logged their initial findings in the QA & Tester Notes tab before the end of the day.</p>
-                    <div style={{ display: 'flex', gap: '20px', borderTop: `1px solid ${colors.border}`, paddingTop: '15px' }}>
-                      <button style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', color: colors.muted, cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}><ThumbsUp size={18} /> Like</button>
-                      <button style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', color: colors.muted, cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}><MessageCircle size={18} /> Reply</button>
-                      <button style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', color: colors.muted, cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}><BarChart2 size={18} /> Create Poll</button>
-                    </div>
-                  </div>
+                  )}
                 </div>
               )}
 
               {/* Sub-tab 2: QA & Tester Notes */}
               {townHallView === 'notes' && (
                 <div>
-                  <textarea placeholder="Enter your QA notes or system feedback here..." style={{ width: '100%', boxSizing: 'border-box', height: '120px', padding: '15px', borderRadius: '4px', border: `1px solid ${colors.border}`, backgroundColor: colors.panel, color: colors.textDark, fontFamily: fonts.body, resize: 'vertical', marginBottom: '15px' }} />
-                  <button style={{ backgroundColor: colors.primary, color: colors.textOnPrimary, border: 'none', padding: '12px 24px', borderRadius: '4px', cursor: 'pointer', fontFamily: fonts.header, fontSize: '16px', marginBottom: '30px' }}>SUBMIT NOTE</button>
-                  <h3 style={{ fontFamily: fonts.header, fontSize: '20px', color: colors.textDark, margin: '0 0 15px 0', borderBottom: `2px solid ${colors.border}`, paddingBottom: '8px' }}>YOUR PREVIOUS NOTES</h3>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '20px', backgroundColor: colors.panel, border: `1px solid ${colors.border}`, borderRadius: '4px' }}>
-                    <div>
-                      <div style={{ fontSize: '12px', color: colors.muted, marginBottom: '8px', fontFamily: fonts.utility }}>Logged: Aug 5, 2026</div>
-                      <div style={{ color: colors.textDark, fontSize: '15px', lineHeight: 1.5 }}>The camp selection dropdown on mobile devices occasionally overlaps with the navigation bar.</div>
+                  <form onSubmit={handleCreateTownHallPost} style={{ padding: '18px', marginBottom: '20px', backgroundColor: colors.panel, border: `1px solid ${colors.border}`, borderRadius: '6px' }}>
+                    <label style={{ display: 'block', marginBottom: '10px', color: colors.textDark, fontWeight: 'bold', fontSize: '14px' }}>Note title
+                      <input type="text" value={postForm.title} onChange={(event) => setPostForm({ ...postForm, title: event.target.value })} placeholder="Optional title" style={{ width: '100%', boxSizing: 'border-box', marginTop: '6px', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.border}`, backgroundColor: colors.background, color: colors.textDark, fontFamily: fonts.body }} />
+                    </label>
+                    <label style={{ display: 'block', marginBottom: '12px', color: colors.textDark, fontWeight: 'bold', fontSize: '14px' }}>QA or tester note
+                      <textarea required value={postForm.content} onChange={(event) => setPostForm({ ...postForm, content: event.target.value })} rows="4" placeholder="Describe an issue, suggestion, or test finding..." style={{ width: '100%', boxSizing: 'border-box', display: 'block', marginTop: '6px', padding: '10px', borderRadius: '4px', border: `1px solid ${colors.border}`, backgroundColor: colors.background, color: colors.textDark, fontFamily: fonts.body, resize: 'vertical' }} />
+                    </label>
+                    {postError && <p role="alert" style={{ margin: '0 0 12px', color: colors.error, fontSize: '13px' }}>{postError}</p>}
+                    <button type="submit" disabled={isSavingPost} style={{ backgroundColor: colors.primary, color: colors.textOnPrimary, border: 'none', padding: '9px 16px', borderRadius: '4px', cursor: isSavingPost ? 'wait' : 'pointer', fontFamily: fonts.utility, fontSize: '12px' }}>{isSavingPost ? 'SUBMITTING…' : 'SUBMIT NOTE'}</button>
+                  </form>
+                  <h3 style={{ fontFamily: fonts.header, fontSize: '20px', color: colors.textDark, margin: '0 0 15px', borderBottom: `2px solid ${colors.border}`, paddingBottom: '8px' }}>TOWN HALL NOTES</h3>
+                  {isLoadingPosts ? (
+                    <div style={{ padding: '28px', textAlign: 'center', color: colors.muted }}>Loading notes…</div>
+                  ) : townHallPosts.length === 0 ? (
+                    <div style={{ padding: '28px', textAlign: 'center', color: colors.muted, backgroundColor: colors.panel, border: `1px solid ${colors.border}`, borderRadius: '6px' }}>No notes have been submitted yet.</div>
+                  ) : (
+                    <div style={{ display: 'grid', gap: '12px' }}>
+                      {townHallPosts.map((post) => {
+                        const isAuthor = post.author_id === profile?.id
+                        const canDelete = isAuthor || profile?.access_tier === 'global_superadmin'
+                        const isEditing = editingPostId === post.id
+                        return (
+                          <article key={post.id} style={{ padding: '18px', backgroundColor: colors.panel, border: `1px solid ${colors.border}`, borderRadius: '6px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap', marginBottom: '10px' }}>
+                              <div style={{ color: colors.muted, fontSize: '12px' }}>{post.author_name} · {new Date(post.created_at).toLocaleString()}{post.updated_at !== post.created_at ? ' · edited' : ''}</div>
+                              {(isAuthor || canDelete) && !isEditing && (
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                  {isAuthor && <button type="button" onClick={() => { setEditingPostId(post.id); setEditPostForm({ title: post.title, content: post.content }); setPostError('') }} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '6px 9px', border: `1px solid ${colors.border}`, borderRadius: '4px', background: 'transparent', color: colors.textDark, cursor: 'pointer', fontFamily: fonts.utility, fontSize: '11px' }}><Edit2 size={14} /> EDIT</button>}
+                                  {canDelete && <button type="button" onClick={() => { if (window.confirm('Delete this note?')) void handleDeleteTownHallPost(post) }} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '6px 9px', border: `1px solid ${colors.error}`, borderRadius: '4px', background: 'transparent', color: colors.error, cursor: 'pointer', fontFamily: fonts.utility, fontSize: '11px' }}><Trash2 size={14} /> DELETE</button>}
+                                </div>
+                              )}
+                            </div>
+                            {isEditing ? (
+                              <div>
+                                <input type="text" value={editPostForm.title} onChange={(event) => setEditPostForm({ ...editPostForm, title: event.target.value })} aria-label="Edit note title" style={{ width: '100%', boxSizing: 'border-box', marginBottom: '8px', padding: '9px', borderRadius: '4px', border: `1px solid ${colors.border}`, backgroundColor: colors.background, color: colors.textDark, fontFamily: fonts.body }} />
+                                <textarea value={editPostForm.content} onChange={(event) => setEditPostForm({ ...editPostForm, content: event.target.value })} rows="4" aria-label="Edit note" style={{ width: '100%', boxSizing: 'border-box', padding: '9px', borderRadius: '4px', border: `1px solid ${colors.border}`, backgroundColor: colors.background, color: colors.textDark, fontFamily: fonts.body, resize: 'vertical' }} />
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '10px' }}>
+                                  <button type="button" onClick={() => setEditingPostId(null)} style={{ padding: '7px 10px', border: `1px solid ${colors.border}`, borderRadius: '4px', background: 'transparent', color: colors.textDark, cursor: 'pointer' }}>Cancel</button>
+                                  <button type="button" onClick={() => void handleSaveTownHallEdit(post)} disabled={isSavingPost} style={{ padding: '7px 10px', border: 'none', borderRadius: '4px', backgroundColor: colors.primary, color: colors.textOnPrimary, cursor: 'pointer' }}>Save</button>
+                                </div>
+                              </div>
+                            ) : (
+                              <>
+                                {post.title && <h4 style={{ margin: '0 0 8px', color: colors.textDark }}>{post.title}</h4>}
+                                <p style={{ margin: 0, color: colors.textDark, fontSize: '15px', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{post.content}</p>
+                              </>
+                            )}
+                          </article>
+                        )
+                      })}
                     </div>
-                    <button style={{ background: 'none', border: 'none', color: colors.primary, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontFamily: fonts.utility, fontWeight: 'bold' }}><Edit2 size={16} /> EDIT</button>
-                  </div>
+                  )}
                 </div>
               )}
             </div>
+            </>
           )}
 
         </div>

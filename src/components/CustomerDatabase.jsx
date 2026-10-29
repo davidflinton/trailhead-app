@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 import { Database, Users, User, Search, FileText, Upload, X, Save, Phone, Mail, MapPin, Briefcase, ChevronDown, ChevronUp } from 'lucide-react'
+import PageHeader from './PageHeader'
 
 export default function CustomerDatabase({ colors, fonts }) {
   const [activeTab, setActiveTab] = useState('personnel')
@@ -249,23 +250,16 @@ export default function CustomerDatabase({ colors, fonts }) {
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px', color: colors.textDark, fontFamily: fonts.body, position: 'relative' }}>
-      <div style={{ marginBottom: '20px', color: colors.muted, fontSize: '12px', fontFamily: fonts.utility, letterSpacing: '0.04em' }}>
-        DIRECTORY <span style={{ padding: '0 7px' }}>/</span> CUSTOMER RECORDS
-      </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '24px', gap: '16px' }}>
-        <div>
-          <h1 style={{ fontSize: '28px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '10px', margin: '0 0 6px 0', color: colors.textDark, letterSpacing: '-0.02em' }}>
-            <Database color={colors.primary} size={25} /> Customer Directory
-          </h1>
-          <p style={{ color: colors.muted, fontSize: '14px', margin: 0 }}>
-            Search and manage customer personnel and camper records.
-          </p>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: colors.muted, fontSize: '13px' }}>
-          <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: colors.primary }} />
-          Directory synced
-        </div>
-      </div>
+      <PageHeader
+        title="Customer Directory"
+        subtitle="Search and manage customer personnel and camper records."
+        icon={Database}
+        colors={colors}
+        fonts={fonts}
+        eyebrow={<>DIRECTORY <span style={{ padding: '0 7px' }}>/</span> CUSTOMER RECORDS</>}
+        status="Directory synced"
+        padding="0"
+      />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px', marginBottom: '20px' }}>
         {[
